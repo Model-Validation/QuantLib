@@ -31,7 +31,7 @@
 /*! @{ */
 
 //! version string
-#define QL_VERSION "1.24-dev"
+#define QL_VERSION "1.24-dev : " __TIMESTAMP__
 
 //! version hexadecimal number
 #define QL_HEX_VERSION 0x01240000
