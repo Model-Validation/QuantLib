@@ -27,7 +27,7 @@ namespace QuantLib {
 
     namespace {
         // time interval used in finite differences
-        const Time dt = 0.0001;
+        const Time dt = 0.000001;
     }
 
     YieldTermStructure::YieldTermStructure(const DayCounter& dc) : TermStructure(dc) {}
