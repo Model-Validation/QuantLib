@@ -152,6 +152,22 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MulticurveBootstrapping-mt</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MulticurveBootstrapping-x64-mt</TargetName>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(BOOST);$(IncludePath)</IncludePath>
+    <LibraryPath>$(BOOST_LIB64);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (static runtime)|x64'">
+    <IncludePath>$(BOOST);$(IncludePath)</IncludePath>
+    <LibraryPath>$(BOOST_LIB64);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(BOOST);$(IncludePath)</IncludePath>
+    <LibraryPath>$(BOOST_LIB64);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|x64'">
+    <IncludePath>$(BOOST);$(IncludePath)</IncludePath>
+    <LibraryPath>$(BOOST_LIB64);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug (static runtime)|Win32'">
     <Midl>
       <TypeLibraryName>.\build\$(PlatformToolset)\$(Platform)\$(Configuration)\MulticurveBootstrapping.tlb</TypeLibraryName>
