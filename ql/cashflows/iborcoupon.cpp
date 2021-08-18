@@ -114,10 +114,19 @@ namespace QuantLib {
         */
         Date today = Settings::instance().evaluationDate();
 
-        if (fixingDate_>today)
-            return iborIndex_->forecastFixing(fixingValueDate_,
-                                              fixingEndDate_,
-                                              spanningTime_);
+
+        if (fixingDate_ > today)
+            if (index_->tenor() == Period(0, Months)) {
+                return iborIndex_->forecastFixing(fixingValueDate_,
+                    fixingEndDate_,
+                    0.0);
+            }
+            else {
+                return iborIndex_->forecastFixing(fixingValueDate_,
+                    fixingEndDate_,
+                    spanningTime_);
+            }
+
 
         if (fixingDate_<today ||
             Settings::instance().enforcesTodaysHistoricFixings()) {
@@ -128,6 +137,8 @@ namespace QuantLib {
             return result;
         }
 
+        // So fixingDate_ == today
+
         try {
             Rate result = index_->pastFixing(fixingDate_);
             if (result!=Null<Real>())
@@ -137,9 +148,17 @@ namespace QuantLib {
         } catch (Error&) {
                 ;   // fall through and forecast
         }
-        return iborIndex_->forecastFixing(fixingValueDate_,
-                                          fixingEndDate_,
-                                          spanningTime_);
+
+        if (index_->tenor() == Period(0, Months)) {
+            return iborIndex_->forecastFixing(fixingValueDate_,
+                fixingEndDate_,
+                0.0);
+        }
+        else {
+            return iborIndex_->forecastFixing(fixingValueDate_,
+                fixingEndDate_,
+                spanningTime_);
+        }
     }
 
     void IborCoupon::accept(AcyclicVisitor& v) {

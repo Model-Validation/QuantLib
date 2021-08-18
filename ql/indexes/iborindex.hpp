@@ -117,7 +117,13 @@ namespace QuantLib {
                    "null term structure set to this instance of " << name());
         DiscountFactor disc1 = termStructure_->discount(d1);
         DiscountFactor disc2 = termStructure_->discount(d2);
-        return (disc1/disc2 - 1.0) / t;
+        // This seems not correct if the curve is based on continuous compounding.
+        if (t > 0.0) {
+            return (disc1 / disc2 - 1.0) / t;
+        }
+        else {
+            return termStructure_->forwardRate(d1, d1, dayCounter_, Continuous);
+        }
     }
 
 }
