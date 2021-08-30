@@ -57,6 +57,11 @@ namespace QuantLib {
                          const DayCounter& dayCounter);
         BlackConstantVol(const Date& referenceDates,
                          const Calendar& calendar,
+                         const Handle<BlackVolTermStructure>& volatilityTS,
+                         const DayCounter& dayCounter,
+                         const Time t,
+                         const Real strike);
+
         //! \name TermStructure interface
         //@{
         Date maxDate() const override;
@@ -75,6 +80,9 @@ namespace QuantLib {
 
       private:
         Handle<Quote> volatility_;
+        Handle<BlackVolTermStructure> volatilityTS_;
+        Time t_;
+        Real strike_;
     };
 
 
@@ -112,6 +120,17 @@ namespace QuantLib {
         registerWith(volatility_);
     }
 
+    inline BlackConstantVol::BlackConstantVol(const Date& referenceDate,
+                                              const Calendar& cal,
+                                              const Handle<BlackVolTermStructure>& volatilityTS,
+                                              const DayCounter& dc,
+                                              const Time t,
+                                              const Real strike)
+    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc), volatilityTS_(volatilityTS),
+      t_(t), strike_(strike) {
+        registerWith(volatilityTS_);
+    }
+
     inline Date BlackConstantVol::maxDate() const {
         return Date::maxDate();
     }
@@ -133,6 +152,9 @@ namespace QuantLib {
     }
 
     inline Volatility BlackConstantVol::blackVolImpl(Time, Real) const {
+        if (!volatilityTS_.empty()) {
+            return volatilityTS_->blackVol(t_, strike_);
+        }
         return volatility_->value();
     }
 
