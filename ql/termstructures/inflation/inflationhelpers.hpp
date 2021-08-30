@@ -44,7 +44,8 @@ namespace QuantLib {
           BusinessDayConvention paymentConvention,
           DayCounter dayCounter,
           ext::shared_ptr<ZeroInflationIndex> zii,
-          Handle<YieldTermStructure> nominalTermStructure);
+          Handle<YieldTermStructure> nominalTermStructure,
+          const Date& start = Date());
 
       void setTermStructure(ZeroInflationTermStructure*) override;
       Real impliedQuote() const override;
@@ -58,6 +59,7 @@ namespace QuantLib {
       ext::shared_ptr<ZeroInflationIndex> zii_;
       ext::shared_ptr<ZeroCouponInflationSwap> zciis_;
       Handle<YieldTermStructure> nominalTermStructure_;
+      Date start_;
     };
 
 
@@ -72,7 +74,8 @@ namespace QuantLib {
                                       BusinessDayConvention paymentConvention,
                                       DayCounter dayCounter,
                                       ext::shared_ptr<YoYInflationIndex> yii,
-                                      Handle<YieldTermStructure> nominalTermStructure);
+                                      Handle<YieldTermStructure> nominalTermStructure,
+                                      const Date& start = Date());
 
         void setTermStructure(YoYInflationTermStructure*) override;
         Real impliedQuote() const override;
@@ -86,6 +89,7 @@ namespace QuantLib {
         ext::shared_ptr<YoYInflationIndex> yii_;
         ext::shared_ptr<YearOnYearInflationSwap> yyiis_;
         Handle<YieldTermStructure> nominalTermStructure_;
+        Date start_;
     };
 
 }

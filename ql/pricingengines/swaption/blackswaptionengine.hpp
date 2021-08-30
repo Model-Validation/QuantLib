@@ -30,17 +30,16 @@
 #ifndef quantlib_pricers_black_swaption_hpp
 #define quantlib_pricers_black_swaption_hpp
 
-#include <ql/cashflows/cashflows.hpp>
-#include <ql/cashflows/fixedratecoupon.hpp>
-#include <ql/exercise.hpp>
-#include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/swaption.hpp>
-#include <ql/pricingengines/blackformula.hpp>
-#include <ql/pricingengines/swap/discountingswapengine.hpp>
-#include <ql/termstructures/volatility/swaption/swaptionconstantvol.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolstructure.hpp>
+#include <ql/pricingengines/blackformula.hpp>
+#include <ql/termstructures/volatility/swaption/swaptionconstantvol.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
-#include <utility>
+#include <ql/pricingengines/swap/discountingswapengine.hpp>
+#include <ql/indexes/iborindex.hpp>
+#include <ql/cashflows/fixedratecoupon.hpp>
+#include <ql/cashflows/cashflows.hpp>
+#include <ql/exercise.hpp>
 
 namespace QuantLib {
 
@@ -54,20 +53,20 @@ namespace QuantLib {
     class BlackStyleSwaptionEngine : public Swaption::engine {
       public:
         enum CashAnnuityModel { SwapRate, DiscountCurve };
-        BlackStyleSwaptionEngine(Handle<YieldTermStructure> discountCurve,
-                                 Volatility vol,
-                                 const DayCounter& dc = Actual365Fixed(),
-                                 Real displacement = 0.0,
+        BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
+                            Volatility vol,
+                            const DayCounter& dc = Actual365Fixed(),
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
+        BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
+                            const Handle<Quote>& vol,
+                            const DayCounter& dc = Actual365Fixed(),
+                            Real displacement = 0.0,
+                            CashAnnuityModel model = DiscountCurve);
+        BlackStyleSwaptionEngine(const Handle<YieldTermStructure>& discountCurve,
+                                 const Handle<SwaptionVolatilityStructure>& vol,
                                  CashAnnuityModel model = DiscountCurve);
-        BlackStyleSwaptionEngine(Handle<YieldTermStructure> discountCurve,
-                                 const Handle<Quote>& vol,
-                                 const DayCounter& dc = Actual365Fixed(),
-                                 Real displacement = 0.0,
-                                 CashAnnuityModel model = DiscountCurve);
-        BlackStyleSwaptionEngine(Handle<YieldTermStructure> discountCurve,
-                                 Handle<SwaptionVolatilityStructure> vol,
-                                 CashAnnuityModel model = DiscountCurve);
-        void calculate() const override;
+        void calculate() const;
         Handle<YieldTermStructure> termStructure() { return discountCurve_; }
         Handle<SwaptionVolatilityStructure> volatility() { return vol_; }
 
@@ -93,8 +92,11 @@ namespace QuantLib {
                    blackFormulaStdDevDerivative(strike, atmForward, stdDev,
                                                 annuity, displacement);
         }
-        Real delta(const Option::Type type, const Real strike,
-                   const Real atmForward, const Real stdDev, const Real annuity,
+        Real delta(const Option::Type type,
+                   const Real strike,
+                   const Real atmForward,
+                   const Real stdDev,
+                   const Real annuity,
                    const Real displacement) {
             return blackFormulaForwardDerivative(type, strike, atmForward, stdDev,
                                                  annuity, displacement);
@@ -116,11 +118,14 @@ namespace QuantLib {
                    bachelierBlackFormulaStdDevDerivative(
                        strike, atmForward, stdDev, annuity);
         }
-        Real delta(const Option::Type type, const Real strike,
-                   const Real atmForward, const Real stdDev, const Real annuity,
+        Real delta(const Option::Type type,
+                   const Real strike,
+                   const Real atmForward,
+                   const Real stdDev,
+                   const Real annuity,
                    const Real) {
-            return bachelierBlackFormulaForwardDerivative(
-                type, strike, atmForward, stdDev, annuity);
+            return bachelierBlackFormulaForwardDerivative(type, strike, atmForward, stdDev,
+                                                          annuity);
         }
     };
 
@@ -178,44 +183,42 @@ namespace QuantLib {
 
     namespace detail {
 
-        template <class Spec>
-        BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
-            Handle<YieldTermStructure> discountCurve,
-            Volatility vol,
-            const DayCounter& dc,
-            Real displacement,
-            CashAnnuityModel model)
-        : discountCurve_(std::move(discountCurve)),
-          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(new ConstantSwaptionVolatility(
-              0, NullCalendar(), Following, vol, dc, Spec().type, displacement))),
+    template<class Spec>
+    BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
+        const Handle<YieldTermStructure> &discountCurve, Volatility vol,
+        const DayCounter &dc, Real displacement, CashAnnuityModel model)
+        : discountCurve_(discountCurve),
+          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(
+              new ConstantSwaptionVolatility(0, NullCalendar(), Following, vol,
+                                             dc, Spec().type, displacement))),
           model_(model) {
-            registerWith(discountCurve_);
-        }
+        registerWith(discountCurve_);
+    }
 
-        template <class Spec>
-        BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
-            Handle<YieldTermStructure> discountCurve,
-            const Handle<Quote>& vol,
-            const DayCounter& dc,
-            Real displacement,
-            CashAnnuityModel model)
-        : discountCurve_(std::move(discountCurve)),
-          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(new ConstantSwaptionVolatility(
-              0, NullCalendar(), Following, vol, dc, Spec().type, displacement))),
+    template<class Spec>
+    BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
+        const Handle<YieldTermStructure> &discountCurve,
+        const Handle<Quote> &vol, const DayCounter &dc, Real displacement,
+        CashAnnuityModel model)
+        : discountCurve_(discountCurve),
+          vol_(ext::shared_ptr<SwaptionVolatilityStructure>(
+              new ConstantSwaptionVolatility(0, NullCalendar(), Following, vol,
+                                             dc, Spec().type, displacement))),
           model_(model) {
-            registerWith(discountCurve_);
-            registerWith(vol_);
-        }
+        registerWith(discountCurve_);
+        registerWith(vol_);
+    }
 
-        template <class Spec>
-        BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
-            Handle<YieldTermStructure> discountCurve,
-            Handle<SwaptionVolatilityStructure> volatility,
-            CashAnnuityModel model)
-        : discountCurve_(std::move(discountCurve)), vol_(std::move(volatility)), model_(model) {
-            registerWith(discountCurve_);
-            registerWith(vol_);
-        }
+    template<class Spec>
+    BlackStyleSwaptionEngine<Spec>::BlackStyleSwaptionEngine(
+        const Handle<YieldTermStructure> &discountCurve,
+        const Handle<SwaptionVolatilityStructure> &volatility,
+        CashAnnuityModel model)
+        : discountCurve_(discountCurve), vol_(volatility),
+          model_(model) {
+        registerWith(discountCurve_);
+        registerWith(vol_);
+    }
 
     template<class Spec>
     void BlackStyleSwaptionEngine<Spec>::calculate() const {
@@ -293,7 +296,9 @@ namespace QuantLib {
         swapLength = std::max(swapLength, 1.0 / 12.0);
         results_.additionalResults["swapLength"] = swapLength;
 
-        Real variance = vol_->blackVariance(exerciseDate, swapLength, strike);
+        Real variance = vol_->blackVariance(exerciseDate,
+                                                   swapLength,
+                                                   strike);
 
         Real displacement =
             vol_->volatilityType() == ShiftedLognormal ?
@@ -303,13 +308,21 @@ namespace QuantLib {
         results_.additionalResults["stdDev"] = stdDev;
         Option::Type w = (arguments_.type==VanillaSwap::Payer) ?
                                                 Option::Call : Option::Put;
-        results_.value = Spec().value(w, strike, atmForward, stdDev, annuity, displacement);
-        
+
         Time exerciseTime = vol_->timeFromReference(exerciseDate);
-        results_.additionalResults["vega"] = Spec().vega(
-            strike, atmForward, stdDev, exerciseTime, annuity, displacement);
-        results_.additionalResults["delta"] = Spec().delta(
-            w, strike, atmForward, stdDev, annuity, displacement);
+
+        if (close_enough(annuity, 0.0)) {
+            results_.value = 0.0;
+            results_.additionalResults["vega"] = 0.0;
+            results_.additionalResults["delta"] = 0.0;
+        } else {
+            results_.value = Spec().value(w, strike, atmForward, stdDev, annuity, displacement);
+            results_.additionalResults["vega"] =
+                Spec().vega(strike, atmForward, stdDev, exerciseTime, annuity, displacement);
+            results_.additionalResults["delta"] =
+                Spec().delta(w, strike, atmForward, stdDev, annuity, displacement);
+        }
+
         results_.additionalResults["timeToExpiry"] = exerciseTime;
         results_.additionalResults["impliedVolatility"] = stdDev / std::sqrt(exerciseTime);
     }

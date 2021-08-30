@@ -25,12 +25,16 @@
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/calendars/weekendsonly.hpp>
 #include <ql/instruments/creditdefaultswap.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/foreach.hpp>
 #include <map>
 #include <vector>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+using boost::assign::map_list_of;
+using boost::assign::list_of;
 using std::make_pair;
 using std::map;
 using std::pair;

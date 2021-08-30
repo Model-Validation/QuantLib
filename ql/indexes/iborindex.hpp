@@ -62,10 +62,6 @@ namespace QuantLib {
                         const Handle<YieldTermStructure>& forwarding) const;
         // @}
       protected:
-        BusinessDayConvention convention_;
-        Handle<YieldTermStructure> termStructure_;
-        bool endOfMonth_;
-      private:
         // overload to avoid date/time (re)calculation
         /* This can be called with cached coupon dates (and it does
            give quite a performance boost to coupon calculations) but
@@ -78,10 +74,13 @@ namespace QuantLib {
            public, but before doing that I'd think hard whether we
            have any other way to get the same results.
         */
-        Rate forecastFixing(const Date& valueDate,
+        virtual Rate forecastFixing(const Date& valueDate,
                             const Date& endDate,
                             Time t) const;
         friend class IborCoupon;
+        BusinessDayConvention convention_;
+        Handle<YieldTermStructure> termStructure_;
+        bool endOfMonth_;
     };
 
 

@@ -39,12 +39,16 @@
 #include <ql/currencies/america.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/time/daycounters/thirty360.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/foreach.hpp>
 #include <map>
+
 #include <iomanip>
 #include <iostream>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+using boost::assign::map_list_of;
 using std::map;
 
 void CreditDefaultSwapTest::testCachedValue() {

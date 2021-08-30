@@ -24,8 +24,10 @@
 #include <ql/utilities/dataformatters.hpp>
 #include <ql/math/interpolations/bilinearinterpolation.hpp>
 #include <ql/math/interpolations/bicubicsplineinterpolation.hpp>
-
 #include <ql/experimental/credit/correlationstructure.hpp>
+#include <ql/time/dategenerationrule.hpp>
+#include <ql/time/schedule.hpp>
+#include <boost/optional/optional.hpp>
 
 namespace QuantLib {
 
@@ -64,7 +66,9 @@ namespace QuantLib {
             const std::vector<Period>& tenors,// sorted
             const std::vector<Real>& lossLevel,//sorted
             const std::vector<std::vector<Handle<Quote> > >& correls,
-            const DayCounter& dc = DayCounter()
+            const DayCounter& dc = DayCounter(),
+            const Date& startDate = Date(),
+            boost::optional<DateGeneration::Rule> rule = boost::none
             )
         : CorrelationTermStructure(settlementDays, cal, bdc, dc),
           correlHandles_(correls),
@@ -76,9 +80,37 @@ namespace QuantLib {
           trancheTimes_(tenors.size(), 0.) {
               checkTrancheTenors();
 
-              for (auto& tenor : tenors_)
-                  trancheDates_.push_back(
-                      calendar().advance(referenceDate(), tenor, businessDayConvention()));
+              // Reference date to which the tenors are applied to get the base correlation maturities.
+              // Generally, for index tranches, the index start date would be supplied as the startDate ctor argument 
+              // and a CDS date generation rule provided to arrive at the appropriate maturity.
+              const Date& refDate = referenceDate();
+              Date start = startDate == Date() ? refDate : startDate;
+              Calendar cldr = calendar();
+              BusinessDayConvention bdconv = businessDayConvention();
+
+              for (Size i = 0; i < tenors_.size(); i++) {
+
+                  Date d;
+                  if (rule) {
+                      d = start + tenors_[i];
+                      Schedule schedule = MakeSchedule()
+                          .from(start)
+                          .to(d)
+                          .withFrequency(Quarterly)
+                          .withCalendar(cldr)
+                          .withConvention(bdconv)
+                          .withTerminationDateConvention(Unadjusted)
+                          .withRule(*rule);
+                      d = cldr.adjust(schedule.dates().back(), bdconv);
+                  } else {
+                      d = cldr.advance(start, tenors_[i], bdconv);
+                  }
+
+                  QL_REQUIRE(d > refDate, "The tranche date " << io::iso_date(d) << " should be greater than " <<
+                      "the reference date " << io::iso_date(refDate) << ".");
+
+                  trancheDates_.push_back(d);
+              }
 
               initializeTrancheTimes();
               checkInputs(correlations_.rows(), correlations_.columns());
@@ -90,23 +122,27 @@ namespace QuantLib {
     private:
         virtual void setupInterpolation() ;
     public:
-      Size correlationSize() const override { return 1; }
-      //! Implicit correlation for the given loss interval.
-      Real ImplicitCorrelation(Real, Real);
+        Size correlationSize() const {return 1;}
+        //! Implicit correlation for the given loss interval.
+        Real ImplicitCorrelation(Real, Real);
 
-      void checkTrancheTenors() const;
-      void checkLosses() const;
-      void initializeTrancheTimes() const;
-      void checkInputs(Size volRows, Size volsColumns) const;
-      void registerWithMarketData();
+        void checkTrancheTenors() const ;
+        void checkLosses() const;
+        void initializeTrancheTimes() const;
+        void checkInputs(Size volRows, Size volsColumns) const;
+        void registerWithMarketData();
 
-      void update() override;
-      void updateMatrix() const;
+        void update();
+        void updateMatrix() const;
 
-      // TermStructure interface
-      Date maxDate() const override { return trancheDates_.back(); }
-      Real correlation(const Date& d, Real lossLevel, bool extrapolate = false) const {
-          return correlation(timeFromReference(d), lossLevel, extrapolate);
+        // TermStructure interface
+        Date maxDate() const {
+            return trancheDates_.back();
+        }
+        Real correlation(const Date& d, Real lossLevel, 
+            bool extrapolate = false) const 
+        {
+            return correlation(timeFromReference(d), lossLevel, extrapolate);
         }
         Real correlation(Time t, Real lossLevel, 
             bool extrapolate = false) const 

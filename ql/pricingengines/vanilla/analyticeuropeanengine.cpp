@@ -112,6 +112,7 @@ namespace QuantLib {
         results_.additionalResults["strike"] = payoff->strike();
         results_.additionalResults["volatility"] = std::sqrt(variance / tte);
         results_.additionalResults["timeToExpiry"] = tte;
+        results_.additionalResults["discountFactor"] = df;
     }
 
 }

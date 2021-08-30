@@ -36,6 +36,9 @@
 //! version hexadecimal number
 #define QL_HEX_VERSION 0x012200f0
 
+//! This QuantLib has patches for ORE
+#define QL_ORE_PATCH
+
 /*! @}  */
 
 namespace QuantLib {

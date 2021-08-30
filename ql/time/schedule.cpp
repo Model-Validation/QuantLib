@@ -135,6 +135,10 @@ namespace QuantLib {
                 // verified after adjustment
                 break;
               case DateGeneration::ThirdWednesday:
+              case DateGeneration::ThirdThursday:
+              case DateGeneration::ThirdFriday:
+              case DateGeneration::MondayAfterThirdFriday:
+              case DateGeneration::TuesdayAfterThirdFriday:
                   QL_REQUIRE(IMM::isIMMdate(firstDate_, false),
                              "first date (" << firstDate_ <<
                              ") is not an IMM date");
@@ -145,6 +149,7 @@ namespace QuantLib {
               case DateGeneration::OldCDS:
               case DateGeneration::CDS:
               case DateGeneration::CDS2015:
+              case DateGeneration::LastWednesday:
                 QL_FAIL("first date incompatible with " << *rule_ <<
                         " date generation rule");
               default:
@@ -164,6 +169,10 @@ namespace QuantLib {
                 // verified after adjustment
                 break;
               case DateGeneration::ThirdWednesday:
+              case DateGeneration::ThirdThursday:
+              case DateGeneration::ThirdFriday:
+              case DateGeneration::MondayAfterThirdFriday:
+              case DateGeneration::TuesdayAfterThirdFriday:
                 QL_REQUIRE(IMM::isIMMdate(nextToLastDate_, false),
                            "next-to-last date (" << nextToLastDate_ <<
                            ") is not an IMM date");
@@ -174,6 +183,7 @@ namespace QuantLib {
               case DateGeneration::OldCDS:
               case DateGeneration::CDS:
               case DateGeneration::CDS2015:
+              case DateGeneration::LastWednesday:
                 QL_FAIL("next to last date incompatible with " << *rule_ <<
                         " date generation rule");
               default:
@@ -248,9 +258,14 @@ namespace QuantLib {
           case DateGeneration::Twentieth:
           case DateGeneration::TwentiethIMM:
           case DateGeneration::ThirdWednesday:
+          case DateGeneration::ThirdThursday:
+          case DateGeneration::ThirdFriday:
+          case DateGeneration::MondayAfterThirdFriday:
+          case DateGeneration::TuesdayAfterThirdFriday:
           case DateGeneration::OldCDS:
           case DateGeneration::CDS:
           case DateGeneration::CDS2015:
+          case DateGeneration::LastWednesday:
             QL_REQUIRE(!*endOfMonth_,
                        "endOfMonth convention incompatible with " << *rule_ <<
                        " date generation rule");
@@ -353,6 +368,39 @@ namespace QuantLib {
                 dates_[i] = Date::nthWeekday(3, Wednesday,
                                              dates_[i].month(),
                                              dates_[i].year());
+        if (*rule_==DateGeneration::ThirdThursday)
+            for (Size i=1; i<dates_.size()-1; ++i)
+                dates_[i] = Date::nthWeekday(3, Thursday,
+                                             dates_[i].month(),
+                                             dates_[i].year());
+        if (*rule_==DateGeneration::ThirdFriday)
+            for (Size i=1; i<dates_.size()-1; ++i)
+                dates_[i] = Date::nthWeekday(3, Friday,
+                                             dates_[i].month(),
+                                             dates_[i].year());
+        if (*rule_==DateGeneration::MondayAfterThirdFriday) {
+            for (Size i=1; i<dates_.size()-1; ++i) {
+                Date tmp = Date::nthWeekday(3, Friday,
+                                             dates_[i].month(),
+                                             dates_[i].year());
+                dates_[i] = Date::nextWeekday(tmp, Monday);
+            }
+        }
+        if (*rule_==DateGeneration::TuesdayAfterThirdFriday) {
+            for (Size i=1; i<dates_.size()-1; ++i) {
+                Date tmp = Date::nthWeekday(3, Friday,
+                                             dates_[i].month(),
+                                             dates_[i].year());
+                dates_[i] = Date::nextWeekday(tmp, Tuesday);
+            }
+        }
+
+        if (*rule_ == DateGeneration::LastWednesday) {
+            for (Size i = 1; i < dates_.size() - 1; ++i) {
+                // The next Wednesday on or after the 1st of the next month and back 7.
+                dates_[i] = Date::nextWeekday(Date::endOfMonth(dates_[i]) + 1, Wednesday) - 7;
+            }
+        }
 
         if (*endOfMonth_ && calendar_.isEndOfMonth(seed)) {
             // adjust to end of month
@@ -649,6 +697,35 @@ namespace QuantLib {
                         rule_, endOfMonth_, firstDate_, nextToLastDate_);
     }
 
+    Date cdsMaturity(const Date& tradeDate, const Period& tenor, DateGeneration::Rule rule) {
+
+        QL_REQUIRE(rule == DateGeneration::CDS2015 || rule == DateGeneration::CDS || rule == DateGeneration::OldCDS,
+            "cdsMaturity should only be used with date generation rule CDS2015, CDS or OldCDS");
+
+        QL_REQUIRE(tenor.units() == Years || (tenor.units() == Months && tenor.length() % 3 == 0),
+            "cdsMaturity expects a tenor that is a multiple of 3 months.");
+
+        if (rule == DateGeneration::OldCDS) {
+            QL_REQUIRE(tenor != 0 * Months, "A tenor of 0M is not supported for OldCDS.");
+        }
+
+        Date anchorDate = previousTwentieth(tradeDate, rule);
+        if (rule == DateGeneration::CDS2015 && (anchorDate == Date(20, Dec, anchorDate.year()) ||
+            anchorDate == Date(20, Jun, anchorDate.year()))) {
+            if (tenor.length() == 0) {
+                return Null<Date>();
+            } else {
+                anchorDate -= 3 * Months;
+            }
+        }
+
+        Date maturity = anchorDate + tenor + 3 * Months;
+        QL_REQUIRE(maturity > tradeDate, "error calculating CDS maturity. Tenor is " << tenor << ", trade date is " <<
+            io::iso_date(tradeDate) << " generating a maturity of " << io::iso_date(maturity) << " <= trade date.");
+
+        return maturity;
+    }
+    
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule) {
         Date result = Date(20, d.month(), d.year());
         if (result > d)

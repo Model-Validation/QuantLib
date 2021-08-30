@@ -19,19 +19,17 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+#include <ql/instruments/creditdefaultswap.hpp>
+#include <ql/instruments/claim.hpp>
 #include <ql/cashflows/fixedratecoupon.hpp>
 #include <ql/cashflows/simplecashflow.hpp>
-#include <ql/instruments/claim.hpp>
-#include <ql/instruments/creditdefaultswap.hpp>
-#include <ql/math/solvers1d/brent.hpp>
-#include <ql/pricingengines/credit/isdacdsengine.hpp>
-#include <ql/pricingengines/credit/midpointcdsengine.hpp>
-#include <ql/quotes/simplequote.hpp>
-#include <ql/termstructures/credit/flathazardrate.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/termstructures/credit/flathazardrate.hpp>
+#include <ql/pricingengines/credit/midpointcdsengine.hpp>
+#include <ql/pricingengines/credit/isdacdsengine.hpp>
+#include <ql/quotes/simplequote.hpp>
+#include <ql/math/solvers1d/brent.hpp>
 #include <ql/time/calendars/weekendsonly.hpp>
-#include <ql/time/schedule.hpp>
-#include <utility>
 
 namespace QuantLib {
 
@@ -44,14 +42,14 @@ namespace QuantLib {
                                          bool settlesAccrual,
                                          bool paysAtDefaultTime,
                                          const Date& protectionStart,
-                                         ext::shared_ptr<Claim> claim,
+                                         const ext::shared_ptr<Claim>& claim,
                                          const DayCounter& lastPeriodDayCounter,
                                          const bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
-      settlesAccrual_(settlesAccrual), paysAtDefaultTime_(paysAtDefaultTime),
-      claim_(std::move(claim)),
+    : side_(side), notional_(notional), upfront_(boost::none),
+      runningSpread_(spread), settlesAccrual_(settlesAccrual),
+      paysAtDefaultTime_(paysAtDefaultTime), claim_(claim),
       protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays) {
 
@@ -69,14 +67,14 @@ namespace QuantLib {
                                          bool paysAtDefaultTime,
                                          const Date& protectionStart,
                                          const Date& upfrontDate,
-                                         ext::shared_ptr<Claim> claim,
+                                         const ext::shared_ptr<Claim>& claim,
                                          const DayCounter& lastPeriodDayCounter,
                                          const bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(upfront), runningSpread_(runningSpread),
-      settlesAccrual_(settlesAccrual), paysAtDefaultTime_(paysAtDefaultTime),
-      claim_(std::move(claim)),
+    : side_(side), notional_(notional), upfront_(upfront),
+      runningSpread_(runningSpread), settlesAccrual_(settlesAccrual),
+      paysAtDefaultTime_(paysAtDefaultTime), claim_(claim),
       protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays) {
 
@@ -199,7 +197,8 @@ namespace QuantLib {
 
 
     bool CreditDefaultSwap::isExpired() const {
-        for (auto i = leg_.rbegin(); i != leg_.rend(); ++i) {
+        for (Leg::const_reverse_iterator i = leg_.rbegin();
+                                         i != leg_.rend(); ++i) {
             if (!(*i)->hasOccurred())
                 return false;
         }
@@ -215,8 +214,9 @@ namespace QuantLib {
 
     void CreditDefaultSwap::setupArguments(
                                        PricingEngine::arguments* args) const {
-        auto* arguments = dynamic_cast<CreditDefaultSwap::arguments*>(args);
-        QL_REQUIRE(arguments != nullptr, "wrong argument type");
+        CreditDefaultSwap::arguments* arguments =
+            dynamic_cast<CreditDefaultSwap::arguments*>(args);
+        QL_REQUIRE(arguments != 0, "wrong argument type");
 
         arguments->side = side_;
         arguments->notional = notional_;
@@ -237,8 +237,9 @@ namespace QuantLib {
                                       const PricingEngine::results* r) const {
         Instrument::fetchResults(r);
 
-        const auto* results = dynamic_cast<const CreditDefaultSwap::results*>(r);
-        QL_REQUIRE(results != nullptr, "wrong result type");
+        const CreditDefaultSwap::results* results =
+            dynamic_cast<const CreditDefaultSwap::results*>(r);
+        QL_REQUIRE(results != 0, "wrong result type");
 
         fairSpread_ = results->fairSpread;
         fairUpfront_ = results->fairUpfront;
@@ -365,7 +366,9 @@ namespace QuantLib {
         }
 
         setupArguments(engine->getArguments());
-        const auto* results = dynamic_cast<const CreditDefaultSwap::results*>(engine->getResults());
+        const CreditDefaultSwap::results* results =
+            dynamic_cast<const CreditDefaultSwap::results*>(
+                engine->getResults());
 
         ObjectiveFunction f(targetNPV, *flatRate, *engine, results);
         //very close guess if targetNPV = 0.
@@ -406,7 +409,9 @@ namespace QuantLib {
         }
 
         setupArguments(engine->getArguments());
-        const auto* results = dynamic_cast<const CreditDefaultSwap::results*>(engine->getResults());
+        const CreditDefaultSwap::results* results =
+            dynamic_cast<const CreditDefaultSwap::results*>(
+                engine->getResults());
 
         ObjectiveFunction f(0., *flatRate, *engine, results);
         Rate guess = runningSpread_ / (1 - conventionalRecovery) * 365./360.;
@@ -470,35 +475,6 @@ namespace QuantLib {
         upfrontBPS = Null<Real>();
         upfrontNPV = Null<Real>();
         accrualRebateNPV = Null<Real>();
-    }
-
-    Date cdsMaturity(const Date& tradeDate, const Period& tenor, DateGeneration::Rule rule) {
-
-        QL_REQUIRE(rule == DateGeneration::CDS2015 || rule == DateGeneration::CDS || rule == DateGeneration::OldCDS,
-            "cdsMaturity should only be used with date generation rule CDS2015, CDS or OldCDS");
-
-        QL_REQUIRE(tenor.units() == Years || (tenor.units() == Months && tenor.length() % 3 == 0),
-            "cdsMaturity expects a tenor that is a multiple of 3 months.");
-
-        if (rule == DateGeneration::OldCDS) {
-            QL_REQUIRE(tenor != 0 * Months, "A tenor of 0M is not supported for OldCDS.");
-        }
-
-        Date anchorDate = previousTwentieth(tradeDate, rule);
-        if (rule == DateGeneration::CDS2015 && (anchorDate == Date(20, Dec, anchorDate.year()) ||
-            anchorDate == Date(20, Jun, anchorDate.year()))) {
-            if (tenor.length() == 0) {
-                return Null<Date>();
-            } else {
-                anchorDate -= 3 * Months;
-            }
-        }
-
-        Date maturity = anchorDate + tenor + 3 * Months;
-        QL_REQUIRE(maturity > tradeDate, "error calculating CDS maturity. Tenor is " << tenor << ", trade date is " <<
-            io::iso_date(tradeDate) << " generating a maturity of " << io::iso_date(maturity) << " <= trade date.");
-
-        return maturity;
     }
 
 }
