@@ -57,10 +57,10 @@ namespace QuantLib {
                          const DayCounter& dayCounter);
         BlackConstantVol(const Date& referenceDates,
                          const Calendar& calendar,
-                         const Handle<BlackVolTermStructure>& volatilityTS,
+                         Handle<BlackVolTermStructure> volatilityTS,
                          const DayCounter& dayCounter,
-                         const Time t,
-                         const Real strike);
+                         Time t,
+                         Real strike);
 
         //! \name TermStructure interface
         //@{
@@ -122,12 +122,12 @@ namespace QuantLib {
 
     inline BlackConstantVol::BlackConstantVol(const Date& referenceDate,
                                               const Calendar& cal,
-                                              const Handle<BlackVolTermStructure>& volatilityTS,
+                                              Handle<BlackVolTermStructure> volatilityTS,
                                               const DayCounter& dc,
                                               const Time t,
                                               const Real strike)
-    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc), volatilityTS_(volatilityTS),
-      t_(t), strike_(strike) {
+    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc),
+      volatilityTS_(std::move(volatilityTS)), t_(t), strike_(strike) {
         registerWith(volatilityTS_);
     }
 
