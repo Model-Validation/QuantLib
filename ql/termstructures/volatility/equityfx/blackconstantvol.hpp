@@ -55,6 +55,8 @@ namespace QuantLib {
                          const Calendar&,
                          Handle<Quote> volatility,
                          const DayCounter& dayCounter);
+        BlackConstantVol(const Date& referenceDates,
+                         const Calendar& calendar,
         //! \name TermStructure interface
         //@{
         Date maxDate() const override;
