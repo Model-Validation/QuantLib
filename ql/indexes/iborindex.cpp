@@ -43,7 +43,7 @@ namespace QuantLib {
         Date d1 = valueDate(fixingDate);
         Date d2 = maturityDate(d1);
         Time t = dayCounter_.yearFraction(d1, d2);
-        QL_REQUIRE(t>0.0,
+        QL_REQUIRE(t>=0.0,
                    "\n cannot calculate forward rate between " <<
                    d1 << " and " << d2 <<
                    ":\n non positive time (" << t <<

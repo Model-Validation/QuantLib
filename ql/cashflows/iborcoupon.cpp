@@ -97,7 +97,7 @@ namespace QuantLib {
         const DayCounter& dc = index_->dayCounter();
         spanningTime_ = dc.yearFraction(fixingValueDate_,
                                         fixingEndDate_);
-        QL_REQUIRE(spanningTime_>0.0,
+        QL_REQUIRE(spanningTime_>=0.0,
                    "\n cannot calculate forward rate between " <<
                    fixingValueDate_ << " and " << fixingEndDate_ <<
                    ":\n non positive time (" << spanningTime_ <<
@@ -115,9 +115,9 @@ namespace QuantLib {
         Date today = Settings::instance().evaluationDate();
 
         if (fixingDate_>today)
-            return iborIndex_->forecastFixing(fixingValueDate_,
-                                              fixingEndDate_,
-                                              spanningTime_);
+            return iborIndex_->forecastFixing(fixingValueDate_, fixingEndDate_,
+                                              index_->tenor() == Period(0, Months) ? 0.0 :
+                                                                                     spanningTime_);
 
         if (fixingDate_<today ||
             Settings::instance().enforcesTodaysHistoricFixings()) {
@@ -137,9 +137,9 @@ namespace QuantLib {
         } catch (Error&) {
                 ;   // fall through and forecast
         }
-        return iborIndex_->forecastFixing(fixingValueDate_,
-                                          fixingEndDate_,
-                                          spanningTime_);
+        return iborIndex_->forecastFixing(fixingValueDate_, fixingEndDate_,
+                                          index_->tenor() == Period(0, Months) ? 0.0 :
+                                                                                 spanningTime_);
     }
 
     void IborCoupon::accept(AcyclicVisitor& v) {
