@@ -61,16 +61,12 @@ namespace QuantLib {
         switch (barrierType) {
           case PartialBarrier::DownIn:
           case PartialBarrier::UpIn:
-            QL_REQUIRE(barrierRange == PartialBarrier::Start ||
-                       barrierRange == PartialBarrier::End,
-                       "in-barrier requires Start or End range");
-            break;
           case PartialBarrier::DownOut:
           case PartialBarrier::UpOut:
             QL_REQUIRE(barrierRange == PartialBarrier::Start ||
                        barrierRange == PartialBarrier::EndB1 ||
                        barrierRange == PartialBarrier::EndB2,
-                       "out-barrier requires Start, EndB1 or EndB2 range");
+                       "partial-time barrier requires Start, EndB1 or EndB2 range");
             break;
           default:
             QL_FAIL("unknown barrier type");
