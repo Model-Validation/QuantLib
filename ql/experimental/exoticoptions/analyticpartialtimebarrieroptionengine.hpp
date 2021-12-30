@@ -66,9 +66,9 @@ namespace QuantLib {
         DiscountFactor riskFreeDiscount() const;
         Rate dividendYield() const;
         DiscountFactor dividendDiscount() const;
-        Real M(Real a,Real b,Real rho) const;
-        Real d1()const;
-        Real d2()const;
+        Real M(Real a, Real b, Real rho) const;
+        Real d1() const;
+        Real d2() const;
         Real e1() const;
         Real e2() const;
         Real e3() const;
@@ -81,11 +81,11 @@ namespace QuantLib {
         Real CoB1() const;
         Real CA(Integer n) const;
         Real CIA(Integer n) const;
-        Real g1()const;
-        Real g2()const;
-        Real g3()const;
-        Real g4()const;
-        Real HS(Real S, Real H, Real power)const;
+        Real g1() const;
+        Real g2() const;
+        Real g3() const;
+        Real g4() const;
+        Real HS(Real S, Real H, Real power) const;
     };
 
 }
