@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2014 Master IMAFA - Polytech'Nice Sophia - Université de Nice Sophia Antipolis
+ Copyright (C) 2021 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -29,8 +30,23 @@
 
 namespace QuantLib {
 
-    class AnalyticPartialTimeBarrierOptionEngine
-        : public PartialTimeBarrierOption::engine {
+    //! Partial-time barrier option engine
+    /*!
+        Pricing engine for partial-time single-asset barrier options.
+        Covers various forms of partial-time-start (type A) and -end (type B1 and B2) barriers. 
+
+        Reference: Espen G. Haug, The Complete Guide to Option Pricing Formulas, 
+        McGraw Hill, section 4.17.4
+
+        \ingroup barrierengines
+
+        \todo
+        - Extend with coverage of Puts
+        - Extend covered barrier types
+        - Add checks for the *eta* arguments to e.g. CA(), CIA()
+        - Add to test coverage?
+    */
+    class AnalyticPartialTimeBarrierOptionEngine : public PartialTimeBarrierOption::engine {
       public:
         explicit AnalyticPartialTimeBarrierOptionEngine(
             ext::shared_ptr<GeneralizedBlackScholesProcess> process);
