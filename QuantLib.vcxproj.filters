@@ -4376,6 +4376,9 @@
     <ClInclude Include="ql\methods\finitedifferences\utilities\fdmescrowedloginnervaluecalculator.hpp">
       <Filter>methods\finitedifferences\utilities</Filter>
     </ClInclude>
+    <ClInclude Include="ql\experimental\asian\analytic_discr_arith_av_price.hpp">
+      <Filter>experimental\asian</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\methods\montecarlo\brownianbridge.cpp">
@@ -7071,6 +7074,9 @@
     </ClCompile>
     <ClCompile Include="ql\methods\finitedifferences\utilities\fdmescrowedloginnervaluecalculator.cpp">
       <Filter>methods\finitedifferences\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\experimental\asian\analytic_discr_arith_av_price.cpp">
+      <Filter>experimental\asian</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
