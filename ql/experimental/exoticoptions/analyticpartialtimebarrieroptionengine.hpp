@@ -78,7 +78,11 @@ namespace QuantLib {
         Real rho() const;
         Rate mu() const;
         Real CoB2(PartialBarrier::Type barrierType) const;
+        // TODO verify
+        Real CiB2(PartialBarrier::Type barrierType) const;
         Real CoB1() const;
+        // TODO verify
+        Real CiB1() const;
         Real CA(Integer n) const;
         Real CIA(Integer n) const;
         Real g1() const;
@@ -86,6 +90,7 @@ namespace QuantLib {
         Real g3() const;
         Real g4() const;
         Real HS(Real S, Real H, Real power) const;
+        PartialTimeBarrierOption symmetricCall() const;
     };
 
 }
