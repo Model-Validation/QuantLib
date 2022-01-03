@@ -155,6 +155,7 @@ QuantLib is
 
     Copyright (C) 2021 Magnus Mencke
     Copyright (C) 2021 Ralf Konrad Eckel
+    Copyright (C) 2021 Skandinaviska Enskilda Banken AB (publ)
 
 QuantLib includes code taken from Peter Jäckel's book "Monte Carlo
 Methods in Finance".
