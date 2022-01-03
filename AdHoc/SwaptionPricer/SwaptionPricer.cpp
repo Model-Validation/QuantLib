@@ -32,6 +32,7 @@
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/date.hpp>
 #include <ql/time/daycounters/all.hpp>
+#include <ql/cashflows/floatingratecoupon.hpp>
 
 #include <iostream>
 #include <iomanip>
@@ -110,9 +111,9 @@ int main()
 
         for (size_t i = 0; i < swap.floatingLeg().size(); ++i) {
             std::cout << std::setprecision(10) << std::fixed;
-            std::cout << i << std::endl;
-            //std::cout << swap.floatingSchedule().dates().
-                
+            ext::shared_ptr<FloatingRateCoupon> coupon =
+                ext::dynamic_pointer_cast<FloatingRateCoupon>(swap.floatingLeg().at(i));
+            std::cout << i << ", " << coupon->rate() << std::endl;
             //swap.floatingLeg().at(i);
         }
         std::cout << "End table.\n" << std::endl;
