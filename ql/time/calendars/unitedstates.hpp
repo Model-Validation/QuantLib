@@ -162,16 +162,25 @@ namespace QuantLib {
             std::string name() const override { return "Federal Reserve Bankwire System"; }
             bool isBusinessDay(const Date&) const override;
         };
+
       public:
         //! US calendars
-        enum Market { Settlement,     //!< generic settlement calendar
-                      NYSE,           //!< New York stock exchange calendar
-                      GovernmentBond, //!< government-bond calendar
-                      NERC,           //!< off-peak days for NERC
-                      LiborImpact,    //!< Libor impact calendar
-                      FederalReserve  //!< Federal Reserve Bankwire System
+        enum Market {
+            Settlement,     //!< generic settlement calendar
+            NYSE,           //!< New York stock exchange calendar
+            GovernmentBond, //!< government-bond calendar
+            NERC,           //!< off-peak days for NERC
+            LiborImpact,    //!< Libor impact calendar
+            FederalReserve  //!< Federal Reserve Bankwire System
         };
-        UnitedStates(Market market = Settlement);
+
+        explicit UnitedStates(Market market);
+
+        /*! \deprecated Use the other constructor.
+                        Deprecated in version 1.24.
+        */
+        QL_DEPRECATED
+        UnitedStates() : UnitedStates(Settlement) {}
     };
 
 }
