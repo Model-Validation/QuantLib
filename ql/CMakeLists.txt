@@ -49,6 +49,7 @@ set(QuantLib_SRC
     experimental/amortizingbonds/amortizingfixedratebond.cpp
     experimental/amortizingbonds/amortizingfloatingratebond.cpp
     experimental/asian/analytic_cont_geom_av_price_heston.cpp
+    experimental/asian/analytic_discr_arith_av_price.cpp
     experimental/asian/analytic_discr_geom_av_price_heston.cpp
     experimental/averageois/arithmeticaverageois.cpp
     experimental/averageois/arithmeticoisratehelper.cpp
@@ -980,6 +981,7 @@ set(QuantLib_HDR
     experimental/amortizingbonds/amortizingfloatingratebond.hpp
     experimental/asian/all.hpp
     experimental/asian/analytic_cont_geom_av_price_heston.hpp
+    experimental/asian/analytic_discr_arith_av_price.hpp
     experimental/asian/analytic_discr_geom_av_price_heston.hpp
     experimental/averageois/all.hpp
     experimental/averageois/arithmeticaverageois.hpp
