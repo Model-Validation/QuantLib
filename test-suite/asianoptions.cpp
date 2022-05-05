@@ -2243,6 +2243,8 @@ test_suite* AsianOptionTest::suite(SpeedLevel speed) {
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testAnalyticDiscreteGeometricAveragePriceGreeks));
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testPastFixings));
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testAllFixingsInThePast));
+    suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testTurnbullWakemanAsianEngine));
+    suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testPastFixingsModelDependency));
 
     if (speed <= Fast) {
         suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testMCDiscreteArithmeticAveragePrice));
@@ -2262,8 +2264,6 @@ test_suite* AsianOptionTest::experimental(SpeedLevel speed) {
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testVecerEngine));
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testAnalyticContinuousGeometricAveragePriceHeston));
     suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testAnalyticDiscreteGeometricAveragePriceHeston));
-    suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testAnalyticDiscreteArithmeticAveragePrice));
-    suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testPastFixingsModelDependency));
 
     if (speed <= Fast) {
         suite->add(QUANTLIB_TEST_CASE(&AsianOptionTest::testDiscreteGeometricAveragePriceHestonPastFixings));
