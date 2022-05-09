@@ -4392,6 +4392,9 @@
     <ClInclude Include="ql\pricingengines\asian\turnbullwakemanasianengine.hpp">
       <Filter>pricingengines\asian</Filter>
     </ClInclude>
+    <ClInclude Include="ql\experimental\volatility\svivolsurface.hpp">
+      <Filter>experimental\volatility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\methods\montecarlo\brownianbridge.cpp">
@@ -7106,6 +7109,9 @@
     <ClCompile Include="ql\pricingengines\bond\riskybondengine.cpp" />
     <ClCompile Include="ql\pricingengines\asian\turnbullwakemanasianengine.cpp">
       <Filter>pricingengines\asian</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\experimental\volatility\svivolsurface.cpp">
+      <Filter>experimental\volatility</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
