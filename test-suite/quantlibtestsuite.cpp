@@ -183,6 +183,7 @@
 #include "swingoption.hpp"
 #include "stats.hpp"
 #include "subperiodcoupons.hpp"
+#include "svivolatility.hpp"
 #include "swap.hpp"
 #include "swapforwardmappings.hpp"
 #include "swaption.hpp"
@@ -519,6 +520,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(RiskNeutralDensityCalculatorTest::experimental(speed));
     test->add(SpreadOptionTest::suite());
     test->add(SquareRootCLVModelTest::experimental());
+    test->add(SviVolatilityTest::experimental());
     test->add(SwingOptionTest::suite(speed));
     test->add(TwoAssetBarrierOptionTest::suite());
     test->add(TwoAssetCorrelationOptionTest::suite());

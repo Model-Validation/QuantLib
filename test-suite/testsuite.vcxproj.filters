@@ -486,6 +486,9 @@
     <ClCompile Include="subperiodcoupons.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="svivolatility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="americanoption.hpp">
@@ -494,7 +497,6 @@
     <ClInclude Include="amortizingbond.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="andreasenhugevolatilityinterpl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="array.hpp">
@@ -971,5 +973,7 @@
     <ClInclude Include="subperiodcoupons.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
+    <ClInclude Include="svivolatility.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
 </Project>
