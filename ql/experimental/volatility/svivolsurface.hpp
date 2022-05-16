@@ -27,6 +27,7 @@
 #include <ql/experimental/volatility/sviinterpolatedsmilesection.hpp>
 #include <ql/experimental/volatility/svismilesection.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
+#include <ql/termstructures/yieldtermstructure.hpp>
 
 namespace QuantLib {
 
@@ -41,8 +42,16 @@ namespace QuantLib {
         //! \name Constructors
         //@{
         /*! @param todo TO DO
-        */
-        SviVolSurface(const std::vector<SviSmileSection>& smileSections);
+         */
+        SviVolSurface(const Date& referenceDate,
+                      const Handle<Quote>& spot,
+                      const Handle<YieldTermStructure>& riskFreeTS,
+                      const Handle<YieldTermStructure>& dividendTS,
+                      const std::vector<Date>& expiries,
+                      const std::vector<std::vector<double> >& smileSectionParameterSets,
+                      const Calendar& cal = Calendar(),
+                      BusinessDayConvention bdc = Following,
+                      const DayCounter& dc = DayCounter());
         //@}
 
         // Inherited via BlackVarianceTermStructure
@@ -52,15 +61,22 @@ namespace QuantLib {
         Real minStrike() const override;
         Real maxStrike() const override;
         //@}
-
+      protected:
         Real blackVarianceImpl(Time t, Real strike) const override;
 
       private:
-        
+        Real forward(const Date& expiry);
+
+        Handle<Quote> spot_;
+        Handle<YieldTermStructure> rf_;
+        Handle<YieldTermStructure> div_;
+        std::vector<Date> expiries_;
+        std::vector<Time> expiryTimes_;
+        std::vector<std::vector<double> > smileSectionParameterSets_;
+        std::vector<ext::shared_ptr<SviSmileSection> > smileSections_;
     };
 
-
-    inline Date SviVolSurface::maxDate() const { return Date(); }
+    inline Date SviVolSurface::maxDate() const { return Date::maxDate(); }
 
     inline Real SviVolSurface::minStrike() const { return 0.0; }
 
