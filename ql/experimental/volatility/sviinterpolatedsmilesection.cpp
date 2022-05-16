@@ -120,7 +120,7 @@ void SviInterpolatedSmileSection::performCalculations() const {
             }
         }
     }
-    // we are recreating the sabrinterpolation object unconditionnaly to
+    // we are recreating the SviInterpolation object unconditionnaly to
     // avoid iterator invalidation
     createInterpolation();
     sviInterpolation_->update();
