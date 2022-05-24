@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2020 Skandinaviska Enskilda Banken AB (publ)
+ Copyright (C) 2022 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
