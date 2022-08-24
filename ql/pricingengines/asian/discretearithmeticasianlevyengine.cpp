@@ -95,7 +95,16 @@ void DiscreteArithmeticAsianLevyEngine::calculate() const {
     Real h = (tn - t1) / (n - 1);
     Real exp_1 = (1 - exp(pow(vol, 2) * h * n)) / (1 - exp(pow(vol, 2) * h));
     Real exp_2 = 2 / (1 - exp(pow(vol, 2) * h));
-    Real EA2 = (pow(EA, 2) * exp(pow(vol, 2) * t1)) / pow(n, 2) * (exp_1 + exp_2 * (n - exp_1));
+    // Real EA2 = (pow(EA, 2) * exp(pow(vol, 2) * t1)) / pow(n, 2) * (exp_1 + exp_2 * (n - exp_1));
+
+    Real EA2 = 0.0;
+    for (Size i = 0; i < n; ++i) {
+        EA2 += forwards[i] * forwards[i] * exp(vol * vol * times[i]);
+        for (Size j = 0; j < i; ++j) {
+            EA2 += 2 * forwards[i] * forwards[j] * exp(vol * vol * times[j]);
+        }
+    }
+    EA2 /= m * m;
 
     // Asian volatility
     Real sigma = sqrt(log(EA2 / (EA * EA)) / tn);
