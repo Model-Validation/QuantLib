@@ -1824,6 +1824,8 @@
     <ClInclude Include="ql\time\daycounter.hpp" />
     <ClInclude Include="ql\time\daycounters\actual360.hpp" />
     <ClInclude Include="ql\time\daycounters\actual364.hpp" />
+    <ClInclude Include="ql\time\daycounters\actual366.hpp" />
+    <ClInclude Include="ql\time\daycounters\actual36525.hpp" />
     <ClInclude Include="ql\time\daycounters\actual365fixed.hpp" />
     <ClInclude Include="ql\time\daycounters\actualactual.hpp" />
     <ClInclude Include="ql\time\daycounters\all.hpp" />
