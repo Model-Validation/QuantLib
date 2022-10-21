@@ -41,7 +41,7 @@ namespace QuantLib {
     : Option(ext::shared_ptr<Payoff>(), exercise), swap_(std::move(swap)),
       settlementType_(delivery), settlementMethod_(settlementMethod) {
         registerWith(swap_);
-        registerWithObservables(swap_);
+        swap_->alwaysForwardNotifications();
     }
 
     bool NonstandardSwaption::isExpired() const {
@@ -73,7 +73,7 @@ namespace QuantLib {
                                                   settlementMethod);
     }
 
-    Disposable<std::vector<ext::shared_ptr<BlackCalibrationHelper> > >
+    std::vector<ext::shared_ptr<BlackCalibrationHelper>>
     NonstandardSwaption::calibrationBasket(
         const ext::shared_ptr<SwapIndex>& standardSwapBase,
         const ext::shared_ptr<SwaptionVolatilityStructure>& swaptionVolatility,

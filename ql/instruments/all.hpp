@@ -9,6 +9,7 @@
 #include <ql/instruments/basketoption.hpp>
 #include <ql/instruments/bmaswap.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/bondforward.hpp>
 #include <ql/instruments/callabilityschedule.hpp>
 #include <ql/instruments/capfloor.hpp>
 #include <ql/instruments/claim.hpp>
@@ -59,5 +60,6 @@
 #include <ql/instruments/varianceswap.hpp>
 #include <ql/instruments/yearonyearinflationswap.hpp>
 #include <ql/instruments/zerocouponinflationswap.hpp>
+#include <ql/instruments/zerocouponswap.hpp>
 
 #include <ql/instruments/bonds/all.hpp>

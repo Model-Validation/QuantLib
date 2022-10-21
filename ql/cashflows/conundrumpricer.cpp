@@ -340,7 +340,7 @@ namespace QuantLib {
 
         // v. HAGAN, Conundrums..., formule 2.17a, 2.18a
         return coupon_->accrualPeriod() * (discount_/annuity_) *
-            ((1 + dFdK) * swaptionPrice + optionType*integralValue);
+            ((1 + dFdK) * swaptionPrice + Integer(optionType) * integralValue);
     }
 
     Real NumericHaganPricer::swapletPrice() const {
@@ -475,13 +475,14 @@ namespace QuantLib {
         const Real dminus12 =  (lnRoverK-.5*variance)/sqrtSigma2T;
 
         CumulativeNormalDistribution cumulativeOfNormal;
-        const Real N32 = cumulativeOfNormal(optionType*d32);
-        const Real N12 = cumulativeOfNormal(optionType*d12);
-        const Real Nminus12 = cumulativeOfNormal(optionType*dminus12);
+        auto sign = Integer(optionType);
+        const Real N32 = cumulativeOfNormal(sign * d32);
+        const Real N12 = cumulativeOfNormal(sign * d12);
+        const Real Nminus12 = cumulativeOfNormal(sign * dminus12);
 
-        price += optionType * firstDerivativeOfGAtForwardValue * annuity_ *
-            swapRateValue_ * (swapRateValue_ * std::exp(variance) * N32-
-            (swapRateValue_+strike) * N12 + strike * Nminus12);
+        price += sign * firstDerivativeOfGAtForwardValue * annuity_ *
+            swapRateValue_ * (swapRateValue_ * std::exp(variance) * N32 -
+            (swapRateValue_ + strike) * N12 + strike * Nminus12);
         price *= coupon_->accrualPeriod();
         return price;
     }
@@ -600,7 +601,7 @@ namespace QuantLib {
 
     Real GFunctionFactory::GFunctionExactYield::operator()(Real x) {
         Real product = 1.;
-        for (double accrual : accruals_) {
+        for (Real accrual : accruals_) {
             product *= 1. / (1. + accrual * x);
         }
         return x*std::pow(1.+ accruals_[0]*x,-delta_)*(1./(1.-product));
@@ -611,7 +612,7 @@ namespace QuantLib {
         Real derC = 0.;
         std::vector<Real> b;
         b.reserve(accruals_.size());
-        for (double accrual : accruals_) {
+        for (Real accrual : accruals_) {
             Real temp = 1.0 / (1.0 + accrual * x);
             b.push_back(temp);
             c *= temp;
@@ -633,7 +634,7 @@ namespace QuantLib {
         Real sumOfSquare = 0.;
         std::vector<Real> b;
         b.reserve(accruals_.size());
-        for (double accrual : accruals_) {
+        for (Real accrual : accruals_) {
             Real temp = 1.0 / (1.0 + accrual * x);
             b.push_back(temp);
             c *= temp;
@@ -698,7 +699,7 @@ namespace QuantLib {
                 ext::dynamic_pointer_cast<Coupon>(fixedLeg[i]);
             accruals_.push_back(cpn->accrualPeriod());
             const Date paymentDate(cpn->date());
-            const double swapPaymentTime(dc.yearFraction(rateCurve->referenceDate(), paymentDate));
+            const Real swapPaymentTime(dc.yearFraction(rateCurve->referenceDate(), paymentDate));
             shapedSwapPaymentTimes_.push_back(shapeOfShift(swapPaymentTime));
             swapPaymentDiscounts_.push_back(rateCurve->discount(paymentDate));
         }

@@ -28,6 +28,7 @@
 
 #include <ql/instrument.hpp>
 #include <ql/cashflow.hpp>
+#include <iosfwd>
 
 namespace QuantLib {
 
@@ -39,6 +40,15 @@ namespace QuantLib {
     */
     class Swap : public Instrument {
       public:
+        /*! In most cases, the swap has just two legs and can be
+            defined as receiver or payer.
+
+            Its type is usually defined with respect to the leg paying
+            a fixed rate; derived swap classes will document any
+            exceptions to the rule.
+        */
+        enum Type { Receiver = -1, Payer = 1 };
+
         class arguments;
         class results;
         class engine;
@@ -53,6 +63,10 @@ namespace QuantLib {
         Swap(const std::vector<Leg>& legs,
              const std::vector<bool>& payer);
         //@}
+        //! \name LazyObject interface
+        //@{
+        void alwaysForwardNotifications() override;
+        //@}
         //! \name Observable interface
         //@{
         void deepUpdate() override;
@@ -66,8 +80,8 @@ namespace QuantLib {
         //! \name Additional interface
         //@{
         Size numberOfLegs() const;
-        Date startDate() const;
-        Date maturityDate() const;
+        virtual Date startDate() const;
+        virtual Date maturityDate() const;
         Real legBPS(Size j) const {
             QL_REQUIRE(j<legs_.size(), "leg# " << j << " doesn't exist!");
             calculate();
@@ -146,6 +160,8 @@ namespace QuantLib {
 
     class Swap::engine : public GenericEngine<Swap::arguments,
                                               Swap::results> {};
+
+    std::ostream& operator<<(std::ostream& out, Swap::Type t);
 
 }
 

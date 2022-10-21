@@ -37,7 +37,7 @@ namespace QuantLib {
 
     void CPICouponPricer::setCapletVolatility(
        const Handle<CPIVolatilitySurface>& capletVol) {
-        QL_REQUIRE(!capletVol.empty(),"empty capletVol handle")
+        QL_REQUIRE(!capletVol.empty(),"empty capletVol handle");
         capletVol_ = capletVol;
         registerWith(capletVol_);
     }
@@ -109,10 +109,25 @@ namespace QuantLib {
 
     Rate CPICouponPricer::adjustedFixing(Rate fixing) const {
 
+        Real I0 = coupon_->baseCPI();
+
+        if (I0 == Null<Real>()) {
+            I0 = CPI::laggedFixing(coupon_->cpiIndex(),
+                                   coupon_->baseDate() + coupon_->observationLag(),
+                                   coupon_->observationLag(),
+                                   coupon_->observationInterpolation());
+        }
+
+        Rate I1 = coupon_->indexFixing();
+
         if (fixing == Null<Rate>())
-            fixing = coupon_->indexFixing() / coupon_->baseCPI();
+            fixing = I1 / I0;
         //std::cout << " adjustedFixing " << fixing << std::endl;
         // no adjustment
+        // QL 1.27:
+        //if (fixing == Null<Rate>())
+        //    fixing = coupon_->indexFixing() / coupon_->baseCPI();
+        // no further adjustment
         return fixing;
     }
 
@@ -122,24 +137,26 @@ namespace QuantLib {
         gearing_ = coupon_->fixedRate();
         spread_ = coupon_->spread();
         paymentDate_ = coupon_->date();
+
+        QL_DEPRECATED_DISABLE_WARNING
         rateCurve_ =
             !nominalTermStructure_.empty() ?
             nominalTermStructure_ :
             ext::dynamic_pointer_cast<ZeroInflationIndex>(coupon.index())
             ->zeroInflationTermStructure()
             ->nominalTermStructure();
+        QL_DEPRECATED_ENABLE_WARNING
 
         // past or future fixing is managed in YoYInflationIndex::fixing()
         // use yield curve from index (which sets discount)
 
         discount_ = 1.0;
-        if (paymentDate_ > rateCurve_->referenceDate()) {
-            if (rateCurve_.empty()) {
-                // allow to extract rates, but mark the discount as invalid for prices
-                discount_ = Null<Real>();
-            } else {
+        if (rateCurve_.empty()) {
+            // allow to extract rates, but mark the discount as invalid for prices
+            discount_ = Null<Real>();
+        } else {
+            if (paymentDate_ > rateCurve_->referenceDate())
                 discount_ = rateCurve_->discount(paymentDate_);
-            }
         }
     }
 

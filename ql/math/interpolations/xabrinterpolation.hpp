@@ -40,6 +40,7 @@
 #include <ql/math/optimization/simplex.hpp>
 #include <ql/math/randomnumbers/haltonrsg.hpp>
 #include <ql/pricingengines/blackformula.hpp>
+#include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <ql/utilities/null.hpp>
 #include <utility>
@@ -115,12 +116,13 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
                           const Real errorAccept,
                           const bool useMaxError,
                           const Size maxGuesses,
-                          const std::vector<Real>& addParams = std::vector<Real>())
+                          const std::vector<Real>& addParams = std::vector<Real>(),
+                          VolatilityType volatilityType = VolatilityType::ShiftedLognormal)
     : Interpolation::templateImpl<I1, I2>(xBegin, xEnd, yBegin, 1),
       XABRCoeffHolder<Model>(t, forward, params, paramIsFixed, addParams),
       endCriteria_(std::move(endCriteria)), optMethod_(std::move(optMethod)),
       errorAccept_(errorAccept), useMaxError_(useMaxError), maxGuesses_(maxGuesses),
-      vegaWeighted_(vegaWeighted) {
+      vegaWeighted_(vegaWeighted), volatilityType_(volatilityType) {
         // if no optimization method or endCriteria is provided, we provide one
         if (!optMethod_)
             optMethod_ = ext::shared_ptr<OptimizationMethod>(
@@ -237,7 +239,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
         }
     }
 
-    Real value(Real x) const override { return this->modelInstance_->volatility(x); }
+    Real value(Real x) const override { return this->modelInstance_->volatility(x, volatilityType_); }
 
     Real primitive(Real) const override { QL_FAIL("XABR primitive not implemented"); }
     Real derivative(Real) const override { QL_FAIL("XABR derivative not implemented"); }
@@ -257,7 +259,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
     }
 
     // calculate weighted differences
-    Disposable<Array> interpolationErrors() const {
+    Array interpolationErrors() const {
         Array results(this->xEnd_ - this->xBegin_);
         I1 x = this->xBegin_;
         Array::iterator r = results.begin();
@@ -300,7 +302,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
             return xabr_->interpolationSquaredError();
         }
 
-        Disposable<Array> values(const Array& x) const override {
+        Array values(const Array& x) const override {
             const Array y = Model().direct(x, xabr_->paramIsFixed_,
                                            xabr_->params_, xabr_->forward_);
             for (Size i = 0; i < xabr_->params_.size(); ++i)
@@ -319,6 +321,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
     const Size maxGuesses_;
     bool vegaWeighted_;
     NoConstraint constraint_;
+    VolatilityType volatilityType_;
 };
 
 } // namespace detail

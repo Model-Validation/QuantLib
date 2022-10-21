@@ -47,7 +47,7 @@ namespace swaption_test {
     Period lengths[] = { 1*Years, 2*Years, 3*Years,
                          5*Years, 7*Years, 10*Years,
                          15*Years, 20*Years };
-    VanillaSwap::Type type[] = { VanillaSwap::Receiver, VanillaSwap::Payer };
+    Swap::Type type[] = { Swap::Receiver, Swap::Payer };
 
     struct CommonVars {
         // global data
@@ -104,7 +104,7 @@ namespace swaption_test {
             nominal = 1000000.0;
             fixedConvention = Unadjusted;
             fixedFrequency = Annual;
-            fixedDayCount = Thirty360();
+            fixedDayCount = Thirty360(Thirty360::BondBasis);
 
             index = ext::shared_ptr<IborIndex>(new Euribor6M(termStructure));
             floatingConvention = index->businessDayConvention();
@@ -141,7 +141,7 @@ void SwaptionTest::testStrikeDependency() {
                 std::vector<Real> values;
                 std::vector<Real> values_cash;
                 Volatility vol = 0.20;
-                for (double strike : strikes) {
+                for (Real strike : strikes) {
                     ext::shared_ptr<VanillaSwap> swap =
                         MakeVanillaSwap(length, vars.index, strike)
                             .withEffectiveDate(startDate)
@@ -159,7 +159,7 @@ void SwaptionTest::testStrikeDependency() {
                     values_cash.push_back(swaption_cash->NPV());
                 }
                 // and check that they go the right way
-                if (k == VanillaSwap::Payer) {
+                if (k == Swap::Payer) {
                     auto it = std::adjacent_find(values.begin(), values.end(), std::less<Real>());
                     if (it != values.end()) {
                         Size n = it - values.begin();
@@ -238,7 +238,7 @@ void SwaptionTest::testSpreadDependency() {
                 // store the results for different rates...
                 std::vector<Real> values;
                 std::vector<Real> values_cash;
-                for (double spread : spreads) {
+                for (Real spread : spreads) {
                     ext::shared_ptr<VanillaSwap> swap =
                         MakeVanillaSwap(length, vars.index, 0.06)
                             .withFixedLegTenor(1 * Years)
@@ -256,7 +256,7 @@ void SwaptionTest::testSpreadDependency() {
                     values_cash.push_back(swaption_cash->NPV());
                 }
                 // and check that they go the right way
-                if (k == VanillaSwap::Payer) {
+                if (k == Swap::Payer) {
                     auto it =
                         std::adjacent_find(values.begin(), values.end(), std::greater<Real>());
                     if (it != values.end()) {
@@ -326,7 +326,7 @@ void SwaptionTest::testSpreadTreatment() {
                 Date startDate =
                     vars.calendar.advance(exerciseDate,
                                           vars.settlementDays,Days);
-                for (double spread : spreads) {
+                for (Real spread : spreads) {
                     ext::shared_ptr<VanillaSwap> swap =
                         MakeVanillaSwap(length, vars.index, 0.06)
                             .withFixedLegTenor(1 * Years)
@@ -379,6 +379,8 @@ void SwaptionTest::testCachedValue() {
 
     using namespace swaption_test;
 
+    bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
+
     CommonVars vars;
 
     vars.today = Date(13, March, 2002);
@@ -397,11 +399,7 @@ void SwaptionTest::testCachedValue() {
     ext::shared_ptr<Swaption> swaption =
         vars.makeSwaption(swap, exerciseDate, 0.20);
 
-    Real cachedNPV;
-    if (IborCoupon::usingAtParCoupons())
-        cachedNPV = 0.036418158579;
-    else
-        cachedNPV = 0.036421429684;
+    Real cachedNPV = usingAtParCoupons ? 0.036418158579 : 0.036421429684;
 
     // FLOATING_POINT_EXCEPTION
     if (std::fabs(swaption->NPV()-cachedNPV) > 1.0e-12)
@@ -429,7 +427,7 @@ void SwaptionTest::testVega() {
         Date startDate = vars.calendar.advance(exerciseDate,
                                            vars.settlementDays*Days);
         for (auto& length : lengths) {
-            for (double strike : strikes) {
+            for (Real strike : strikes) {
                 for (Size h=0; h<LENGTH(type); h++) {
                     ext::shared_ptr<VanillaSwap> swap =
                         MakeVanillaSwap(length, vars.index, strike)
@@ -438,7 +436,7 @@ void SwaptionTest::testVega() {
                             .withFixedLegDayCount(vars.fixedDayCount)
                             .withFloatingLegSpread(0.0)
                             .withType(type[h]);
-                    for (double vol : vols) {
+                    for (Real vol : vols) {
                         ext::shared_ptr<Swaption> swaption =
                             vars.makeSwaption(swap, exerciseDate, vol, types[h], methods[h]);
                         // FLOATING_POINT_EXCEPTION
@@ -511,7 +509,7 @@ void SwaptionTest::testCashSettledSwaptions() {
                                      DateGeneration::Forward, true);
             ext::shared_ptr<VanillaSwap> swap_u360(
                 new VanillaSwap(type[0], vars.nominal,
-                                fixedSchedule_u,strike,Thirty360(),
+                                fixedSchedule_u,strike,Thirty360(Thirty360::BondBasis),
                                 floatSchedule,vars.index,0.0,
                                 vars.index->dayCounter()));
 
@@ -530,7 +528,7 @@ void SwaptionTest::testCashSettledSwaptions() {
                                      DateGeneration::Forward, true);
             ext::shared_ptr<VanillaSwap> swap_a360(
                 new VanillaSwap(type[0],vars.nominal,
-                                fixedSchedule_a,strike,Thirty360(),
+                                fixedSchedule_a,strike,Thirty360(Thirty360::BondBasis),
                                 floatSchedule,vars.index,0.0,
                                 vars.index->dayCounter()));
 
@@ -559,12 +557,12 @@ void SwaptionTest::testCashSettledSwaptions() {
             Handle<YieldTermStructure> termStructure_u360(
                 ext::shared_ptr<YieldTermStructure>(
                     new FlatForward(vars.settlement,swap_u360->fairRate(),
-                                    Thirty360(),Compounded,
+                                    Thirty360(Thirty360::BondBasis),Compounded,
                                     vars.fixedFrequency)));
             Handle<YieldTermStructure> termStructure_a360(
                 ext::shared_ptr<YieldTermStructure>(
                     new FlatForward(vars.settlement,swap_a360->fairRate(),
-                                    Thirty360(),Compounded,
+                                    Thirty360(Thirty360::BondBasis),Compounded,
                                     vars.fixedFrequency)));
             Handle<YieldTermStructure> termStructure_u365(
                 ext::shared_ptr<YieldTermStructure>(
@@ -580,19 +578,19 @@ void SwaptionTest::testCashSettledSwaptions() {
             // Annuity calculated by swap method fixedLegBPS().
             // Fixed leg conventions: Unadjusted, 30/360
             Real annuity_u360 = swap_u360->fixedLegBPS() / 0.0001;
-            annuity_u360 = swap_u360->type()==VanillaSwap::Payer ?
+            annuity_u360 = swap_u360->type()==Swap::Payer ?
                 -annuity_u360 : annuity_u360;
             // Fixed leg conventions: ModifiedFollowing, act/365
             Real annuity_a365 = swap_a365->fixedLegBPS() / 0.0001;
-            annuity_a365 = swap_a365->type()==VanillaSwap::Payer ?
+            annuity_a365 = swap_a365->type()==Swap::Payer ?
                 -annuity_a365 : annuity_a365;
             // Fixed leg conventions: ModifiedFollowing, 30/360
             Real annuity_a360 = swap_a360->fixedLegBPS() / 0.0001;
-            annuity_a360 = swap_a360->type()==VanillaSwap::Payer ?
+            annuity_a360 = swap_a360->type()==Swap::Payer ?
                 -annuity_a360 : annuity_a360;
             // Fixed leg conventions: Unadjusted, act/365
             Real annuity_u365 = swap_u365->fixedLegBPS() / 0.0001;
-            annuity_u365 = swap_u365->type()==VanillaSwap::Payer ?
+            annuity_u365 = swap_u365->type()==Swap::Payer ?
                 -annuity_u365 : annuity_u365;
 
             // Calculation of Modified Annuity (cash settlement)
@@ -807,7 +805,7 @@ void SwaptionTest::testImpliedVolatility() {
             Date startDate = vars.calendar.advance(exerciseDate,
                                                    vars.settlementDays, Days);
 
-            for (double& strike : strikes) {
+            for (Real& strike : strikes) {
                 for (auto& k : type) {
                     ext::shared_ptr<VanillaSwap> swap =
                         MakeVanillaSwap(length, vars.index, strike)
@@ -817,7 +815,7 @@ void SwaptionTest::testImpliedVolatility() {
                             .withFloatingLegSpread(0.0)
                             .withType(k);
                     for (Size h=0; h<LENGTH(types); h++) {
-                        for (double vol : vols) {
+                        for (Real vol : vols) {
                             ext::shared_ptr<Swaption> swaption =
                                 vars.makeSwaption(swap, exerciseDate, vol, types[h], methods[h],
                                                   BlackSwaptionEngine::DiscountCurve);
@@ -922,10 +920,10 @@ void checkSwaptionDelta(bool useBachelierVol)
     Rate strikes[] = { 0.03, 0.04, 0.05, 0.06, 0.07 };
     Volatility vols[] = { 0.0, 0.10, 0.20, 0.30, 0.70, 0.90 };
 
-    for (double vol : vols) {
+    for (Real vol : vols) {
         for (auto exercise : exercises) {
             for (auto& length : lengths) {
-                for (double& strike : strikes) {
+                for (Real& strike : strikes) {
                     for (Size h=0; h<LENGTH(type); h++) {
                         Volatility volatility = useBachelierVol ? vol / 100.0 : vol;
                         ext::shared_ptr<Engine> swaptionEngine = makeConstVolEngine<Engine>(
@@ -939,7 +937,7 @@ void checkSwaptionDelta(bool useBachelierVol)
                             MakeVanillaSwap(length, idx, strike)
                                 .withEffectiveDate(startDate)
                                 .withFixedLegTenor(1 * Years)
-                                .withFixedLegDayCount(Thirty360())
+                                .withFixedLegDayCount(Thirty360(Thirty360::BondBasis))
                                 .withFloatingLegSpread(0.0)
                                 .withType(type[h]);
                         underlying->setPricingEngine(swapEngine);

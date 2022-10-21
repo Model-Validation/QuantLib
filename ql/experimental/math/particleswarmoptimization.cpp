@@ -33,7 +33,7 @@ namespace QuantLib {
                                                          unsigned long seed)
     : M_(M), rng_(seed), topology_(std::move(topology)), inertia_(std::move(inertia)) {
         Real phi = c1 + c2;
-        QL_ENSURE(phi*phi - 4 * phi, "Invalid phi");
+        QL_ENSURE(phi*phi - 4 * phi != 0.0, "Invalid phi");
         c0_ = 2.0 / std::abs(2.0 - phi - sqrt(phi*phi - 4 * phi));
         c1_ = c0_*c1;
         c2_ = c0_*c2;
@@ -367,8 +367,7 @@ namespace QuantLib {
     }
 
     void ClubsTopology::leaveRandomClub(Size particle, Size currentClubs) {
-        Size randIndex = distribution_(generator_,
-            uniform_integer::param_type(1, currentClubs));
+        Size randIndex = distribution_(generator_, param_type(1, currentClubs));
         Size index = 1;
         std::vector<bool> &clubSet = clubs4particles_[particle];
         for (Size j = 0; j < totalClubs_; j++) {
@@ -385,7 +384,7 @@ namespace QuantLib {
 
     void ClubsTopology::joinRandomClub(Size particle, Size currentClubs) {
         Size randIndex = totalClubs_ == currentClubs ? 1 :
-            distribution_(generator_, uniform_integer::param_type(1, totalClubs_ - currentClubs));
+            distribution_(generator_, param_type(1, totalClubs_ - currentClubs));
         Size index = 1;
         std::vector<bool> &clubSet = clubs4particles_[particle];
         for (Size j = 0; j < totalClubs_; j++) {

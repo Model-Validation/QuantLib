@@ -44,12 +44,7 @@ namespace QuantLib {
 
         // start of curve data
         static Date initialDate(const ZeroInflationTermStructure* t) {
-            if (t->indexIsInterpolated()) {
-                return t->referenceDate() - t->observationLag();
-            } else {
-                return inflationPeriod(t->referenceDate() - t->observationLag(),
-                                       t->frequency()).first;
-            }
+            return inflationPeriod(t->referenceDate() - t->observationLag(), t->frequency()).first;
         }
         // value at reference date
         static Rate initialValue(const ZeroInflationTermStructure* t) {
@@ -82,7 +77,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Rate r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : r/2.0;
             }
             return -detail::maxInflation;
         }
@@ -94,7 +89,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Rate r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
@@ -158,7 +153,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Rate r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : r/2.0;
             }
             return -detail::maxInflation;
         }
@@ -170,7 +165,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Rate r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.

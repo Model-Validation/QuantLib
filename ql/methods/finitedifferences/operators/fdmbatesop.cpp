@@ -77,7 +77,7 @@ namespace QuantLib {
                 = ext::dynamic_pointer_cast<FdmDirichletBoundary>(*iter);
 
             QL_REQUIRE(dirichlet, "FdmBatesOp can only deal with Dirichlet "
-                                  "boundary conditions.")
+                                  "boundary conditions.");
 
             valueOfDerivative
                 = dirichlet->applyAfterApplying(x, valueOfDerivative);
@@ -86,7 +86,7 @@ namespace QuantLib {
         return std::exp(-y*y)*valueOfDerivative;
     }
     
-    Disposable<Array> FdmBatesOp::integro(const Array& r) const {
+    Array FdmBatesOp::integro(const Array& r) const {
         const ext::shared_ptr<FdmLinearOpLayout> layout = mesher_->layout();
         
         QL_REQUIRE(layout->dim().size() == 2, "invalid layout dimension");
@@ -123,10 +123,8 @@ namespace QuantLib {
         return lambda_*(integral-r);
     }
 
-#if !defined(QL_NO_UBLAS_SUPPORT)
-    Disposable<std::vector<SparseMatrix> > FdmBatesOp::toMatrixDecomp() const {
+    std::vector<SparseMatrix> FdmBatesOp::toMatrixDecomp() const {
         QL_FAIL("not implemented");
     }
-#endif
 
 }

@@ -55,7 +55,7 @@ namespace QuantLib {
             return std::sqrt(value);
         }
 
-        Disposable<Array> values(const Array& params) const override {
+        Array values(const Array& params) const override {
             model_->setParams(projection_.include(params));
             Array values(instruments_.size());
             for (Size i=0; i<instruments_.size(); i++) {
@@ -73,20 +73,6 @@ namespace QuantLib {
         vector<Real> weights_;
         const Projection projection_;
     };
-
-    void CalibratedModel::calibrate(
-                    const vector<ext::shared_ptr<BlackCalibrationHelper> >& instruments,
-                    OptimizationMethod& method,
-                    const EndCriteria& endCriteria,
-                    const Constraint& additionalConstraint,
-                    const vector<Real>& weights,
-                    const vector<bool>& fixParameters) {
-        vector<ext::shared_ptr<CalibrationHelper> > tmp(instruments.size());
-        for (Size i=0; i<instruments.size(); ++i)
-            tmp[i] = ext::static_pointer_cast<CalibrationHelper>(instruments[i]);
-        calibrate(tmp, method, endCriteria, additionalConstraint,
-                  weights, fixParameters);
-    }
 
     void CalibratedModel::calibrate(
             const vector<ext::shared_ptr<CalibrationHelper> >& instruments,
@@ -132,15 +118,6 @@ namespace QuantLib {
 
     Real CalibratedModel::value(
                 const Array& params,
-                const vector<ext::shared_ptr<BlackCalibrationHelper> >& instruments) {
-        vector<ext::shared_ptr<CalibrationHelper> > tmp(instruments.size());
-        for (Size i=0; i<instruments.size(); ++i)
-            tmp[i] = ext::static_pointer_cast<CalibrationHelper>(instruments[i]);
-        return value(params, tmp);
-    }
-
-    Real CalibratedModel::value(
-                const Array& params,
                 const vector<ext::shared_ptr<CalibrationHelper> >& instruments) {
         vector<Real> w = vector<Real>(instruments.size(), 1.0);
         Projection p(params);
@@ -148,7 +125,7 @@ namespace QuantLib {
         return f.value(params);
     }
 
-    Disposable<Array> CalibratedModel::params() const {
+    Array CalibratedModel::params() const {
         Size size=0;
         for (const auto& argument : arguments_)
             size += argument.size();

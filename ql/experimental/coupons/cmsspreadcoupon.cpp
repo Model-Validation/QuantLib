@@ -46,7 +46,9 @@ namespace QuantLib {
 
     CmsSpreadLeg::CmsSpreadLeg(Schedule schedule, ext::shared_ptr<SwapSpreadIndex> index)
     : schedule_(std::move(schedule)), swapSpreadIndex_(std::move(index)),
-      paymentAdjustment_(Following), inArrears_(false), zeroPayments_(false) {}
+      paymentAdjustment_(Following), inArrears_(false), zeroPayments_(false) {
+        QL_REQUIRE(swapSpreadIndex_, "no index provided");
+    }
 
     CmsSpreadLeg &CmsSpreadLeg::withNotionals(Real notional) {
         notionals_ = std::vector<Real>(1, notional);
@@ -133,12 +135,15 @@ namespace QuantLib {
         zeroPayments_ = flag;
         return *this;
     }
+    CmsSpreadLeg& CmsSpreadLeg::withPaymentCalendar(const Calendar& cal) {
+        paymentCalendar_ = cal;
+        return *this;
+	}
 
     CmsSpreadLeg::operator Leg() const {
-        return FloatingLeg<SwapSpreadIndex, CmsSpreadCoupon,
-                           CappedFlooredCmsSpreadCoupon>(
-            schedule_, notionals_, swapSpreadIndex_, paymentDayCounter_,
-            paymentAdjustment_, fixingDays_, gearings_, spreads_, caps_,
-            floors_, inArrears_, zeroPayments_);
+            return FloatingLeg<SwapSpreadIndex, CmsSpreadCoupon, CappedFlooredCmsSpreadCoupon>(
+                schedule_, notionals_, swapSpreadIndex_, paymentDayCounter_, paymentAdjustment_,
+                fixingDays_, gearings_, spreads_, caps_, floors_, inArrears_, zeroPayments_, 0U,
+                paymentCalendar_); 
     }
 }

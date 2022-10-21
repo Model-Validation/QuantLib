@@ -61,6 +61,11 @@ namespace QuantLib {
             impl_->removedHolidays.insert(_d);
     }
 
+    void Calendar::resetAddedAndRemovedHolidays() {
+        impl_->addedHolidays.clear();
+        impl_->removedHolidays.clear();
+    }
+
     Date Calendar::adjust(const Date& d,
                           BusinessDayConvention c) const {
         QL_REQUIRE(d != Date(), "null date");
@@ -277,26 +282,11 @@ namespace QuantLib {
         return EasterMonday[y-1901];
     }
 
-    std::vector<Date> Calendar::holidayList(const Calendar& calendar,
-        const Date& from, const Date& to, bool includeWeekEnds) {
-
-        QL_REQUIRE(to>from, "'from' date ("
-            << from << ") must be earlier than 'to' date ("
-            << to << ")");
-        std::vector<Date> result;
-        for (Date d = from; d <= to; ++d) {
-            if (calendar.isHoliday(d)
-                && (includeWeekEnds || !calendar.isWeekend(d.weekday())))
-                result.push_back(d);
-       }
-       return result;
-    }
-
     std::vector<Date> Calendar::holidayList(
         const Date& from, const Date& to, bool includeWeekEnds) const {
 
-        QL_REQUIRE(to>from, "'from' date ("
-            << from << ") must be earlier than 'to' date ("
+        QL_REQUIRE(to>=from, "'from' date ("
+            << from << ") must be equal to or earlier than 'to' date ("
             << to << ")");
         std::vector<Date> result;
         for (Date d = from; d <= to; ++d) {
@@ -309,8 +299,8 @@ namespace QuantLib {
     std::vector<Date> Calendar::businessDayList(
         const Date& from, const Date& to) const {
 
-        QL_REQUIRE(to>from, "'from' date ("
-            << from << ") must be earlier than 'to' date ("
+        QL_REQUIRE(to>=from, "'from' date ("
+            << from << ") must be equal to or earlier than 'to' date ("
             << to << ")");
         std::vector<Date> result;
         for (Date d = from; d <= to; ++d) {

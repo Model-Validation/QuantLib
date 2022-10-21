@@ -32,16 +32,15 @@
 #include <ql/time/daycounter.hpp>
 #include <ql/time/businessdayconvention.hpp>
 #include <ql/time/calendar.hpp>
+#include <ql/time/schedule.hpp>
 
 namespace QuantLib {
 
-    class Schedule;
     class OvernightIndex;
 
     //! Overnight indexed swap: fix vs compounded overnight rate
     class OvernightIndexedSwap : public Swap {
-    public:
-        enum Type { Receiver = -1, Payer = 1 };
+      public:
         OvernightIndexedSwap(Type type,
                              Real nominal,
                              const Schedule& schedule,
@@ -74,18 +73,20 @@ namespace QuantLib {
         Real nominal() const;
         std::vector<Real> nominals() const { return nominals_; }
 
-        Frequency paymentFrequency() { return paymentFrequency_; }
+        Frequency paymentFrequency() const { return paymentFrequency_; }
 
         Rate fixedRate() const { return fixedRate_; }
-        const DayCounter& fixedDayCount() { return fixedDC_; }
+        const DayCounter& fixedDayCount() const { return fixedDC_; }
 
-        const ext::shared_ptr<OvernightIndex>& overnightIndex() { return overnightIndex_; }
+        const ext::shared_ptr<OvernightIndex>& overnightIndex() const { return overnightIndex_; }
         Spread spread() const { return spread_; }
 
         const Leg& fixedLeg() const { return legs_[0]; }
         const Leg& overnightLeg() const { return legs_[1]; }
 
         RateAveraging::Type averagingMethod() const { return averagingMethod_; }
+
+        const Schedule& schedule() const { return schedule_; }
         //@}
 
         //! \name Results
@@ -117,6 +118,7 @@ namespace QuantLib {
         Spread spread_;
         bool telescopicValueDates_;
         RateAveraging::Type averagingMethod_;
+        Schedule schedule_;
     };
 
 

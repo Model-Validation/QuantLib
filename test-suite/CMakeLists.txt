@@ -1,6 +1,4 @@
-# cpp files, this list is maintained manually
-
-set(QuantLib-Test_SRC
+set(QL_TEST_SOURCES
     americanoption.cpp
     amortizingbond.cpp
     andreasenhugevolatilityinterpl.cpp
@@ -10,12 +8,14 @@ set(QuantLib-Test_SRC
     autocovariances.cpp
     barrieroption.cpp
     basismodels.cpp
+    basisswapratehelpers.cpp
     basketoption.cpp
     batesmodel.cpp
     bermudanswaption.cpp
     binaryoption.cpp
     blackdeltacalculator.cpp
     blackformula.cpp
+    bondforward.cpp
     bonds.cpp
     brownianbridge.cpp
     businessdayconventions.cpp
@@ -39,6 +39,7 @@ set(QuantLib-Test_SRC
     creditdefaultswap.cpp
     creditriskplus.cpp
     crosscurrencyratehelpers.cpp
+    currency.cpp
     curvestates.cpp
     dates.cpp
     daycounters.cpp
@@ -80,6 +81,7 @@ set(QuantLib-Test_SRC
     inflationcpicapfloor.cpp
     inflationcpiswap.cpp
     inflationvolatility.cpp
+	inflationzciisinterpolation.cpp
     instruments.cpp
     integrals.cpp
     interestrates.cpp
@@ -91,7 +93,6 @@ set(QuantLib-Test_SRC
     linearleastsquaresregression.cpp
     lookbackoptions.cpp
     lowdiscrepancysequences.cpp
-    main.cpp
     margrabeoption.cpp
     marketmodel.cpp
     marketmodel_cms.cpp
@@ -114,6 +115,7 @@ set(QuantLib-Test_SRC
     operators.cpp
     optimizers.cpp
     optionletstripper.cpp
+    overnightindexedcoupon.cpp
     overnightindexedswap.cpp
     pagodaoption.cpp
     partialtimebarrieroption.cpp
@@ -139,6 +141,7 @@ set(QuantLib-Test_SRC
     squarerootclvmodel.cpp
     stats.cpp
     subperiodcoupons.cpp
+    svivolatility.cpp
     swap.cpp
     swapforwardmappings.cpp
     swaption.cpp
@@ -161,11 +164,10 @@ set(QuantLib-Test_SRC
     volatilitymodels.cpp
     vpp.cpp
     zabr.cpp
+    zerocouponswap.cpp
 )
 
-# hpp files, this list is maintained manually
-
-set(QuantLib-Test_HDR
+set(QL_TEST_HEADERS
     americanoption.hpp
     amortizingbond.hpp
     andreasenhugevolatilityinterpl.hpp
@@ -175,12 +177,14 @@ set(QuantLib-Test_HDR
     autocovariances.hpp
     barrieroption.hpp
     basismodels.hpp
+    basisswapratehelpers.hpp
     basketoption.hpp
     batesmodel.hpp
     bermudanswaption.hpp
     binaryoption.hpp
     blackdeltacalculator.hpp
     blackformula.hpp
+    bondforward.hpp
     bonds.hpp
     brownianbridge.hpp
     businessdayconventions.hpp
@@ -204,6 +208,7 @@ set(QuantLib-Test_HDR
     creditdefaultswap.hpp
     creditriskplus.hpp
     crosscurrencyratehelpers.hpp
+    currency.hpp
     curvestates.hpp
     dates.hpp
     daycounters.hpp
@@ -245,6 +250,7 @@ set(QuantLib-Test_HDR
     inflationcpicapfloor.hpp
     inflationcpiswap.hpp
     inflationvolatility.hpp
+	inflationzciisinterpolation.hpp
     instruments.hpp
     integrals.hpp
     interestrates.hpp
@@ -278,6 +284,7 @@ set(QuantLib-Test_HDR
     operators.hpp
     optimizers.hpp
     optionletstripper.hpp
+    overnightindexedcoupon.hpp
     overnightindexedswap.hpp
     pagodaoption.hpp
     paralleltestrunner.hpp
@@ -304,6 +311,7 @@ set(QuantLib-Test_HDR
     squarerootclvmodel.hpp
     stats.hpp
     subperiodcoupons.hpp
+    svivolatility.hpp
     swap.hpp
     swapforwardmappings.hpp
     swaption.hpp
@@ -327,10 +335,10 @@ set(QuantLib-Test_HDR
     volatilitymodels.hpp
     vpp.hpp
     zabr.hpp
+    zerocouponswap.hpp
 )
 
-set(BENCHMARK_FILES 
-    main.cpp 
+set(QL_BENCHMARK_SOURCES
     quantlibbenchmark.cpp
     
     americanoption.cpp                  americanoption.hpp
@@ -357,20 +365,46 @@ set(BENCHMARK_FILES
                                         swaptionvolstructuresutilities.hpp
 )
 
-if (USE_BOOST_DYNAMIC_LIBRARIES)
-    add_definitions(-DBOOST_TEST_DYN_LINK)
+if (QL_BUILD_TEST_SUITE)
+    add_library(ql_unit_test_main STATIC main.cpp)
+    target_include_directories(ql_unit_test_main PRIVATE
+        ${PROJECT_BINARY_DIR}
+        ${PROJECT_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS})
+    add_executable(ql_test_suite ${QL_TEST_SOURCES} ${QL_TEST_HEADERS})
+    set_target_properties(ql_test_suite PROPERTIES OUTPUT_NAME "quantlib-test-suite")
+    if (NOT Boost_USE_STATIC_LIBS)
+        target_compile_definitions(ql_unit_test_main PRIVATE BOOST_TEST_DYN_LINK)
+        target_compile_definitions(ql_test_suite PRIVATE BOOST_ALL_DYN_LINK BOOST_TEST_DYN_LINK)
+    endif()
+    if (QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER OR QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN)
+        set(QL_TEST_SUITE_LIBRARIES Boost::thread ${RT_LIBRARY})
+    endif()
+    target_link_libraries(ql_test_suite PRIVATE
+        ql_library
+        ql_unit_test_main
+        Boost::unit_test_framework
+        ${QL_TEST_SUITE_LIBRARIES})
+    if (QL_INSTALL_TEST_SUITE)
+        install(TARGETS ql_test_suite RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
+    endif()
+    add_test(NAME quantlib_test_suite COMMAND ql_test_suite --log_level=message)
 endif()
 
-find_package (Boost REQUIRED COMPONENTS unit_test_framework)
-
-set (TEST quantlib-test-suite)
-add_executable (${TEST} ${QuantLib-Test_SRC} ${QuantLib-Test_HDR})
-target_link_libraries (${TEST} ${QL_LINK_LIBRARY} ${Boost_LIBRARIES})
-set_property(TARGET ${TEST} PROPERTY PROJECT_LABEL "testsuite")
-
-set (BENCHMARK quantlib-benchmark)
-add_executable (${BENCHMARK} ${BENCHMARK_FILES})
-target_link_libraries (${BENCHMARK} ${QL_LINK_LIBRARY} ${Boost_LIBRARIES})
-set_property(TARGET ${BENCHMARK} PROPERTY PROJECT_LABEL "benchmark")
-
-add_test (${TEST} ${TEST})
+IF (QL_BUILD_BENCHMARK)
+    add_executable(ql_benchmark ${QL_BENCHMARK_SOURCES})
+    set_target_properties(ql_benchmark PROPERTIES OUTPUT_NAME "quantlib-benchmark")
+    if (NOT Boost_USE_STATIC_LIBS)
+        target_compile_definitions(ql_benchmark PRIVATE BOOST_ALL_DYN_LINK BOOST_TEST_DYN_LINK)
+    endif()
+    if (QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN)
+        set(QL_BENCHMARK_LIBRARIES Boost::thread ${RT_LIBRARY})
+    endif()
+    target_link_libraries(ql_benchmark PRIVATE
+        ql_library
+        Boost::unit_test_framework
+        ${QL_BENCHMARK_LIBRARIES})
+    if (QL_INSTALL_BENCHMARK)
+        install(TARGETS ql_benchmark RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
+    endif()
+endif()

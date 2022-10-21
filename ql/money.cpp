@@ -21,12 +21,26 @@
 #include <ql/money.hpp>
 #include <ql/currencies/exchangeratemanager.hpp>
 #include <ql/math/comparison.hpp>
+
+#if defined(__clang__) && (defined(__APPLE__) && __clang_major__ > 12) || (!defined(__APPLE__) && __clang_major__ > 10)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsuggest-override"
+#endif
+#if defined(__GNUC__) && (((__GNUC__ == 5) && (__GNUC_MINOR__ >= 1)) || (__GNUC__ > 5))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+
 #include <boost/format.hpp>
 
-namespace QuantLib {
+#if defined(__clang__) && (defined(__APPLE__) && __clang_major__ > 12) || (!defined(__APPLE__) && __clang_major__ > 10)
+#pragma clang diagnostic pop
+#endif
+#if defined(__GNUC__) && (((__GNUC__ == 5) && (__GNUC_MINOR__ >= 1)) || (__GNUC__ > 5))
+#pragma GCC diagnostic pop
+#endif
 
-    Money::ConversionType Money::conversionType = Money::NoConversion;
-    Currency Money::baseCurrency = Currency();
+namespace QuantLib {
 
     namespace {
 
@@ -40,21 +54,24 @@ namespace QuantLib {
         }
 
         void convertToBase(Money& m) {
-            QL_REQUIRE(!Money::baseCurrency.empty(), "no base currency set");
-            convertTo(m, Money::baseCurrency);
+            const auto & base_currency =
+                Money::Settings::instance().baseCurrency();
+            QL_REQUIRE(!base_currency.empty(), "no base currency set");
+            convertTo(m, base_currency);
         }
 
     }
 
     Money& Money::operator+=(const Money& m) {
+        const auto & conversion_type = Settings::instance().conversionType();
         if (currency_ == m.currency_) {
             value_ += m.value_;
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             convertToBase(*this);
             Money tmp = m;
             convertToBase(tmp);
             *this += tmp;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m;
             convertTo(tmp, currency_);
             *this += tmp;
@@ -65,14 +82,15 @@ namespace QuantLib {
     }
 
     Money& Money::operator-=(const Money& m) {
+        const auto & conversion_type = Settings::instance().conversionType();
         if (currency_ == m.currency_) {
             value_ -= m.value_;
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             convertToBase(*this);
             Money tmp = m;
             convertToBase(tmp);
             *this -= tmp;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m;
             convertTo(tmp, currency_);
             *this -= tmp;
@@ -83,15 +101,17 @@ namespace QuantLib {
     }
 
     Decimal operator/(const Money& m1, const Money& m2) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return m1.value()/m2.value();
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return tmp1/tmp2;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return m1/tmp;
@@ -101,15 +121,17 @@ namespace QuantLib {
     }
 
     bool operator==(const Money& m1, const Money& m2) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return m1.value() == m2.value();
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return tmp1 == tmp2;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return m1 == tmp;
@@ -119,15 +141,17 @@ namespace QuantLib {
     }
 
     bool operator<(const Money& m1, const Money& m2) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return m1.value() < m2.value();
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return tmp1 < tmp2;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return m1 < tmp;
@@ -137,15 +161,17 @@ namespace QuantLib {
     }
 
     bool operator<=(const Money& m1, const Money& m2) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return m1.value() <= m2.value();
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return tmp1 <= tmp2;
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return m1 <= tmp;
@@ -155,15 +181,17 @@ namespace QuantLib {
     }
 
     bool close(const Money& m1, const Money& m2, Size n) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return close(m1.value(),m2.value(),n);
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return close(tmp1,tmp2,n);
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return close(m1,tmp,n);
@@ -173,15 +201,17 @@ namespace QuantLib {
     }
 
     bool close_enough(const Money& m1, const Money& m2, Size n) {
+        const auto & conversion_type =
+            Money::Settings::instance().conversionType();
         if (m1.currency() == m2.currency()) {
             return close_enough(m1.value(),m2.value(),n);
-        } else if (Money::conversionType == Money::BaseCurrencyConversion) {
+        } else if (conversion_type == Money::BaseCurrencyConversion) {
             Money tmp1 = m1;
             convertToBase(tmp1);
             Money tmp2 = m2;
             convertToBase(tmp2);
             return close_enough(tmp1,tmp2,n);
-        } else if (Money::conversionType == Money::AutomatedConversion) {
+        } else if (conversion_type == Money::AutomatedConversion) {
             Money tmp = m2;
             convertTo(tmp, m1.currency());
             return close_enough(m1,tmp,n);
@@ -199,5 +229,48 @@ namespace QuantLib {
                           % m.currency().code()
                           % m.currency().symbol();
     }
+
+
+    const Money::ConversionType & Money::Settings::conversionType() const
+    {
+        return conversionType_;
+    }
+
+    Money::ConversionType & Money::Settings::conversionType()
+    {
+        return conversionType_;
+    }
+
+    const Currency & Money::Settings::baseCurrency() const
+    {
+        return baseCurrency_;
+    }
+
+    Currency & Money::Settings::baseCurrency()
+    {
+        return baseCurrency_;
+    }
+
+    Money::BaseCurrencyProxy& Money::BaseCurrencyProxy::operator=(const Currency& c) {
+        Money::Settings::instance().baseCurrency() = c;
+        return *this;
+    }
+
+    Money::BaseCurrencyProxy::operator Currency() const {
+        return Money::Settings::instance().baseCurrency();
+    }
+
+    Money::ConversionTypeProxy& Money::ConversionTypeProxy::operator=(ConversionType t) {
+        Money::Settings::instance().conversionType() = t;
+        return *this;
+    }
+
+    Money::ConversionTypeProxy::operator Money::ConversionType() const {
+        return Money::Settings::instance().conversionType();
+    }
+
+    Money::BaseCurrencyProxy Money::baseCurrency;
+    Money::ConversionTypeProxy Money::conversionType;
+
 
 }

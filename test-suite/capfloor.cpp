@@ -169,8 +169,8 @@ void CapFloorTest::testVega() {
     static const Real tolerance = 0.005;
 
     for (int length : lengths) {
-        for (double vol : vols) {
-            for (double strike : strikes) {
+        for (Real vol : vols) {
+            for (Real strike : strikes) {
                 for (auto& type : types) {
                     Leg leg = vars.makeLeg(startDate, length);
                     ext::shared_ptr<CapFloor> capFloor = vars.makeCapFloor(type, leg, strike, vol);
@@ -217,10 +217,10 @@ void CapFloorTest::testStrikeDependency() {
     Date startDate = vars.termStructure->referenceDate();
 
     for (int& length : lengths) {
-        for (double vol : vols) {
+        for (Real vol : vols) {
             // store the results for different strikes...
             std::vector<Real> cap_values, floor_values;
-            for (double strike : strikes) {
+            for (Real strike : strikes) {
                 Leg leg = vars.makeLeg(startDate, length);
                 ext::shared_ptr<Instrument> cap =
                     vars.makeCapFloor(CapFloor::Cap, leg, strike, vol);
@@ -274,9 +274,9 @@ void CapFloorTest::testConsistency() {
     Date startDate = vars.termStructure->referenceDate();
 
     for (int& length : lengths) {
-        for (double& cap_rate : cap_rates) {
-            for (double& floor_rate : floor_rates) {
-                for (double vol : vols) {
+        for (Real& cap_rate : cap_rates) {
+            for (Real& floor_rate : floor_rates) {
+                for (Real vol : vols) {
 
                     Leg leg = vars.makeLeg(startDate, length);
                     ext::shared_ptr<CapFloor> cap =
@@ -380,8 +380,8 @@ void CapFloorTest::testParity() {
     Date startDate = vars.termStructure->referenceDate();
 
     for (int& length : lengths) {
-        for (double strike : strikes) {
-            for (double vol : vols) {
+        for (Real strike : strikes) {
+            for (Real vol : vols) {
 
                 Leg leg = vars.makeLeg(startDate, length);
                 ext::shared_ptr<Instrument> cap =
@@ -391,7 +391,7 @@ void CapFloorTest::testParity() {
                 Date maturity = vars.calendar.advance(startDate, length, Years, vars.convention);
                 Schedule schedule(startDate, maturity, Period(vars.frequency), vars.calendar,
                                   vars.convention, vars.convention, DateGeneration::Forward, false);
-                VanillaSwap swap(VanillaSwap::Payer, vars.nominals[0], schedule, strike,
+                VanillaSwap swap(Swap::Payer, vars.nominals[0], schedule, strike,
                                  vars.index->dayCounter(), schedule, vars.index, 0.0,
                                  vars.index->dayCounter());
                 swap.setPricingEngine(
@@ -433,8 +433,8 @@ void CapFloorTest::testATMRate() {
                           vars.convention,vars.convention,
                           DateGeneration::Forward,false);
 
-        for (double strike : strikes) {
-            for (double vol : vols) {
+        for (Real strike : strikes) {
+            for (Real vol : vols) {
                 ext::shared_ptr<CapFloor> cap = vars.makeCapFloor(CapFloor::Cap, leg, strike, vol);
                 ext::shared_ptr<CapFloor> floor =
                     vars.makeCapFloor(CapFloor::Floor, leg, strike, vol);
@@ -449,7 +449,7 @@ void CapFloorTest::testATMRate() {
                                << "   floor ATM rate:" << floorATMRate << "\n"
                                << "   relative Error:"
                                << relativeError(capATMRate, floorATMRate, capATMRate) * 100 << "%");
-                VanillaSwap swap(VanillaSwap::Payer, vars.nominals[0],
+                VanillaSwap swap(Swap::Payer, vars.nominals[0],
                                  schedule, floorATMRate,
                                  vars.index->dayCounter(),
                                  schedule, vars.index, 0.0,
@@ -493,12 +493,12 @@ void CapFloorTest::testImpliedVolatility() {
         Leg leg = vars.makeLeg(vars.settlement, length);
 
         for (auto& type : types) {
-            for (double strike : strikes) {
+            for (Real strike : strikes) {
 
                 ext::shared_ptr<CapFloor> capfloor = vars.makeCapFloor(type, leg, strike, 0.0);
 
-                for (double r : rRates) {
-                    for (double v : vols) {
+                for (Real r : rRates) {
+                    for (Real v : vols) {
 
                         vars.termStructure.linkTo(flatRate(vars.settlement, r, Actual360()));
                         capfloor->setPricingEngine(vars.makeEngine(v));
@@ -575,7 +575,7 @@ void CapFloorTest::testCachedValue() {
                                                             0.03,0.20);
 
     Real cachedCapNPV, cachedFloorNPV ;
-    if (!IborCoupon::usingAtParCoupons()) {
+    if (!IborCoupon::Settings::instance().usingAtParCoupons()) {
         // index fixing price
         cachedCapNPV   = 6.87630307745,
         cachedFloorNPV = 2.65796764715;
@@ -626,7 +626,7 @@ void CapFloorTest::testCachedValueFromOptionLets() {
          calculatedFloorletsNPV = 0.0;
 
     Real cachedCapNPV, cachedFloorNPV;
-    if (IborCoupon::usingAtParCoupons()) {
+    if (IborCoupon::Settings::instance().usingAtParCoupons()) {
         cachedCapNPV = 6.87570026732;
         cachedFloorNPV = 2.65812927959;
     } else {
@@ -647,11 +647,11 @@ void CapFloorTest::testCachedValueFromOptionLets() {
             << "    calculated: " << capletPrices.size() << " caplet prices\n"
             << "    expected:   " << 40);
 
-    for (double capletPrice : capletPrices) {
+    for (Real capletPrice : capletPrices) {
         calculatedCapletsNPV += capletPrice;
     }
 
-    for (double floorletPrice : floorletPrices) {
+    for (Real floorletPrice : floorletPrices) {
         calculatedFloorletsNPV += floorletPrice;
     }
 

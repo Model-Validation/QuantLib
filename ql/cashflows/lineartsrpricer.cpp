@@ -27,6 +27,7 @@
 #include <ql/cashflows/lineartsrpricer.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/vanillaswap.hpp>
+#include <ql/instruments/overnightindexedswap.hpp>
 #include <ql/math/integrals/kronrodintegral.hpp>
 #include <ql/math/solvers1d/brent.hpp>
 #include <ql/pricingengines/blackformula.hpp>
@@ -136,10 +137,20 @@ namespace QuantLib {
         if (fixingDate_ > today_) {
 
             swapTenor_ = swapIndex_->tenor();
-            swap_ = swapIndex_->underlyingSwap(fixingDate_);
 
-            swapRateValue_ = swap_->fairRate();
-            annuity_ = 1.0E4 * std::fabs(swap_->fixedLegBPS());
+            Leg swapFixedLeg;
+            if(auto on = boost::dynamic_pointer_cast<OvernightIndexedSwapIndex>(swapIndex_)) {
+                onSwap_ = on->underlyingSwap(fixingDate_);
+                swapRateValue_ = onSwap_->fairRate();
+                annuity_ = 1.0E4 * std::fabs(onSwap_->fixedLegBPS());
+                swapFixedLeg = onSwap_->fixedLeg();
+            }
+            else {
+                swap_ = swapIndex_->underlyingSwap(fixingDate_);
+                swapRateValue_ = swap_->fairRate();
+                annuity_ = 1.0E4 * std::fabs(swap_->fixedLegBPS());
+                swapFixedLeg = swap_->fixedLeg();
+            }
 
             ext::shared_ptr<SmileSection> sectionTmp =
                 swaptionVolatility()->smileSection(fixingDate_, swapTenor_);
@@ -169,7 +180,7 @@ namespace QuantLib {
             // compute linear model's parameters
 
             Real gx = 0.0, gy = 0.0;
-            for (const auto& i : swap_->fixedLeg()) {
+            for (const auto& i : swapFixedLeg) {
                 ext::shared_ptr<Coupon> c = ext::dynamic_pointer_cast<Coupon>(i);
                 Real yf = c->accrualPeriod();
                 Date d = c->date();
@@ -179,7 +190,7 @@ namespace QuantLib {
             }
 
             Real gamma = gx / gy;
-            Date lastd = swap_->fixedLeg().back()->date();
+            Date lastd = swapFixedLeg.back()->date();
 
             a_ = discountCurve_->discount(paymentDate_) *
                  (gamma - GsrG(paymentDate_)) /
@@ -199,9 +210,11 @@ namespace QuantLib {
         if (optionType == Option::Call) {
             a = swapRateValue_;
             min = referenceStrike;
+            // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             b = max = k =
                 std::min(smileSection_->maxStrike(), adjustedUpperBound_);
         } else {
+            // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             a = min = k =
                 std::max(smileSection_->minStrike(), adjustedLowerBound_);
             b = swapRateValue_;
@@ -229,9 +242,11 @@ namespace QuantLib {
         if (optionType == Option::Call) {
             a = swapRateValue_;
             min = referenceStrike;
+            // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             b = max = k =
                 std::min(smileSection_->maxStrike(), adjustedUpperBound_);
         } else {
+            // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
             a = min = k =
                 std::max(smileSection_->minStrike(), adjustedLowerBound_);
             b = swapRateValue_;

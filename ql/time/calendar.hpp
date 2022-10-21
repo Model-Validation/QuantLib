@@ -96,6 +96,9 @@ namespace QuantLib {
         /*! Returns the set of removed holidays for the given calendar */
         const std::set<Date>& removedHolidays() const;
 
+        /*! Clear the set of added and removed holidays */
+        void resetAddedAndRemovedHolidays();
+
         bool isBusinessDay(const Date& d) const;
         /*! Returns <tt>true</tt> iff the date is a holiday for the given
             market.
@@ -116,17 +119,6 @@ namespace QuantLib {
         void addHoliday(const Date&);
         /*! Removes a date from the set of holidays for the given calendar. */
         void removeHoliday(const Date&);
-
-        /*! Returns the holidays between two dates.
-
-            \deprecated Use the non-static overload.
-                        Deprecated in version 1.18.
-        */
-        QL_DEPRECATED
-        static std::vector<Date> holidayList(const Calendar& calendar,
-                                             const Date& from,
-                                             const Date& to,
-                                             bool includeWeekEnds = false);
 
         /*! Returns the holidays between two dates. */
         std::vector<Date> holidayList(const Date& from,
