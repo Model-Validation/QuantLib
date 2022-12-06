@@ -193,6 +193,11 @@ namespace QuantLib {
         @param lastPeriodDayCounter  Day-count convention for accrual in last period. Mainly to
                                      allow for possibility of including maturity date in the last
                                      period's coupon accrual which is standard.
+        @param rebatesAccrual  The protection seller pays the accrued 
+                               scheduled current coupon at the start 
+                               of the contract. The rebate date is not
+                               provided but computed to be two days after
+                               protection start.
         @param tradeDate  The contract's trade date. It will be used with the \p cashSettlementDays to determine 
                           the date on which the cash settlement amount is paid. If not given, the trade date is 
                           guessed from the protection start date and \p schedule date generation rule.
@@ -231,6 +236,11 @@ namespace QuantLib {
         @param lastPeriodDayCounter  Day-count convention for accrual in last period. Mainly to
                                      allow for possibility of including maturity date in the last
                                      period's coupon accrual which is standard.
+        @param rebatesAccrual  The protection seller pays the accrued 
+                               scheduled current coupon at the start 
+                               of the contract. The rebate date is not
+                               provided but computed to be two days after
+                               protection start.
         @param tradeDate  The contract's trade date. It will be used with the \p cashSettlementDays to determine
                           the date on which the cash settlement amount is paid. If not given, the trade date is
                           guessed from the protection start date and \p schedule date generation rule.
@@ -271,6 +281,11 @@ namespace QuantLib {
         @param lastPeriodDayCounter  Day-count convention for accrual in last period. Mainly to
                                      allow for possibility of including maturity date in the last
                                      period's coupon accrual which is standard.
+        @param rebatesAccrual  The protection seller pays the accrued 
+                               scheduled current coupon at the start 
+                               of the contract. The rebate date is not
+                               provided but computed to be two days after
+                               protection start.
         @param tradeDate  The contract's trade date. It will be used with the \p cashSettlementDays to determine 
                           the date on which the cash settlement amount is paid. If not given, the trade date is 
                           guessed from the protection start date and \p schedule date generation rule.
@@ -312,6 +327,11 @@ namespace QuantLib {
         @param lastPeriodDayCounter  Day-count convention for accrual in last period. Mainly to
                                      allow for possibility of including maturity date in the last
                                      period's coupon accrual which is standard.
+        @param rebatesAccrual  The protection seller pays the accrued 
+                               scheduled current coupon at the start 
+                               of the contract. The rebate date is not
+                               provided but computed to be two days after
+                               protection start.
         @param tradeDate  The contract's trade date. It will be used with the \p cashSettlementDays to determine
                           the date on which the cash settlement amount is paid. If not given, the trade date is
                           guessed from the protection start date and \p schedule date generation rule.
@@ -450,6 +470,7 @@ namespace QuantLib {
                                 PricingModel model = Midpoint) const;
         //@}
       protected:
+        void performCalculations() const override;
         //! \name Instrument interface
         //@{
         void setupExpired() const override;
@@ -465,16 +486,21 @@ namespace QuantLib {
         Real notional_;
         boost::optional<Rate> upfront_;
         Rate runningSpread_;
+        Schedule schedule_;
+        BusinessDayConvention paymentConvention_;
         bool settlesAccrual_, paysAtDefaultTime_;
         ProtectionPaymentTime protectionPaymentTime_;
         ext::shared_ptr<Claim> claim_;
         Leg leg_;
         ext::shared_ptr<SimpleCashFlow> upfrontPayment_;
-        ext::shared_ptr<SimpleCashFlow> accrualRebate_;
-        ext::shared_ptr<SimpleCashFlow> accrualRebateCurrent_;
+        mutable ext::shared_ptr<SimpleCashFlow> accrualRebate_;
+        mutable ext::shared_ptr<SimpleCashFlow> accrualRebateCurrent_;
         Date protectionStart_;
         Date tradeDate_;
         Natural cashSettlementDays_;
+        bool rebatesAccrual_;
+        bool postBigBang_;
+        Date effectiveUpfrontDate_;
         Date maturity_;
         // results
         mutable Rate fairUpfront_;
@@ -489,8 +515,9 @@ namespace QuantLib {
 
       private:
         //! Shared initialisation.
-        void init(const Schedule& schedule, BusinessDayConvention paymentConvention, const DayCounter& dayCounter,
-                  const DayCounter& lastPeriodDayCounter, bool rebatesAccrual, const Date& upfrontDate = Date());
+        void init(const DayCounter& dayCounter,
+                  const DayCounter& lastPeriodDayCounter,
+                  const Date& upfrontDate = Date());
     };
 
 

@@ -23,6 +23,7 @@
 #include <ql/utilities/dataparsers.hpp>
 #include <ql/version.hpp>
 
+// Boost.Test
 #ifdef QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
 #include "paralleltestrunner.hpp"
 #else
@@ -351,6 +352,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(QUANTLIB_TEST_CASE(startTimer));
 
     test->add(AmericanOptionTest::suite(speed));
+    test->add(AmortizingBondTest::suite());
     test->add(AndreasenHugeVolatilityInterplTest::suite(speed));
     test->add(ArrayTest::suite());
     test->add(AsianOptionTest::suite(speed));
@@ -474,7 +476,6 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(ZeroCouponSwapTest::suite());
 
     // tests for experimental classes
-    test->add(AmortizingBondTest::suite());
     test->add(AsianOptionTest::experimental(speed));
     test->add(BasismodelsTest::suite());
     test->add(BasisSwapRateHelpersTest::suite());
