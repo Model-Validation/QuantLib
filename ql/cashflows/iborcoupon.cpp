@@ -174,7 +174,7 @@ namespace QuantLib {
         return *this;
     }
 
-    IborLeg& IborLeg::withPaymentLag(Natural lag) {
+    IborLeg& IborLeg::withPaymentLag(Integer lag) {
         paymentLag_ = lag;
         return *this;
     }

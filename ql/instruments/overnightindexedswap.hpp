@@ -48,7 +48,7 @@ namespace QuantLib {
                              DayCounter fixedDC,
                              ext::shared_ptr<OvernightIndex> overnightIndex,
                              Spread spread = 0.0,
-                             Natural paymentLag = 0,
+                             Integer paymentLag = 0,
                              BusinessDayConvention paymentAdjustment = Following,
                              const Calendar& paymentCalendar = Calendar(),
                              bool telescopicValueDates = false,
@@ -61,7 +61,7 @@ namespace QuantLib {
                              DayCounter fixedDC,
                              ext::shared_ptr<OvernightIndex> overnightIndex,
                              Spread spread = 0.0,
-                             Natural paymentLag = 0,
+                             Integer paymentLag = 0,
                              BusinessDayConvention paymentAdjustment = Following,
                              const Calendar& paymentCalendar = Calendar(),
                              bool telescopicValueDates = false,
@@ -107,7 +107,7 @@ namespace QuantLib {
         Frequency paymentFrequency_;
         Calendar paymentCalendar_;
         BusinessDayConvention paymentAdjustment_;
-        Natural paymentLag_;
+        Integer paymentLag_;
 
         //Schedule schedule_;
 

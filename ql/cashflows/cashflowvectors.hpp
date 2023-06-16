@@ -70,7 +70,7 @@ namespace QuantLib {
                     const std::vector<Rate>& floors,
                     bool isInArrears,
                     bool isZero,
-                    Natural paymentLag = 0,
+                    Integer paymentLag = 0,
                     Calendar paymentCalendar = Calendar(),
                     Period exCouponPeriod = Period(),
                     Calendar exCouponCalendar = Calendar(),
@@ -130,8 +130,8 @@ namespace QuantLib {
                 }
             }
             if (i==0   && (schedule.hasIsRegular() && schedule.hasTenor() && !schedule.isRegular(i+1))) {
-                BusinessDayConvention bdc = schedule.businessDayConvention();
-                refStart = calendar.adjust(end - schedule.tenor(), bdc);
+                //BusinessDayConvention bdc = schedule.businessDayConvention();
+                //refStart = calendar.adjust(end - schedule.tenor(), bdc);
             }
             if (i==n-1 && (schedule.hasIsRegular() && schedule.hasTenor() && !schedule.isRegular(i+1))) {
                 BusinessDayConvention bdc = schedule.businessDayConvention();

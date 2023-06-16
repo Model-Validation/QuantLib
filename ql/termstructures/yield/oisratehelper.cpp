@@ -32,7 +32,7 @@ namespace QuantLib {
                                  ext::shared_ptr<OvernightIndex> overnightIndex,
                                  Handle<YieldTermStructure> discount,
                                  bool telescopicValueDates,
-                                 Natural paymentLag,
+                                 Integer paymentLag,
                                  BusinessDayConvention paymentConvention,
                                  Frequency paymentFrequency,
                                  Calendar paymentCalendar,
