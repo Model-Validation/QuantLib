@@ -55,7 +55,7 @@ namespace QuantLib {
         Time t2;
         Real var_t1;
         Real var_t2;
-        Real moneyness = strike / spot_->value() * div_->discount(t) / rf_->discount(t);
+        Real moneyness = strike / (spot_->value() * div_->discount(t) / rf_->discount(t));
 
         if (t <= expiryTimes_.front()) {
             t1 = 0.0;
