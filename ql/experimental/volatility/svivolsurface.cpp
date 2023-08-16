@@ -59,13 +59,14 @@ namespace QuantLib {
 
         if (t <= expiryTimes_.front()) {
             t1 = 0.0;
-            t2 = expiryTimes_.front();
+            t2 = smileSections_[0]->exerciseTime();
             var_t1 = 0.0;
             var_t2 = smileSections_[0]->variance(moneyness * smileSections_[0]->atmLevel());
         } else if (t <= expiryTimes_.back()) {
             Size i1, i2;
-            for (Size i = 0; i < smileSections_.size(); ++i) {
-                if (t > smileSections_[i]->exerciseTime()) {
+            for (Size i = 0; i < smileSections_.size() - 1; ++i) {
+                if (t >= smileSections_[i]->exerciseTime() &&
+                    t <= smileSections_[i + 1]->exerciseTime()) {
                     i1 = i;
                     i2 = i + 1;
                     break;
@@ -76,11 +77,12 @@ namespace QuantLib {
             var_t1 = smileSections_[i1]->variance(moneyness * smileSections_[i1]->atmLevel());
             var_t2 = smileSections_[i2]->variance(moneyness * smileSections_[i2]->atmLevel());
         } else {
-            return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel()) *
-                   t / smileSections_.back()->exerciseTime();
+            return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel()) * t;
+            // return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel()) *
+            //       t / smileSections_.back()->exerciseTime();
         }
         Real var_t = var_t1 + (var_t2 - var_t1) * (t - t1) / (t2 - t1);
-        return var_t;
+        return var_t * t;
     }
 
     Real SviVolSurface::forward(const Date& expiry) {
