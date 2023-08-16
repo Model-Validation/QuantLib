@@ -62,7 +62,7 @@ namespace QuantLib {
             t2 = expiryTimes_.front();
             var_t1 = 0.0;
             var_t2 = smileSections_[0]->variance(moneyness * smileSections_[0]->atmLevel());
-        } else if (0) {
+        } else if (t <= expiryTimes_.back()) {
             Size i1, i2;
             for (Size i = 0; i < smileSections_.size(); ++i) {
                 if (t > smileSections_[i]->exerciseTime()) {
