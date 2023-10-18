@@ -1098,6 +1098,9 @@
     <ClInclude Include="ql\math\interpolations\multicubicspline.hpp">
       <Filter>math\interpolations</Filter>
     </ClInclude>
+    <ClInclude Include="ql\math\interpolations\polynomialinterpolation.hpp">
+      <Filter>math\interpolations</Filter>
+    </ClInclude>
     <ClInclude Include="ql\math\interpolations\sabrinterpolation.hpp">
       <Filter>math\interpolations</Filter>
     </ClInclude>

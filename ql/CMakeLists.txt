@@ -1468,6 +1468,7 @@ set(QL_HEADERS
     math/interpolations/loginterpolation.hpp
     math/interpolations/mixedinterpolation.hpp
     math/interpolations/multicubicspline.hpp
+    math/interpolations/polynomialinterpolation.hpp
     math/interpolations/sabrinterpolation.hpp
     math/interpolations/xabrinterpolation.hpp
     math/kernelfunctions.hpp
