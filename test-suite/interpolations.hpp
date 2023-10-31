@@ -67,7 +67,12 @@ class InterpolationTest {
     static void testChebyshevInterpolationOnNodes();
     static void testChebyshevInterpolationUpdateY();
     static void testPolynomialInterpolation();
-
+    static void testPolynomialInterpolationLinear();
+    static void testPolynomialInterpolationLinearUnequallySpacedDataPoints();
+    static void testPolynomialInterpolationParabola();
+    static void testPolynomialInterpolationCubic();
+    static void testPolynomialInterpolationPoints();
+    static void testPolynomialInterpolationCubicHigherDegree();
 
     static boost::unit_test_framework::test_suite* suite(SpeedLevel);
 };

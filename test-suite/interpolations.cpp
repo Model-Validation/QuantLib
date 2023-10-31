@@ -7,6 +7,7 @@
  Copyright (C) 2009 Dimitri Reiswich
  Copyright (C) 2014 Peter Caspers
  Copyright (C) 2018 Klaus Spanderen
+ Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -2528,21 +2529,264 @@ void InterpolationTest::testPolynomialInterpolation() {
     Array y({0.421021, 0.390221, 0.371237, 0.319551, 0.317979});
     PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
 
-    const Real tol = 10*QL_EPSILON;
+    const Real tolerance = 10*QL_EPSILON;
 
     for (Size i=0; i < y.size(); ++i) {
         const Real expected = y[i];
         const Real calculated = interp(x[i], true);
         const Real diff = std::abs(calculated - expected);
 
-        if (diff > tol) {
+        if (diff > tolerance) {
             BOOST_ERROR("failed to reproduce updated node values"
                     << std::setprecision(16)
                     << "\n    node      : " << i
                     << "\n    expected  : " << expected
                     << "\n    calculated: " << calculated
                     << "\n    difference: " << diff
-                    << "\n    tolerance : " << tol);
+                    << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+void InterpolationTest::testPolynomialInterpolationLinear() {
+    BOOST_TEST_MESSAGE("Testing polynomial degree 1 interpolation...");
+
+    Array x({-0.9, -0.75, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, 0.9});
+    Array y({-0.9, -0.75, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, 0.9}); // =x
+
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+    const Real tolerance = 10 * QL_EPSILON;
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
+        }
+
+        // Check derivative = 1
+        const Real derivative = interp.derivative(x[i]);
+        const Real diff_derivative = std::abs(derivative - 1);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << 1
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff_derivative
+                        << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+
+void InterpolationTest::testPolynomialInterpolationLinearUnequallySpacedDataPoints() {
+    BOOST_TEST_MESSAGE("Testing polynomial degree 1 interpolation...");
+
+    Array x({-1, -0.75, -0.4, -0.2, 0, 0.1, 0.4, 0.5, 0.7, 0.9, 1, 2});
+    Array y({-1, -0.75, -0.4, -0.2, 0, 0.1, 0.4, 0.5, 0.7, 0.9, 1, 2}); // =x
+
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+    const Real tolerance = 1000 * QL_EPSILON;
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
+        }
+
+        // Check derivative = 1
+        const Real derivative = interp.derivative(x[i]);
+        const Real diff_derivative = std::abs(derivative - 1);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << 1
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff_derivative
+                        << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+
+void InterpolationTest::testPolynomialInterpolationParabola() {
+    BOOST_TEST_MESSAGE("Testing polynomial degree 2 interpolation...");
+
+    Array x({-0.9, -0.75, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, 0.9});
+    Array y({0.81, 0.5625, 0.25, 0.0625, 0.010000000000000002, 0.010000000000000002, 0.0625, 0.25,
+             0.5625, 0.81}); // =x^2
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+
+    const Real tolerance = 10 * QL_EPSILON;
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
+        }
+
+        // Check derivative =2x
+        const Real derivative = interp.derivative(x[i]);
+        const Real diff_derivative = std::abs(derivative - 2 * x[i]);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << 2*x[i]
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff_derivative
+                        << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+
+void InterpolationTest::testPolynomialInterpolationCubic() {
+    BOOST_TEST_MESSAGE("Testing polynomial degree 3 interpolation...");
+
+    Array x({-2, -1, 0, 1, 2});
+    Array y({-8, 4, 4, -2, -8}); // =x^3 - 3x^2 - 4x + 4
+
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+    const Real tolerance = 100 * QL_EPSILON;
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
+        }
+
+        // Check derivative = 3x^2 - 6x - 4
+        const Real expected_derivative = 3 * x[i] * x[i] - 6 * x[i] - 4;
+        const Real derivative = interp.derivative(x[i]);
+        const Real diff_derivative = std::abs(derivative - expected_derivative);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce derivative values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected_derivative
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff_derivative
+                        << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+
+void InterpolationTest::testPolynomialInterpolationCubicHigherDegree() {
+    BOOST_TEST_MESSAGE("Testing polynomial degree 3 interpolation...");
+
+    // Each new datapoint increases the polynom with 1 degree. This test a 13th degree polynom.
+    Array x({-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6});
+    Array y({-296, -176, -92, -38, -8, 4, 4, -2, -8, -8, 4, 34, 88}); // =x^3 - 3x^2 - 4x + 4
+
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+    const Real tolerance = 1e-6; // Greater error for more points. This interpolation method is not
+    //  suitable for many data points.
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
+        }
+
+        // Check derivative = 3x^2 - 6x - 4
+        const Real expected_derivative = 3 * x[i] * x[i] - 6 * x[i] - 4;
+        const Real derivative = interp.derivative(x[i]);
+        const Real diff_derivative = std::abs(derivative - expected_derivative);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce derivative values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected_derivative
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff_derivative
+                        << "\n    tolerance : " << tolerance);
+        }
+    }
+}
+
+
+
+void InterpolationTest::testPolynomialInterpolationPoints() {
+    BOOST_TEST_MESSAGE("Testing polynomial interpolation for certain points...");
+
+    Array x({0.5, 1.5, 2.5, 3, 4, 5});
+    Array y({3, 1.5, 1.5, 1, 1, 0});
+
+    PolynomialInterpolation interp(x.begin(), x.end(), y.begin());
+
+    const Real tolerance = 200000 * QL_EPSILON;
+
+    for (Size i = 0; i < y.size(); ++i) {
+        const Real expected = y[i];
+        const Real calculated = interp(x[i], true);
+        const Real diff = std::abs(calculated - expected);
+
+        if (diff > tolerance) {
+            BOOST_ERROR("failed to reproduce updated node values"
+                        << std::setprecision(16)
+                        << "\n    node      : " << i
+                        << "\n    expected  : " << expected
+                        << "\n    calculated: " << calculated
+                        << "\n    difference: " << diff
+                        << "\n    tolerance : " << tolerance);
         }
     }
 }
@@ -2584,6 +2828,13 @@ test_suite* InterpolationTest::suite(SpeedLevel speed) {
     suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testChebyshevInterpolationOnNodes));
     suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testChebyshevInterpolationUpdateY));
     suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolation));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationLinear));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationLinearUnequallySpacedDataPoints));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationParabola));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationCubic));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationPoints));
+    suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testPolynomialInterpolationCubicHigherDegree));
+
     if (speed <= Fast) {
         suite->add(QUANTLIB_TEST_CASE(&InterpolationTest::testNoArbSabrInterpolation));
     }
