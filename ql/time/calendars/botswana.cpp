@@ -3,6 +3,7 @@
 /*
 Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
 Copyright (C) 2017 Francois Botha
+Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
 
 This file is part of QuantLib, a free-software/open-source library
 for financial quantitative analysts and developers - http://quantlib.org/
@@ -35,38 +36,41 @@ namespace QuantLib {
         Year y = date.year();
         Day em = easterMonday(y);
         if (isWeekend(w)
-            // New Year's Day (possibly moved to Monday or Tuesday)
-            || ((d == 1 || (d == 2 && w == Monday) || (d == 3 && w == Tuesday)) 
-                && m == January)
+            // New Year's Day and January 2nd (possibly moved to Monday or Tuesday)
+            || ((d == 1 || (d == 2) || (d == 3 && (w == Monday || w == Tuesday))) && m == January)
             // Good Friday
             || (dd == em - 3)
             // Easter Monday
             || (dd == em)
             // Labour Day, May 1st (possibly moved to Monday)
-            || ((d == 1 || (d == 2 && w == Monday))
-                && m == May)
+            || ((d == 1 || (d == 2 && w == Monday)) && m == May)
             // Ascension
             || (dd == em + 38)
             // Sir Seretse Khama Day, July 1st (possibly moved to Monday)
-            || ((d == 1 || (d == 2 && w == Monday))
-                && m == July)
+            || ((d == 1 || (d == 2 && w == Monday)) && m == July)
             // Presidents' Day (third Monday of July)
             || ((d >= 15 && d <= 21) && w == Monday && m == July)
-            // Independence Day, September 30th (possibly moved to Monday)
-            || ((d == 30 && m == September) || 
-                (d == 1  && w == Monday && m == October))
-            // Botswana Day, October 1st (possibly moved to Monday or Tuesday)
-            || ((d == 1 || (d == 2 && w == Monday) || (d == 3 && w == Tuesday)) 
-                && m == October)
+            // Public holiday on the Tuesday following Presidents' Day
+            || ((d >= 16 && d <= 22) && w == Tuesday && m == July)
+            // Independence Day (September 30th) and October 1st (possibly moved to Monday and/or
+            // Tuesday)
+            || ((d == 30 && m == September) ||
+                (((d == 1) || (d == 2 && w == Monday) || (d == 2 && w == Tuesday)) &&
+                    m == October))
             // Christmas
             || (d == 25 && m == December)
-            // Boxing Day (possibly moved to Monday)
-            || ((d == 26 || (d == 27 && w == Monday))
+            // Boxing Day (possibly moved to Monday or extended to Tuesday)
+            || ((d == 26 || (d == 27 && (w == Monday || w == Tuesday)))
                 && m == December)
             )
             return false; // NOLINT(readability-simplify-boolean-expr)
+        
+        // Additional shifted holidays according to public notices by BSE. 
+        if ((d == 28 && m == December && y == 2020) || (d == 3 && m == May && y == 2021) ||
+            (d == 28 && m == December && y == 2021) || (d == 4 && m == January && y == 2022) ||
+            (d == 3 && m == July && y == 2023) || (d == 3 && m == October && y == 2023))
+            return false;
         return true;
     }
 
 }
-

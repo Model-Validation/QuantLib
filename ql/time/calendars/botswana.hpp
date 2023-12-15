@@ -3,6 +3,7 @@
 /*
 Copyright (C) 2000, 2001, 2002, 2003 RiskMap srl
 Copyright (C) 2017 Francois Botha
+Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
 
 This file is part of QuantLib, a free-software/open-source library
 for financial quantitative analysts and developers - http://quantlib.org/
@@ -54,6 +55,8 @@ namespace QuantLib {
     <li>Christmas, December 25th </li>
     <li>Boxing Day, December 26th</li>
     </ul>
+
+    Some holidays are shifted irregularly and announced a few days prior. Some of these are implemented for 2020-2023.
 
     \ingroup calendars
     */
