@@ -78,35 +78,29 @@ int main() {
     boost::shared_ptr<ZeroInflationIndex> pUkrpiIndex =
         boost::make_shared<ZeroInflationIndex>(ukrpi);
 
-    Real kpi[] = {294.6, 296.0, 296.9, 301.1, 301.9, 304.0, 305.5, 307.4, 308.6, 312.0,
+    Real rpi[] = {294.6, 296.0, 296.9, 301.1, 301.9, 304.0, 305.5, 307.4, 308.6, 312.0,
                   314.3, 317.7, 317.7, 320.2, 323.5, 334.6, 337.1, 340.0, 343.2, 345.2,
                   347.6, 356.2, 358.3, 360.4, 360.3, 364.5, 367.2, 372.8, 375.3, 376.4,
                   374.2, 376.6, 378.4, 377.8, 377.3, 379.0, 378.0};
 
     Date from(1, January, 2021);
     Date to(1, January, 2024);
-    Schedule kpiSchedule = MakeSchedule().from(from).to(to).withFrequency(Monthly);
+    Schedule rpiSchedule = MakeSchedule().from(from).to(to).withFrequency(Monthly);
 
-    for (Size i = 0; i < LENGTH(kpi); ++i) {
-        ukrpi.addFixing(kpiSchedule[i], kpi[i]);
+    for (Size i = 0; i < LENGTH(rpi); ++i) {
+        ukrpi.addFixing(rpiSchedule[i], rpi[i]);
     }
 
     Date baseDate = pUkrpiIndex->lastFixingDate();
     std::cout << "baseDate: " << baseDate << '\n';
 
-    std::cout << "kpiSchedule.size(): " << kpiSchedule.size() << '\n';
+    std::cout << "rpiSchedule.size(): " << rpiSchedule.size() << '\n';
     TimeSeries<Real> ts = ukrpi.timeSeries();
     std::cout << "ts.size(): " << ts.size() << '\n';
-
-    std::cout << "------KPI Zero index------" << '\n';
-    std::cout << "1 Jan 2024: " << ukrpi.fixing(Date(1, January, 2024)) << std::endl;
-    std::cout << "1 Dec 2023: " << ukrpi.fixing(Date(1, December, 2023)) << std::endl;
-    std::cout << "1 Nov 2023: " << ukrpi.fixing(Date(1, November, 2023)) << std::endl;
 
 
     ///////////////
     // YoY Inflation Swaps
-
     bool interpolatedYoy = false;
     YoYInflationIndex yyIndex(pUkrpiIndex, interpolatedYoy);
     boost::shared_ptr<YoYInflationIndex> pYoyIndex =
@@ -242,12 +236,23 @@ int main() {
         Date(1, January, 2025),  Date(1, February, 2025), Date(1, March, 2025),
         Date(1, April, 2025),    Date(1, May, 2025),      Date(1, June, 2025),
         Date(1, July, 2025),     Date(1, August, 2025),   Date(1, September, 2025),
-        Date(1, October, 2025),  Date(1, November, 2025), Date(1, December, 2025),
-        Date(1, December, 2026), Date(1, December, 2027), Date(1, December, 2028),
-        Date(1, February, 2029), Date(1, February, 2030), Date(1, February, 2031),
-        Date(1, February, 2032), Date(1, February, 2033), Date(1, February, 2034),
-        Date(1, February, 2036), Date(1, February, 2039), Date(1, February, 2044),
-        Date(1, February, 2049), Date(1, February, 2054), Date(1, February, 2064),
+        Date(1, October, 2025),  
+        Date(1, November, 2025), 
+        Date(1, December, 2025),
+        Date(1, December, 2026), 
+        Date(1, December, 2027), 
+        Date(1, December, 2028), 
+        Date(1, December, 2029),
+        Date(1, December, 2030),
+        Date(1, December, 2031),
+        Date(1, December, 2032), 
+        Date(1, December, 2033),
+        Date(1, December, 2035), 
+        Date(1, December, 2038), 
+        Date(1, December, 2043),
+        Date(1, December, 2048), 
+        Date(1, December, 2053), 
+        Date(1, December, 2063),
         Date(1, December, 2073),
     };
 
