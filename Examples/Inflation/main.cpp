@@ -93,13 +93,31 @@ int main() {
 
     Date baseDate = pUkrpiIndex->lastFixingDate();
     std::cout << "baseDate: " << baseDate << '\n';
-
-    std::cout << "rpiSchedule.size(): " << rpiSchedule.size() << '\n';
     TimeSeries<Real> ts = ukrpi.timeSeries();
     std::cout << "ts.size(): " << ts.size() << '\n';
 
 
     ///////////////
+    // Seasonality
+        std::vector<Rate> seasonalityFactors = {
+        -0.820367,
+        0.458629,
+        0.003204,
+        0.324084,
+        0.060618,
+        0.011060,
+        -0.229372,
+        0.320663,
+        -0.126170,
+        -0.166436,
+        -0.119117,
+        0.305323
+    };
+
+    Date seasonalityBaseDate  = to; // Where RPI stops
+    ext::shared_ptr<MultiplicativePriceSeasonality> nonUnitSeasonality =
+        ext::make_shared<MultiplicativePriceSeasonality>(seasonalityBaseDate, Monthly, seasonalityFactors);
+
     // YoY Inflation Swaps
     bool interpolatedYoy = false;
     YoYInflationIndex yyIndex(pUkrpiIndex, interpolatedYoy);
@@ -157,8 +175,8 @@ int main() {
     auto pYoYIS = ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
         studyDate, baseDate, baseYoYRate, frequency, true, dc, helpersYoY);
 
+    pYoYIS->setSeasonality(nonUnitSeasonality);
     
-
     ///////////////
     // ZCIS //
     // Zero-Coupon Inflation Swaps
@@ -204,8 +222,6 @@ int main() {
     std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers =
         makeHelpers<ZeroInflationTermStructure>(zcSwap, makeHelper);
 
-    
-
     ext::shared_ptr<PiecewiseZeroInflationCurve<Linear> > pZCIS =
         ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
             studyDate,
@@ -216,6 +232,7 @@ int main() {
             );
     
     relinkableZeroTermStructureHandle.linkTo(pZCIS);
+
 
     std::vector<Time> times = pZCIS->times();  // year fractions
     std::vector<Real> rates = pZCIS->data();
