@@ -175,6 +175,7 @@ int main() {
     auto pYoYIS = ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
         studyDate, baseDate, baseYoYRate, frequency, true, dc, helpersYoY);
 
+    pYoYIS->update();
     pYoYIS->setSeasonality(nonUnitSeasonality);
     
     ///////////////
