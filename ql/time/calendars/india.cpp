@@ -442,14 +442,18 @@ namespace QuantLib {
                 || (d == 9 && m == April)
                 // Id-Ul-Fitr (Ramadan Eid)
                 || (d == 11 && m == April)
-                // Ram Navamiz
+                // Ram Navami
                 || (d == 17 && m == April)
                 // Mahavir Jayanti
                 || (d == 21 && m == April)
+                // General Parliamentary Elections
+                || (d == 20 && m == May)
                 // Buddha Pournima
                 || (d == 23 && m == May)
                 // Bakri Id (estimated Sunday 16th or Monday 17th)
                 || (d == 17 && m == June)
+                // Moharram
+                || (d == 17 && m == July)
                 // Id-E-Milad (estimated Sunday 15th or Monday 16th)
                 || (d == 16 && m == September)
                 // Diwali-Laxmi Pujan
