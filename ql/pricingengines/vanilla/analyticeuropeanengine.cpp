@@ -64,21 +64,19 @@ namespace QuantLib {
         Date spotDate =
             spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays_.get_value_or(0) * Days) : refDate;
 
-        const Time spotTime = process_->dividendYield()->timeFromReference(spotDate);
-        const Time exerciseTime = process_->dividendYield()->timeFromReference(arguments_.exercise->lastDate());
-        const Time forwardTime = spotTime + exerciseTime;
         const DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
 
-        DiscountFactor dividendDiscount = process_->dividendYield()->discount(forwardTime);
-        DiscountFactor dividendDiscountSpot = process_->dividendYield()->discount(spotTime);
+        DiscountFactor dividendDiscount = process_->dividendYield()->discount(arguments_.exercise->lastDate());
+        DiscountFactor dividendDiscountSpot = process_->dividendYield()->discount(spotDate);
 
-        DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(forwardTime);
-        DiscountFactor riskFreeDiscountForFwdEstimationSpot = process_->riskFreeRate()->discount(spotTime);
+        DiscountFactor riskFreeDiscountForFwdEstimation =
+            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
+        DiscountFactor riskFreeDiscountForFwdEstimationSpot = process_->riskFreeRate()->discount(spotDate);
 
-        Real spot = process_->stateVariable()->value();
+        Real spot = process_->stateVariable()->value() * riskFreeDiscountForFwdEstimationSpot / dividendDiscountSpot;
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
         Real forwardPrice =
-            spot * riskFreeDiscountForFwdEstimationSpot * dividendDiscount / (riskFreeDiscountForFwdEstimation * dividendDiscountSpot);
+            spot *  dividendDiscount / riskFreeDiscountForFwdEstimation;
 
         BlackCalculator black(payoff, forwardPrice, std::sqrt(variance),df);
 
