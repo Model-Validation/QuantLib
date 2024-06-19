@@ -31,10 +31,11 @@ namespace QuantLib {
         registerWith(process_);
     }
 
-    AnalyticEuropeanEngine::AnalyticEuropeanEngine(
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process,
-        Handle<YieldTermStructure> discountCurve)
-    : process_(std::move(process)), discountCurve_(std::move(discountCurve)) {
+    AnalyticEuropeanEngine::AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
+                                                   Handle<YieldTermStructure> discountCurve,
+                                                   ext::optional<int> spotDays,
+                                                   ext::optional<Calendar> spotCalendar)
+        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar) {
         registerWith(process_);
         registerWith(discountCurve_);
     }
@@ -59,15 +60,25 @@ namespace QuantLib {
             process_->blackVolatility()->blackVariance(
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
-        DiscountFactor dividendDiscount =
-            process_->dividendYield()->discount(
-                                             arguments_.exercise->lastDate());
-        DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
-        DiscountFactor riskFreeDiscountForFwdEstimation =
-            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
+        Date refDate = process_->dividendYield()->referenceDate();
+        Date spotDate =
+            spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays_.get_value_or(0) * Days) : refDate;
+
+        const Time spotTime = process_->dividendYield()->timeFromReference(spotDate);
+        const Time exerciseTime = process_->dividendYield()->timeFromReference(arguments_.exercise->lastDate());
+        const Time forwardTime = spotTime + exerciseTime;
+        const DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
+
+        DiscountFactor dividendDiscount = process_->dividendYield()->discount(forwardTime);
+        DiscountFactor dividendDiscountSpot = process_->dividendYield()->discount(spotTime);
+
+        DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(forwardTime);
+        DiscountFactor riskFreeDiscountForFwdEstimationSpot = process_->riskFreeRate()->discount(spotTime);
+
         Real spot = process_->stateVariable()->value();
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
-        Real forwardPrice = spot * dividendDiscount / riskFreeDiscountForFwdEstimation;
+        Real forwardPrice =
+            spot * riskFreeDiscountForFwdEstimationSpot * dividendDiscount / (riskFreeDiscountForFwdEstimation * dividendDiscountSpot);
 
         BlackCalculator black(payoff, forwardPrice, std::sqrt(variance),df);
 
@@ -108,6 +119,8 @@ namespace QuantLib {
         results_.additionalResults["spot"] = spot;
         results_.additionalResults["dividendDiscount"] = dividendDiscount;
         results_.additionalResults["riskFreeDiscount"] = riskFreeDiscountForFwdEstimation;
+        results_.additionalResults["dividendDiscountSpot"] = dividendDiscountSpot;
+        results_.additionalResults["riskFreeDiscountSpot"] = riskFreeDiscountForFwdEstimationSpot;
         results_.additionalResults["forward"] = forwardPrice;
         results_.additionalResults["strike"] = payoff->strike();
         results_.additionalResults["volatility"] = Real(std::sqrt(variance / tte));
