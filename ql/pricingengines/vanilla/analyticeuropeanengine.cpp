@@ -60,23 +60,23 @@ namespace QuantLib {
             process_->blackVolatility()->blackVariance(
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
+        DiscountFactor dividendDiscount =
+            process_->dividendYield()->discount(
+                                             arguments_.exercise->lastDate());
+        DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
+        DiscountFactor riskFreeDiscountForFwdEstimation =
+            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
+
         Date refDate = process_->dividendYield()->referenceDate();
         Date spotDate =
             spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays_.get_value_or(0) * Days) : refDate;
-
-        const DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
-
-        DiscountFactor dividendDiscount = process_->dividendYield()->discount(arguments_.exercise->lastDate());
         DiscountFactor dividendDiscountSpot = process_->dividendYield()->discount(spotDate);
-
-        DiscountFactor riskFreeDiscountForFwdEstimation =
-            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
         DiscountFactor riskFreeDiscountForFwdEstimationSpot = process_->riskFreeRate()->discount(spotDate);
 
         Real spot = process_->stateVariable()->value() * riskFreeDiscountForFwdEstimationSpot / dividendDiscountSpot;
+
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
-        Real forwardPrice =
-            spot *  dividendDiscount / riskFreeDiscountForFwdEstimation;
+        Real forwardPrice = spot * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
         BlackCalculator black(payoff, forwardPrice, std::sqrt(variance),df);
 
@@ -117,13 +117,10 @@ namespace QuantLib {
         results_.additionalResults["spot"] = spot;
         results_.additionalResults["dividendDiscount"] = dividendDiscount;
         results_.additionalResults["riskFreeDiscount"] = riskFreeDiscountForFwdEstimation;
-        results_.additionalResults["dividendDiscountSpot"] = dividendDiscountSpot;
-        results_.additionalResults["riskFreeDiscountSpot"] = riskFreeDiscountForFwdEstimationSpot;
         results_.additionalResults["forward"] = forwardPrice;
         results_.additionalResults["strike"] = payoff->strike();
         results_.additionalResults["volatility"] = Real(std::sqrt(variance / tte));
         results_.additionalResults["timeToExpiry"] = tte;
-        results_.additionalResults["discountFactor"] = df;
     }
 
 }
