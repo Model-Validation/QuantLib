@@ -60,12 +60,12 @@ namespace QuantLib {
             process_->blackVolatility()->blackVariance(
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
-        DiscountFactor dividendDiscount =
-            process_->dividendYield()->discount(
-                                             arguments_.exercise->lastDate());
+        Date expirySpotDate = spotCalendar_.has_value() ? spotCalendar_->advance(arguments_.exercise->lastDate(),
+                                                                                 spotDays_.get_value_or(0) * Days)
+                                                        : arguments_.exercise->lastDate();
+        DiscountFactor dividendDiscount = process_->dividendYield()->discount(expirySpotDate);
         DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
-        DiscountFactor riskFreeDiscountForFwdEstimation =
-            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
+        DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(expirySpotDate);
 
         Date refDate = process_->dividendYield()->referenceDate();
         Date spotDate =
