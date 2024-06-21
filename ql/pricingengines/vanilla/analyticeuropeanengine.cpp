@@ -33,7 +33,7 @@ namespace QuantLib {
 
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                                    Handle<YieldTermStructure> discountCurve,
-                                                   ext::optional<int> spotDays,
+                                                   ext::optional<unsigned int> spotDays,
                                                    ext::optional<Calendar> spotCalendar)
         : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar) {
         registerWith(process_);
@@ -60,16 +60,20 @@ namespace QuantLib {
             process_->blackVolatility()->blackVariance(
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
-        Date expirySpotDate = spotCalendar_.has_value() ? spotCalendar_->advance(arguments_.exercise->lastDate(),
-                                                                                 spotDays_.get_value_or(0) * Days)
-                                                        : arguments_.exercise->lastDate();
+        const unsigned int spotDays = spotDays_.get_value_or(0);
+        Date expirySpotDate = spotDays > 0 && spotCalendar_.has_value()
+                                  ? spotCalendar_->advance(arguments_.exercise->lastDate(), spotDays * Days)
+                                  : arguments_.exercise->lastDate();
+
         DiscountFactor dividendDiscount = process_->dividendYield()->discount(expirySpotDate);
         DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
         DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(expirySpotDate);
 
         Date refDate = process_->dividendYield()->referenceDate();
-        Date spotDate =
-            spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays_.get_value_or(0) * Days) : refDate;
+        
+
+        const Date spotDate =
+            spotDays > 0 && spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays * Days) : refDate;
         DiscountFactor dividendDiscountSpotDate = spotDate <= process_->dividendYield()->referenceDate()
                                                       ? 1.0
                                                       : process_->dividendYield()->discount(spotDate);
