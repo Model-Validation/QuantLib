@@ -70,16 +70,19 @@ namespace QuantLib {
         Date refDate = process_->dividendYield()->referenceDate();
         Date spotDate =
             spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays_.get_value_or(0) * Days) : refDate;
-        DiscountFactor dividendDiscountSpot = process_->dividendYield()->discount(spotDate);
-        DiscountFactor riskFreeDiscountForFwdEstimationSpot = process_->riskFreeRate()->discount(spotDate);
+        DiscountFactor dividendDiscountSpotDate = spotDate <= process_->dividendYield()->referenceDate()
+                                                      ? 1.0
+                                                      : process_->dividendYield()->discount(spotDate);
+        DiscountFactor riskFreeDiscountSpotDate =
+            spotDate <= process_->riskFreeRate()->referenceDate() ? 1.0 : process_->riskFreeRate()->discount(spotDate);
 
-        Real spot = process_->stateVariable()->value() * riskFreeDiscountForFwdEstimationSpot / dividendDiscountSpot;
-
+        Real spot = process_->stateVariable()->value();
+        // In case spot is not today, compute underlying price as today
+        Real s0 = spot * riskFreeDiscountSpotDate / dividendDiscountSpotDate;
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
-        Real forwardPrice = spot * dividendDiscount / riskFreeDiscountForFwdEstimation;
+        Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance),df);
-
+        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance), df);
 
         results_.value = black.value();
         results_.delta = black.delta(spot);
