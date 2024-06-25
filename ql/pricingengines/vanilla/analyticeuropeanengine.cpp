@@ -17,10 +17,10 @@
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
-
 #include <ql/exercise.hpp>
 #include <ql/pricingengines/blackcalculator.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/time/calendars/nullcalendar.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -61,19 +61,17 @@ namespace QuantLib {
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
         const unsigned int spotDays = spotDays_.get_value_or(0);
-        Date expirySpotDate = spotDays > 0 && spotCalendar_.has_value()
-                                  ? spotCalendar_->advance(arguments_.exercise->lastDate(), spotDays * Days)
-                                  : arguments_.exercise->lastDate();
+        const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
+        Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
+                                           : arguments_.exercise->lastDate();
 
         DiscountFactor dividendDiscount = process_->dividendYield()->discount(expirySpotDate);
         DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
         DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(expirySpotDate);
 
         Date refDate = process_->dividendYield()->referenceDate();
-        
 
-        const Date spotDate =
-            spotDays > 0 && spotCalendar_.has_value() ? spotCalendar_->advance(refDate, spotDays * Days) : refDate;
+        const Date spotDate = spotDays > 0 ? spotCalendar.advance(refDate, spotDays * Days) : refDate;
         DiscountFactor dividendDiscountSpotDate = spotDate <= process_->dividendYield()->referenceDate()
                                                       ? 1.0
                                                       : process_->dividendYield()->discount(spotDate);
