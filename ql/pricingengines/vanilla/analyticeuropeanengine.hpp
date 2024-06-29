@@ -72,12 +72,15 @@ namespace QuantLib {
             price.
         */
         AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
-                               Handle<YieldTermStructure> discountCurve);
+                               Handle<YieldTermStructure> discountCurve, ext::optional<unsigned int> spotDays = {},
+                               ext::optional<Calendar> spotCalendar = {});
         void calculate() const override;
 
       private:
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
-        Handle<YieldTermStructure> discountCurve_;
+          ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
+          Handle<YieldTermStructure> discountCurve_;
+          ext::optional<unsigned int> spotDays_;
+          ext::optional<Calendar> spotCalendar_;
     };
 
 }
