@@ -40,7 +40,7 @@ namespace QuantLib {
         <li>Easter Saturday</li>
         <li>Labour Day, May 1st</li>
         <li>Navy Day, May 21st</li>
-        <li>Day of Aboriginal People, June 21st (since 2021)</li>
+        <li>Day of Aboriginal People, around June 21st (observed on each Winter Solstice) (since 2021)</li>
         <li>Saint Peter and Saint Paul, June 29th (moved to the nearest Monday if it falls on a weekday)</li>
         <li>Our Lady of Mount Carmel, July 16th</li>
         <li>Assumption Day, August 15th</li>
@@ -52,6 +52,7 @@ namespace QuantLib {
         <li>All Saints' Day, November 1st</li>
         <li>Immaculate Conception, December 8th</li>
         <li>Christmas Day, December 25th</li>
+        <li>New Year's Eve, December 31st; (see https://www.cmfchile.cl/portal/prensa/615/w3-article-49984.html)</li>
         </ul>
 
         \ingroup calendars

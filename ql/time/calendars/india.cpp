@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011 StatPro Italia srl
- Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
+ Copyright (C) 2023, 2024 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -463,7 +463,7 @@ namespace QuantLib {
         if (y == 2023) {
             if ( 
                 // Holi
-                (d == 8 && m == March)
+                (d == 7 && m == March)
                 // Gudi Padwa
                 || (d == 22 && m == March)
                 // Ram Navami
@@ -473,11 +473,13 @@ namespace QuantLib {
                 // Buddha Pournima
                 || (d == 5 && m == May)
                 // Bakri Id
-                || (d == 28 && m == June)
+                || (d == 29 && m == June)
+                // Parsi New year
+                || (d == 16 && m == August)
                 // Ganesh Chaturthi
                 || (d == 19 && m == September)
-                // Id-E-Milad (estimated Wednesday 27th or Thursday 28th)
-                || (d == 28 && m == September)
+                // Id-E-Milad (was moved to Friday 29th)
+                || (d == 29 && m == September)
                 // Dasera
                 || (d == 24 && m == October)
                 // Diwali - Balipratipada
@@ -488,26 +490,36 @@ namespace QuantLib {
         }
 
         if (y == 2024) {
-            if ( // Chatrapati Shivaji Jayanti
-                (d == 19 && m == February)
+            if ( // Special holiday
+                (d == 22 && m == January)
+                // Chatrapati Shivaji Jayanti
+                || (d == 19 && m == February)
                 // Mahashivratri
                 || (d == 8 && m == March)
                 // Holi
                 || (d == 25 && m == March)
+                // Annual Bank Closing
+                || (d == 1 && m == April)
                 // Gudi Padwa
                 || (d == 9 && m == April)
+                // Id-Ul-Fitr (Ramadan Eid)
+                || (d == 11 && m == April)
                 // Ram Navami
                 || (d == 17 && m == April)
                 // Mahavir Jayanti
                 || (d == 21 && m == April)
+                // General Parliamentary Elections
+                || (d == 20 && m == May)
                 // Buddha Pournima
                 || (d == 23 && m == May)
-                // Bakri Id (estimated Sunday 16th or Monday 17th)
+                // Bakri Eid
                 || (d == 17 && m == June)
-                // Ganesh Chaturthi
-                || (d == 27 && m == August)
-                // Id-E-Milad (estimated Sunday 15th or Monday 16th)
+                // Moharram
+                || (d == 17 && m == July)
+                // Eid-E-Milad (estimated Sunday 15th or Monday 16th)
                 || (d == 16 && m == September)
+                // Diwali-Laxmi Pujan
+                || (d == 1 && m == November)
                 // Gurunank Jayanti
                 || (d == 15 && m == November))
                 return false;
@@ -528,8 +540,6 @@ namespace QuantLib {
                 || (d == 12 && m == May)
                 // Id-E-Milad (estimated Thursday 4th or Friday 5th)
                 || (d == 5 && m == September)
-                // Dasera
-                || (d == 2 && m == October)
                 // Diwali - Balipratipada
                 || (d == 22 && m == October)
                 // Gurunank Jayanti

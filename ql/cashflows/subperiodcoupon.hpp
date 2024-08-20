@@ -120,13 +120,13 @@ namespace QuantLib {
     //! helper class building a sequence of overnight coupons
     class SubPeriodsLeg {
       public:
-        SubPeriodsLeg(const Schedule &schedule, ext::shared_ptr<IborIndex> index);
+        SubPeriodsLeg(Schedule schedule, ext::shared_ptr<IborIndex> index);
         SubPeriodsLeg& withNotionals(Real notional);
         SubPeriodsLeg& withNotionals(const std::vector<Real>& notionals);
         SubPeriodsLeg& withPaymentDayCounter(const DayCounter&);
         SubPeriodsLeg& withPaymentAdjustment(BusinessDayConvention);
         SubPeriodsLeg& withPaymentCalendar(const Calendar&);
-        SubPeriodsLeg& withPaymentLag(Natural lag);
+        SubPeriodsLeg& withPaymentLag(Integer lag);
         SubPeriodsLeg& withFixingDays(Natural fixingDays);
         SubPeriodsLeg& withFixingDays(const std::vector<Natural>& fixingDays);
         SubPeriodsLeg& withGearings(Real gearing);
@@ -149,7 +149,7 @@ namespace QuantLib {
         DayCounter paymentDayCounter_;
         Calendar paymentCalendar_;
         BusinessDayConvention paymentAdjustment_ = Following;
-        Natural paymentLag_ = 0;
+        Integer paymentLag_ = 0;
         std::vector<Natural> fixingDays_;
         std::vector<Real> gearings_;
         std::vector<Spread> couponSpreads_;

@@ -18,81 +18,91 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "fdheston.hpp"
+#include "preconditions.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
-
+#include <ql/instruments/barrieroption.hpp>
+#include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/functional.hpp>
+#include <ql/methods/finitedifferences/meshers/fdmhestonvariancemesher.hpp>
+#include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
+#include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/termstructures/volatility/equityfx/localconstantvol.hpp>
+#include <ql/termstructures/yield/flatforward.hpp>
+#include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/daycounters/actual360.hpp>
-#include <ql/time/daycounters/actualactual.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
-#include <ql/instruments/barrieroption.hpp>
-#include <ql/instruments/dividendvanillaoption.hpp>
-#include <ql/models/equity/hestonmodel.hpp>
-#include <ql/termstructures/yield/zerocurve.hpp>
-#include <ql/termstructures/yield/flatforward.hpp>
-#include <ql/termstructures/volatility/equityfx/localconstantvol.hpp>
-#include <ql/methods/finitedifferences/meshers/fdmhestonvariancemesher.hpp>
-#include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
-#include <ql/pricingengines/vanilla/analytichestonengine.hpp>
-#include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
-#include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
-#include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
-#include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
-#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/time/daycounters/actualactual.hpp>
 #include <ql/tuple.hpp>
 
 using namespace QuantLib;
-using boost::unit_test_framework::test_suite;
+using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(FdHestonTests)
+
+struct NewBarrierOptionData {
+    Barrier::Type barrierType;
+    Real barrier;
+    Real rebate;
+    Option::Type type;
+    Real strike;
+    Real s;        // spot
+    Rate q;        // dividend
+    Rate r;        // risk-free rate
+    Time t;        // time to maturity
+    Volatility v;  // volatility
+};
+
+class ParableLocalVolatility : public LocalVolTermStructure {
+  public:
+    ParableLocalVolatility(
+                           const Date& referenceDate,
+                           Real s0,
+                           Real alpha,
+                           const DayCounter& dayCounter)
+    : LocalVolTermStructure(referenceDate, NullCalendar(), Following, dayCounter),
+      referenceDate_(referenceDate),
+      s0_(s0),
+      alpha_(alpha) {}
+
+    Date maxDate() const override { return Date::maxDate(); }
+    Real minStrike() const override { return 0.0; }
+    Real maxStrike() const override { return std::numeric_limits<Real>::max(); }
+
+  protected:
+    Volatility localVolImpl(Time, Real s) const override {
+        return alpha_*(squared(s0_ - s) + 25.0);
+    }
+
+  private:
+    const Date referenceDate_;
+    const Real s0_, alpha_;
+};
+
+struct HestonTestData {
+    Real kappa;
+    Real theta;
+    Real sigma;
+    Real rho;
+    Real r;
+    Real q;
+    Real T;
+    Real K;
+};
 
 
-namespace fd_heston_test {
-    struct NewBarrierOptionData {
-        Barrier::Type barrierType;
-        Real barrier;
-        Real rebate;
-        Option::Type type;
-        Real strike;
-        Real s;        // spot
-        Rate q;        // dividend
-        Rate r;        // risk-free rate
-        Time t;        // time to maturity
-        Volatility v;  // volatility
-    };
-
-    class ParableLocalVolatility : public LocalVolTermStructure {
-      public:
-        ParableLocalVolatility(
-            const Date& referenceDate,
-            Real s0,
-            Real alpha,
-            const DayCounter& dayCounter)
-        : LocalVolTermStructure(
-              referenceDate, NullCalendar(), Following, dayCounter),
-          referenceDate_(referenceDate),
-          s0_(s0),
-          alpha_(alpha) {}
-
-        Date maxDate() const override { return Date::maxDate(); }
-        Real minStrike() const override { return 0.0; }
-        Real maxStrike() const override { return std::numeric_limits<Real>::max(); }
-
-      protected:
-        Volatility localVolImpl(Time, Real s) const override {
-            return alpha_*(squared(s0_ - s) + 25.0);
-        }
-
-      private:
-        const Date referenceDate_;
-        const Real s0_, alpha_;
-    };
-}
-
-void FdHestonTest::testFdmHestonVarianceMesher() {
+BOOST_AUTO_TEST_CASE(testFdmHestonVarianceMesher) {
     BOOST_TEST_MESSAGE("Testing FDM Heston variance mesher...");
-
-    using namespace fd_heston_test;
 
     const Date today = Date(22, February, 2018);
     const DayCounter dc = Actual365Fixed();
@@ -187,11 +197,9 @@ void FdHestonTest::testFdmHestonVarianceMesher() {
     }
 }
 
-void FdHestonTest::testFdmHestonBarrierVsBlackScholes() {
+BOOST_AUTO_TEST_CASE(testFdmHestonBarrierVsBlackScholes, *precondition(if_speed(Fast))) {
 
     BOOST_TEST_MESSAGE("Testing FDM with barrier option in Heston model...");
-
-    using namespace fd_heston_test;
 
     NewBarrierOptionData values[] = {
         /* The data below are from
@@ -336,7 +344,7 @@ void FdHestonTest::testFdmHestonBarrierVsBlackScholes() {
     }
 }
 
-void FdHestonTest::testFdmHestonBarrier() {
+BOOST_AUTO_TEST_CASE(testFdmHestonBarrier) {
 
     BOOST_TEST_MESSAGE("Testing FDM with barrier option for Heston model vs "
                        "Black-Scholes model...");
@@ -388,7 +396,7 @@ void FdHestonTest::testFdmHestonBarrier() {
     }
 }
 
-void FdHestonTest::testFdmHestonAmerican() {
+BOOST_AUTO_TEST_CASE(testFdmHestonAmerican) {
 
     BOOST_TEST_MESSAGE("Testing FDM with American option in Heston model...");
 
@@ -439,8 +447,7 @@ void FdHestonTest::testFdmHestonAmerican() {
     }
 }
 
-
-void FdHestonTest::testFdmHestonIkonenToivanen() {
+BOOST_AUTO_TEST_CASE(testFdmHestonIkonenToivanen) {
 
     BOOST_TEST_MESSAGE("Testing FDM Heston for Ikonen and Toivanen tests...");
 
@@ -487,7 +494,7 @@ void FdHestonTest::testFdmHestonIkonenToivanen() {
     }
 }
 
-void FdHestonTest::testFdmHestonBlackScholes() {
+BOOST_AUTO_TEST_CASE(testFdmHestonBlackScholes) {
 
     BOOST_TEST_MESSAGE("Testing FDM Heston with Black Scholes model...");
 
@@ -552,9 +559,7 @@ void FdHestonTest::testFdmHestonBlackScholes() {
     }
 }
 
-
-
-void FdHestonTest::testFdmHestonEuropeanWithDividends() {
+BOOST_AUTO_TEST_CASE(testFdmHestonEuropeanWithDividends) {
 
     BOOST_TEST_MESSAGE("Testing FDM with European option with dividends in Heston model...");
 
@@ -573,82 +578,41 @@ void FdHestonTest::testFdmHestonEuropeanWithDividends() {
 
     const std::vector<Real> dividends(1, 5);
     const std::vector<Date> dividendDates(1, Date(28, September, 2004));
-
-    QL_DEPRECATED_DISABLE_WARNING
-    DividendVanillaOption option1(payoff, exercise, dividendDates, dividends);
-    QL_DEPRECATED_ENABLE_WARNING
-    ext::shared_ptr<PricingEngine> engine1(
-         new FdHestonVanillaEngine(ext::make_shared<HestonModel>(
-                             hestonProcess), 50, 100, 50));
-    option1.setPricingEngine(engine1);
     
     const Real tol = 0.01;
     const Real gammaTol = 0.001;
     const Real npvExpected   =  7.38216;
     const Real deltaExpected = -0.397902;
     const Real gammaExpected =  0.027747;
-        
-    if (std::fabs(option1.NPV() - npvExpected) > tol) {
-        BOOST_ERROR("Failed to reproduce expected npv"
-                    << "\n    calculated: " << option1.NPV()
-                    << "\n    expected:   " << npvExpected
-                    << "\n    tolerance:  " << tol); 
-    }
-    if (std::fabs(option1.delta() - deltaExpected) > tol) {
-        BOOST_ERROR("Failed to reproduce expected delta"
-                    << "\n    calculated: " << option1.delta()
-                    << "\n    expected:   " << deltaExpected
-                    << "\n    tolerance:  " << tol); 
-    }
-    if (std::fabs(option1.gamma() - gammaExpected) > gammaTol) {
-        BOOST_ERROR("Failed to reproduce expected gamma"
-                    << "\n    calculated: " << option1.gamma()
-                    << "\n    expected:   " << gammaExpected
-                    << "\n    tolerance:  " << tol); 
-    }
 
-
-    VanillaOption option2(payoff, exercise);
-    auto engine2 = ext::make_shared<FdHestonVanillaEngine>(
+    VanillaOption option(payoff, exercise);
+    auto engine = ext::make_shared<FdHestonVanillaEngine>(
         ext::make_shared<HestonModel>(hestonProcess),
         DividendVector(dividendDates, dividends),
         50, 100, 50);
-    option2.setPricingEngine(engine2);
+    option.setPricingEngine(engine);
         
-    if (std::fabs(option2.NPV() - npvExpected) > tol) {
+    if (std::fabs(option.NPV() - npvExpected) > tol) {
         BOOST_ERROR("Failed to reproduce expected npv"
-                    << "\n    calculated: " << option2.NPV()
+                    << "\n    calculated: " << option.NPV()
                     << "\n    expected:   " << npvExpected
                     << "\n    tolerance:  " << tol); 
     }
-    if (std::fabs(option2.delta() - deltaExpected) > tol) {
+    if (std::fabs(option.delta() - deltaExpected) > tol) {
         BOOST_ERROR("Failed to reproduce expected delta"
-                    << "\n    calculated: " << option2.delta()
+                    << "\n    calculated: " << option.delta()
                     << "\n    expected:   " << deltaExpected
                     << "\n    tolerance:  " << tol); 
     }
-    if (std::fabs(option2.gamma() - gammaExpected) > gammaTol) {
+    if (std::fabs(option.gamma() - gammaExpected) > gammaTol) {
         BOOST_ERROR("Failed to reproduce expected gamma"
-                    << "\n    calculated: " << option2.gamma()
+                    << "\n    calculated: " << option.gamma()
                     << "\n    expected:   " << gammaExpected
                     << "\n    tolerance:  " << tol); 
     }
 }
 
-namespace {
-    struct HestonTestData {
-        Real kappa;
-        Real theta;
-        Real sigma;
-        Real rho;
-        Real r;
-        Real q;
-        Real T;
-        Real K;
-    };    
-}
-
-void FdHestonTest::testFdmHestonConvergence() {
+BOOST_AUTO_TEST_CASE(testFdmHestonConvergence, *precondition(if_speed(Fast))) {
 
     /* convergence tests based on 
        ADI finite difference schemes for option pricing in the
@@ -726,10 +690,10 @@ void FdHestonTest::testFdmHestonConvergence() {
     }
 }
 
-void FdHestonTest::testFdmHestonIntradayPricing() {
 #ifdef QL_HIGH_RESOLUTION_DATE
+BOOST_AUTO_TEST_CASE(testFdmHestonIntradayPricing) {
 
-    BOOST_TEST_MESSAGE("Testing FDM Heston intraday pricing ...");
+    BOOST_TEST_MESSAGE("Testing FDM Heston intraday pricing...");
 
     const Option::Type type(Option::Put);
     const Real underlying = 36;
@@ -785,10 +749,10 @@ void FdHestonTest::testFdmHestonIntradayPricing() {
                         << "\n   calculated: "<<  gammaCalculated);
         }
     }
-#endif
 }
+#endif
 
-void FdHestonTest::testMethodOfLinesAndCN() {
+BOOST_AUTO_TEST_CASE(testMethodOfLinesAndCN) {
     BOOST_TEST_MESSAGE("Testing method of lines to solve Heston PDEs...");
 
     const DayCounter dc = Actual365Fixed();
@@ -904,7 +868,7 @@ void FdHestonTest::testMethodOfLinesAndCN() {
     }
 }
 
-void FdHestonTest::testSpuriousOscillations() {
+BOOST_AUTO_TEST_CASE(testSpuriousOscillations) {
     BOOST_TEST_MESSAGE("Testing for spurious oscillations when "
             "solving the Heston PDEs...");
 
@@ -981,8 +945,7 @@ void FdHestonTest::testSpuriousOscillations() {
     }
 }
 
-
-void FdHestonTest::testAmericanCallPutParity() {
+BOOST_AUTO_TEST_CASE(testAmericanCallPutParity) {
     BOOST_TEST_MESSAGE("Testing call/put parity for American options "
                        "under the Heston model...");
 
@@ -1090,25 +1053,6 @@ void FdHestonTest::testAmericanCallPutParity() {
     }
 }
 
-test_suite* FdHestonTest::suite(SpeedLevel speed) {
-    auto* suite = BOOST_TEST_SUITE("Finite Difference Heston tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonVarianceMesher));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonBarrier));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonAmerican));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonIkonenToivanen));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonEuropeanWithDividends));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonIntradayPricing));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testMethodOfLinesAndCN));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testSpuriousOscillations));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testAmericanCallPutParity));
-    suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonBlackScholes));
-
-    if (speed <= Fast) {
-        suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonConvergence));
-        suite->add(QUANTLIB_TEST_CASE(&FdHestonTest::testFdmHestonBarrierVsBlackScholes));
-    }
-
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

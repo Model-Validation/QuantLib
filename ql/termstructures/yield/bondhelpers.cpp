@@ -77,11 +77,14 @@ namespace QuantLib {
             BootstrapHelper<YieldTermStructure>::accept(v);
     }
 
+
+    QL_DEPRECATED_DISABLE_WARNING
+
     FixedRateBondHelper::FixedRateBondHelper(
                                     const Handle<Quote>& price,
                                     Natural settlementDays,
                                     Real faceAmount,
-                                    const Schedule& schedule,
+                                    Schedule schedule,
                                     const std::vector<Rate>& coupons,
                                     const DayCounter& dayCounter,
                                     BusinessDayConvention paymentConvention,
@@ -94,15 +97,14 @@ namespace QuantLib {
                                     bool exCouponEndOfMonth,
                                     const Bond::Price::Type priceType)
     : BondHelper(price,
-                 ext::shared_ptr<Bond>(
-                     new FixedRateBond(settlementDays, faceAmount, schedule,
-                                       coupons, dayCounter, paymentConvention,
-                                       redemption, issueDate, paymentCalendar,
-                                       exCouponPeriod, exCouponCalendar,
-                                       exCouponConvention, exCouponEndOfMonth)),
-                 priceType) {
-        fixedRateBond_ = ext::dynamic_pointer_cast<FixedRateBond>(bond_);
-    }
+                 ext::make_shared<FixedRateBond>(settlementDays, faceAmount, std::move(schedule),
+                                                 coupons, dayCounter, paymentConvention,
+                                                 redemption, issueDate, paymentCalendar,
+                                                 exCouponPeriod, exCouponCalendar,
+                                                 exCouponConvention, exCouponEndOfMonth),
+                 priceType) {}
+
+    QL_DEPRECATED_ENABLE_WARNING
 
     void FixedRateBondHelper::accept(AcyclicVisitor& v) {
         auto* v1 = dynamic_cast<Visitor<FixedRateBondHelper>*>(&v);
@@ -111,6 +113,9 @@ namespace QuantLib {
         else
             BondHelper::accept(v);
     }
+
+
+    QL_DEPRECATED_DISABLE_WARNING
 
     CPIBondHelper::CPIBondHelper(
                             const Handle<Quote>& price,
@@ -121,7 +126,7 @@ namespace QuantLib {
                             const Period& observationLag,
                             const ext::shared_ptr<ZeroInflationIndex>& cpiIndex,
                             CPI::InterpolationType observationInterpolation,
-                            const Schedule& schedule,
+                            Schedule schedule,
                             const std::vector<Rate>& fixedRate,
                             const DayCounter& accrualDayCounter,
                             BusinessDayConvention paymentConvention,
@@ -133,15 +138,14 @@ namespace QuantLib {
                             bool exCouponEndOfMonth,
                             const Bond::Price::Type priceType)
     : BondHelper(price,
-                 ext::shared_ptr<Bond>(
-                     new CPIBond(settlementDays, faceAmount, growthOnly, baseCPI,
-                                       observationLag, cpiIndex, observationInterpolation,
-                                       schedule, fixedRate, accrualDayCounter, paymentConvention,
-                                       issueDate, paymentCalendar, exCouponPeriod, exCouponCalendar,
-                                       exCouponConvention, exCouponEndOfMonth)),
-                 priceType) {
-        cpiBond_ = ext::dynamic_pointer_cast<CPIBond>(bond_);
-    }
+                 ext::make_shared<CPIBond>(settlementDays, faceAmount, growthOnly, baseCPI,
+                                           observationLag, cpiIndex, observationInterpolation,
+                                           std::move(schedule), fixedRate, accrualDayCounter, paymentConvention,
+                                           issueDate, paymentCalendar, exCouponPeriod, exCouponCalendar,
+                                           exCouponConvention, exCouponEndOfMonth),
+                 priceType) {}
+
+    QL_DEPRECATED_ENABLE_WARNING
 
     void CPIBondHelper::accept(AcyclicVisitor& v) {
         auto* v1 = dynamic_cast<Visitor<CPIBondHelper>*>(&v);

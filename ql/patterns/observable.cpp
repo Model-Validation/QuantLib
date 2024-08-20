@@ -54,10 +54,10 @@ namespace QuantLib {
 
 
     void Observable::notifyObservers() {
-        if (!settings_.updatesEnabled()) {
+        if (!ObservableSettings::instance().updatesEnabled()) {
             // if updates are only deferred, flag this for later notification
             // these are held centrally by the settings singleton
-            settings_.registerDeferredObservers(observers_);
+            ObservableSettings::instance().registerDeferredObservers(observers_);
         } else if (!observers_.empty()) {
             bool successful = true;
             std::string errMsg;
@@ -159,11 +159,10 @@ namespace QuantLib {
             observers_.erase(observerProxy);
         }
 
-        if (settings_.updatesDeferred()) {
-            std::lock_guard<std::mutex> sLock(settings_.mutex_);
-            if (settings_.updatesDeferred()) {
-                settings_.unregisterDeferredObserver(observerProxy);
-            }
+        if (ObservableSettings::instance().updatesDeferred()) {
+            std::lock_guard<std::mutex> sLock(ObservableSettings::instance().mutex_);
+            if (ObservableSettings::instance().updatesDeferred())
+                ObservableSettings::instance().unregisterDeferredObserver(observerProxy);
         }
 
         if (disconnect) {
@@ -172,29 +171,31 @@ namespace QuantLib {
     }
 
     void Observable::notifyObservers() {
-        if (settings_.updatesEnabled()) {
-            return (*sig_)();
+        if (ObservableSettings::instance().updatesEnabled()) {
+            sig_->operator()();
         }
+        else {
+            bool updatesEnabled = false;
+            {
+                std::lock_guard<std::mutex> sLock(ObservableSettings::instance().mutex_);
+                updatesEnabled = ObservableSettings::instance().updatesEnabled();
 
-        std::lock_guard<std::mutex> sLock(settings_.mutex_);
-        if (settings_.updatesEnabled()) {
-            return (*sig_)();
-        }
-        else if (settings_.updatesDeferred()) {
-            std::lock_guard<std::recursive_mutex> lock(mutex_);
-            // if updates are only deferred, flag this for later notification
-            // these are held centrally by the settings singleton
-            settings_.registerDeferredObservers(observers_);
+                if (ObservableSettings::instance().updatesDeferred()) {
+                    std::lock_guard<std::recursive_mutex> lock(mutex_);
+                    ObservableSettings::instance().registerDeferredObservers(observers_);
+                }
+            }
+
+            if (updatesEnabled)
+                sig_->operator()();
         }
     }
 
     Observable::Observable()
-    : sig_(new detail::Signal()),
-      settings_(ObservableSettings::instance()) { }
+    : sig_(new detail::Signal()) { }
 
     Observable::Observable(const Observable&)
-    : sig_(new detail::Signal()),
-      settings_(ObservableSettings::instance()) {
+    : sig_(new detail::Signal()) {
         // the observer set is not copied; no observer asked to
         // register with this object
     }

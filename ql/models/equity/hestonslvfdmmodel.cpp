@@ -81,9 +81,9 @@ namespace QuantLib {
                     const Real v0Center = std::log(v0);
 
                     cPoints = {
-                        {lowerBound, lowerBoundDensity, false},
-                        {v0Center, v0Density, true},
-                        {upperBound, upperBoundDensity, false}
+                        ext::make_tuple(lowerBound, lowerBoundDensity, false),
+                        ext::make_tuple(v0Center, v0Density, true),
+                        ext::make_tuple(upperBound, upperBoundDensity, false)
                     };
 
                     return ext::make_shared<Concentrating1dMesher>(
@@ -95,9 +95,9 @@ namespace QuantLib {
                       const Real v0Center = v0;
 
                       cPoints = {
-                          {lowerBound, lowerBoundDensity, false},
-                          {v0Center, v0Density, true},
-                          {upperBound, upperBoundDensity, false}
+                          ext::make_tuple(lowerBound, lowerBoundDensity, false),
+                          ext::make_tuple(v0Center, v0Density, true),
+                          ext::make_tuple(upperBound, upperBoundDensity, false)
                       };
 
                       return ext::make_shared<Concentrating1dMesher>(
@@ -109,9 +109,9 @@ namespace QuantLib {
                     const Real v0Center = v0;
 
                     cPoints = {
-                        {lowerBound, lowerBoundDensity, false},
-                        {v0Center, v0Density, true},
-                        {upperBound, upperBoundDensity, false}
+                        ext::make_tuple(lowerBound, lowerBoundDensity, false),
+                        ext::make_tuple(v0Center, v0Density, true),
+                        ext::make_tuple(upperBound, upperBoundDensity, false)
                     };
 
                     return ext::make_shared<Concentrating1dMesher>(
@@ -259,7 +259,7 @@ namespace QuantLib {
                                          std::vector<Date> mandatoryDates,
                                          const Real mixingFactor)
     : localVol_(std::move(localVol)), hestonModel_(std::move(hestonModel)), endDate_(endDate),
-      params_(std::move(params)), mandatoryDates_(std::move(mandatoryDates)),
+      params_(params), mandatoryDates_(std::move(mandatoryDates)),
       mixingFactor_(mixingFactor), logging_(logging) {
 
         registerWith(localVol_);

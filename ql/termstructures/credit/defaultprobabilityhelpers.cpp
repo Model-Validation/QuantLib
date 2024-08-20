@@ -308,7 +308,7 @@ namespace QuantLib {
     }
 
     void SpreadCdsHelper::resetEngine() {
-        swap_ = ext::shared_ptr<CreditDefaultSwap>(new CreditDefaultSwap(
+        swap_ = ext::make_shared<CreditDefaultSwap>(
             Protection::Buyer, 100.0, 0.01, schedule_, paymentConvention_,
             dayCounter_, settlesAccrual_, protectionPaymentTime_, protectionStart_,
             ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_, evaluationDate_));
@@ -453,7 +453,7 @@ namespace QuantLib {
     }
 
     void UpfrontCdsHelper::resetEngine() {
-        swap_ = ext::shared_ptr<CreditDefaultSwap>(new CreditDefaultSwap(
+        swap_ = ext::make_shared<CreditDefaultSwap>(
             Protection::Buyer, 100.0, 0.01, runningSpread_, schedule_,
             paymentConvention_, dayCounter_, settlesAccrual_,
             protectionPaymentTime_, protectionStart_, upfrontDate_,

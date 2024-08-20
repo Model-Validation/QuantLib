@@ -19,13 +19,16 @@
 /*
  Examples:
   1. Start with 12 worker processes
-     ./quantlib-test-suite --nProc=12 --log_level=message --report_level=short
-                           --build_info=yes
+    ./quantlib-test-suite --log_level=message --report_level=short
+                           --build_info=yes -- --nProc=12
   2. If parameter "--nProc" is omitted then the number
      of worker processes will be equal to the number of CPU cores.
  */
 
-#pragma once
+
+#ifndef quantlib_parallel_test_runner_hpp
+#define quantlib_parallel_test_runner_hpp
+
 
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
@@ -36,6 +39,8 @@
 #    undef VERSION
 #endif
 
+#include <boost/process.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
@@ -45,11 +50,8 @@
 #define BOOST_TEST_NO_MAIN 1
 #include <boost/algorithm/string.hpp>
 #include <boost/test/included/unit_test.hpp>
-#include <chrono>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <limits>
+
+#include <map>
 #include <list>
 #include <map>
 #include <sstream>
@@ -79,6 +81,10 @@ namespace {
 
         bool visit(test_unit const& tu) override {
             if (tu.p_parent_id == framework::master_test_suite().p_id) {
+                BOOST_TEST_MESSAGE(tu.p_name.get());
+                QL_REQUIRE(!tu.p_name.get().compare("QuantLibTests"),
+                           "could not find QuantLib test suite");
+
                 testSuiteId_ = tu.p_id;
             } else if (tu.p_type == test_unit_type::TUT_SUITE && tu.p_parent_id == testSuiteId_ &&
                        tu.is_enabled()) {

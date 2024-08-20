@@ -316,7 +316,7 @@ namespace QuantLib {
     */
     class CPILeg {
       public:
-        CPILeg(const Schedule& schedule,
+        CPILeg(Schedule schedule,
                ext::shared_ptr<ZeroInflationIndex> index,
                Real baseCPI,
                const Period& observationLag);

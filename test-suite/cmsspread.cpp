@@ -17,9 +17,8 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "cmsspread.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
-
 #include <ql/cashflows/cmscoupon.hpp>
 #include <ql/cashflows/lineartsrpricer.hpp>
 #include <ql/experimental/coupons/cmsspreadcoupon.hpp>
@@ -44,7 +43,10 @@ using namespace QuantLib;
 using namespace boost::unit_test_framework;
 using namespace boost::accumulators;
 
-namespace {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(CmsSpreadTests)
+
 struct TestData {
     TestData() {
         refDate = Date(23, February, 2018);
@@ -90,9 +92,9 @@ struct TestData {
     ext::shared_ptr<CmsSpreadCouponPricer> cmsspPricerLn, cmsspPricerSln,
         cmsspPricerN;
 };
-} // namespace
 
-void CmsSpreadTest::testFixings() {
+
+BOOST_AUTO_TEST_CASE(testFixings) {
     BOOST_TEST_MESSAGE("Testing fixings of cms spread indices...");
 
     TestData d;
@@ -131,7 +133,7 @@ void CmsSpreadTest::testFixings() {
                       cms10y->fixing(d.refDate) - cms2y->fixing(d.refDate));
 }
 
-namespace {
+
 Real mcReferenceValue(const ext::shared_ptr<CmsCoupon>& cpn1,
                       const ext::shared_ptr<CmsCoupon>& cpn2, const Real cap,
                       const Real floor,
@@ -182,10 +184,10 @@ Real mcReferenceValue(const ext::shared_ptr<CmsCoupon>& cpn1,
         acc(std::min(std::max(z[0] - z[1], floor), cap));
     }
     return mean(acc);
-} // mcReferenceValue
-} // namespace
+}
 
-void CmsSpreadTest::testCouponPricing() {
+
+BOOST_AUTO_TEST_CASE(testCouponPricing) {
     BOOST_TEST_MESSAGE("Testing pricing of cms spread coupons...");
 
     TestData d;
@@ -201,16 +203,16 @@ void CmsSpreadTest::testCouponPricing() {
     Date valueDate = cms10y2y->valueDate(d.refDate);
     Date payDate = valueDate + 1 * Years;
     ext::shared_ptr<CmsCoupon> cpn1a =
-        ext::shared_ptr<CmsCoupon>(new CmsCoupon(
+        ext::make_shared<CmsCoupon>(
             payDate, 10000.0, valueDate, payDate, cms10y->fixingDays(), cms10y,
-            1.0, 0.0, Date(), Date(), Actual360(), false));
-    ext::shared_ptr<CmsCoupon> cpn1b = ext::shared_ptr<CmsCoupon>(
-        new CmsCoupon(payDate, 10000.0, valueDate, payDate, cms2y->fixingDays(),
-                      cms2y, 1.0, 0.0, Date(), Date(), Actual360(), false));
+            1.0, 0.0, Date(), Date(), Actual360(), false);
+    ext::shared_ptr<CmsCoupon> cpn1b = ext::make_shared<CmsCoupon>(
+        payDate, 10000.0, valueDate, payDate, cms2y->fixingDays(),
+                      cms2y, 1.0, 0.0, Date(), Date(), Actual360(), false);
     ext::shared_ptr<CmsSpreadCoupon> cpn1 =
-        ext::shared_ptr<CmsSpreadCoupon>(new CmsSpreadCoupon(
+        ext::make_shared<CmsSpreadCoupon>(
             payDate, 10000.0, valueDate, payDate, cms10y2y->fixingDays(),
-            cms10y2y, 1.0, 0.0, Date(), Date(), Actual360(), false));
+            cms10y2y, 1.0, 0.0, Date(), Date(), Actual360(), false);
     BOOST_CHECK(cpn1->fixingDate() == d.refDate);
     cpn1a->setPricer(d.cmsPricerLn);
     cpn1b->setPricer(d.cmsPricerLn);
@@ -228,39 +230,35 @@ void CmsSpreadTest::testCouponPricing() {
     QL_CHECK_CLOSE(cpn1->rate(), cpn1a->rate() - cpn1b->rate(), eqTol);
     IndexManager::instance().clearHistories();
 
-    ext::shared_ptr<CmsCoupon> cpn2a = ext::shared_ptr<CmsCoupon>(
-        new CmsCoupon(Date(23, February, 2029), 10000.0,
+    ext::shared_ptr<CmsCoupon> cpn2a = ext::make_shared<CmsCoupon>(
+        Date(23, February, 2029), 10000.0,
                       Date(23, February, 2028), Date(23, February, 2029), 2,
-                      cms10y, 1.0, 0.0, Date(), Date(), Actual360(), false));
-    ext::shared_ptr<CmsCoupon> cpn2b = ext::shared_ptr<CmsCoupon>(
-        new CmsCoupon(Date(23, February, 2029), 10000.0,
+                      cms10y, 1.0, 0.0, Date(), Date(), Actual360(), false);
+    ext::shared_ptr<CmsCoupon> cpn2b = ext::make_shared<CmsCoupon>(
+        Date(23, February, 2029), 10000.0,
                       Date(23, February, 2028), Date(23, February, 2029), 2,
-                      cms2y, 1.0, 0.0, Date(), Date(), Actual360(), false));
+                      cms2y, 1.0, 0.0, Date(), Date(), Actual360(), false);
 
     ext::shared_ptr<CappedFlooredCmsSpreadCoupon> plainCpn =
-        ext::shared_ptr<CappedFlooredCmsSpreadCoupon>(
-            new CappedFlooredCmsSpreadCoupon(
+        ext::make_shared<CappedFlooredCmsSpreadCoupon>(
                 Date(23, February, 2029), 10000.0, Date(23, February, 2028),
                 Date(23, February, 2029), 2, cms10y2y, 1.0, 0.0, Null<Rate>(),
-                Null<Rate>(), Date(), Date(), Actual360(), false));
+                Null<Rate>(), Date(), Date(), Actual360(), false);
     ext::shared_ptr<CappedFlooredCmsSpreadCoupon> cappedCpn =
-        ext::shared_ptr<CappedFlooredCmsSpreadCoupon>(
-            new CappedFlooredCmsSpreadCoupon(
+        ext::make_shared<CappedFlooredCmsSpreadCoupon>(
                 Date(23, February, 2029), 10000.0, Date(23, February, 2028),
                 Date(23, February, 2029), 2, cms10y2y, 1.0, 0.0, 0.03,
-                Null<Rate>(), Date(), Date(), Actual360(), false));
+                Null<Rate>(), Date(), Date(), Actual360(), false);
     ext::shared_ptr<CappedFlooredCmsSpreadCoupon> flooredCpn =
-        ext::shared_ptr<CappedFlooredCmsSpreadCoupon>(
-            new CappedFlooredCmsSpreadCoupon(
+        ext::make_shared<CappedFlooredCmsSpreadCoupon>(
                 Date(23, February, 2029), 10000.0, Date(23, February, 2028),
                 Date(23, February, 2029), 2, cms10y2y, 1.0, 0.0, Null<Rate>(),
-                0.01, Date(), Date(), Actual360(), false));
+                0.01, Date(), Date(), Actual360(), false);
     ext::shared_ptr<CappedFlooredCmsSpreadCoupon> collaredCpn =
-        ext::shared_ptr<CappedFlooredCmsSpreadCoupon>(
-            new CappedFlooredCmsSpreadCoupon(
+        ext::make_shared<CappedFlooredCmsSpreadCoupon>(
                 Date(23, February, 2029), 10000.0, Date(23, February, 2028),
                 Date(23, February, 2029), 2, cms10y2y, 1.0, 0.0, 0.03, 0.01,
-                Date(), Date(), Actual360(), false));
+                Date(), Date(), Actual360(), false);
 
     cpn2a->setPricer(d.cmsPricerLn);
     cpn2b->setPricer(d.cmsPricerLn);
@@ -348,9 +346,6 @@ void CmsSpreadTest::testCouponPricing() {
                       tol);
 }
 
-test_suite* CmsSpreadTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("CmsSpreadTest");
-    suite->add(QUANTLIB_TEST_CASE(&CmsSpreadTest::testFixings));
-    suite->add(QUANTLIB_TEST_CASE(&CmsSpreadTest::testCouponPricing));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -36,7 +36,6 @@
 #include <ql/instruments/futures.hpp>
 #include <ql/time/calendar.hpp>
 #include <ql/time/daycounter.hpp>
-#include <ql/time/calendars/unitedstates.hpp>
 #include <ql/optional.hpp>
 
 namespace QuantLib {
@@ -322,6 +321,7 @@ namespace QuantLib {
         //! \name SwapRateHelper inspectors
         //@{
         Spread spread() const;
+        // NOLINTNEXTLINE(cppcoreguidelines-noexcept-swap,performance-noexcept-swap)
         ext::shared_ptr<VanillaSwap> swap() const;
         const Period& forwardStart() const;
         //@}
@@ -482,6 +482,7 @@ namespace QuantLib {
         return spread_.empty() ? 0.0 : spread_->value();
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-swap,performance-noexcept-swap)
     inline ext::shared_ptr<VanillaSwap> SwapRateHelper::swap() const {
         return swap_;
     }

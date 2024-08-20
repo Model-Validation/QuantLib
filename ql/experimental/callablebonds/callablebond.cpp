@@ -138,21 +138,6 @@ namespace QuantLib {
         return solver.solve(f, accuracy, guess, minVol, maxVol);
     }
 
-    Volatility CallableBond::impliedVolatility(
-                              Real targetValue,
-                              const Handle<YieldTermStructure>& discountCurve,
-                              Real accuracy,
-                              Size maxEvaluations,
-                              Volatility minVol,
-                              Volatility maxVol) const {
-        QL_REQUIRE(!isExpired(), "instrument expired");
-        Volatility guess = 0.5 * (minVol + maxVol);
-        ImpliedVolHelper f(*this, discountCurve, targetValue, true);
-        Brent solver;
-        solver.setMaxEvaluations(maxEvaluations);
-        return solver.solve(f, accuracy, guess, minVol, maxVol);
-    }
-
 
     namespace {
 
@@ -305,6 +290,7 @@ namespace QuantLib {
             settlement = settlementDate();
 
         Real dirtyPrice = cleanPrice + accruedAmount(settlement);
+        dirtyPrice /= 100.0 / notional(settlement);
 
         ext::function<Real(Real)> f = NPVSpreadHelper(*this);
         OASHelper obj(f, dirtyPrice);
@@ -344,7 +330,7 @@ namespace QuantLib {
 
         ext::function<Real(Real)> f = NPVSpreadHelper(*this);
 
-        Real P = f(oas) - accruedAmount(settlement);
+        Real P = f(oas) * 100.0 / notional(settlement) - accruedAmount(settlement);
 
         return P;
     }
@@ -372,7 +358,7 @@ namespace QuantLib {
                                  dayCounter,
                                  compounding,
                                  frequency);
-            
+
         if ( P == 0.0 )
             return 0;
         else
@@ -404,13 +390,13 @@ namespace QuantLib {
                                  dayCounter,
                                  compounding,
                                  frequency);
-            
+
         if ( P == 0.0 )
             return 0;
         else
             {
                 return (Ppp + Pmm - 2*P) / ( std::pow(bump,2) * P);
-            }        
+            }
 
     }
 
@@ -497,7 +483,7 @@ namespace QuantLib {
     CallableFixedRateBond::CallableFixedRateBond(
                               Natural settlementDays,
                               Real faceAmount,
-                              const Schedule& schedule,
+                              Schedule schedule,
                               const std::vector<Rate>& coupons,
                               const DayCounter& accrualDayCounter,
                               BusinessDayConvention paymentConvention,
@@ -514,7 +500,7 @@ namespace QuantLib {
         frequency_ = schedule.hasTenor() ? schedule.tenor().frequency() : NoFrequency;
 
         cashflows_ =
-            FixedRateLeg(schedule)
+            FixedRateLeg(std::move(schedule))
             .withNotionals(faceAmount)
             .withCouponRates(coupons, accrualDayCounter)
             .withPaymentAdjustment(paymentConvention)
@@ -548,4 +534,3 @@ namespace QuantLib {
     }
 
 }
-

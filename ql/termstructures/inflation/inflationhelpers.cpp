@@ -47,7 +47,7 @@ namespace QuantLib {
         std::pair<Date, Date> limStart = inflationPeriod(maturity_ - swapObsLag_, zii_->frequency());
         std::pair<Date, Date> interpolationPeriod = inflationPeriod(maturity, zii_->frequency());
 
-        if ((detail::CPI::effectiveInterpolationType(zii_, observationInterpolation_) == CPI::Linear) &&
+        if ((detail::CPI::effectiveInterpolationType(observationInterpolation_) == CPI::Linear) &&
             (maturity > interpolationPeriod.first)) {
             // if interpolated, we need to cover the end of the interpolation period
             earliestDate_ = limStart.first;
@@ -61,7 +61,7 @@ namespace QuantLib {
         // check that the observation lag of the swap
         // is compatible with the availability lag of the index AND
         // it's interpolation (assuming the start day is spot)
-        if (detail::CPI::effectiveInterpolationType(zii_, observationInterpolation_) == CPI::Linear) {
+        if (detail::CPI::effectiveInterpolationType(observationInterpolation_) == CPI::Linear) {
             Period pShift(zii_->frequency());
             QL_REQUIRE(swapObsLag_ - pShift >= zii_->availabilityLag(),
                        "inconsistency between swap observation lag "
@@ -75,7 +75,7 @@ namespace QuantLib {
 
 
     Real ZeroCouponInflationSwapHelper::impliedQuote() const {
-        zciis_->recalculate();
+        zciis_->deepUpdate();
         return zciis_->fairRate();
     }
 
@@ -157,7 +157,7 @@ namespace QuantLib {
 
 
     Real YearOnYearInflationSwapHelper::impliedQuote() const {
-        yyiis_->recalculate();
+        yyiis_->deepUpdate();
         return yyiis_->fairRate();
     }
 

@@ -40,6 +40,8 @@ namespace QuantLib {
         //@{
         void update() override;
         //@}
+        /*! Returns true if the instrument is calculated */
+        bool isCalculated() const;
         /*! \name Calculations
             These methods do not modify the structure of the object
             and are therefore declared as <tt>const</tt>. Data members
@@ -267,7 +269,6 @@ namespace QuantLib {
     inline bool LazyObject::isCalculated() const {
         return calculated_;
     }
-
 }
 
 #endif

@@ -60,8 +60,9 @@
 #endif
 
 /* Define this to have singletons return different instances for
-   different threads.
-   This also implies thread-safe Singleton initialization.
+   different threads; in particular, this means that the evaluation
+   date, the stored index fixings and any other settings will be
+   per-thread.
 */
 #ifndef QL_ENABLE_SESSIONS
 //#   define QL_ENABLE_SESSIONS
@@ -112,15 +113,15 @@
 //#    define QL_USE_STD_SHARED_PTR
 #endif
 
-/* Define this to use std::function and std::bind instead of
-   boost::function and boost::bind. */
+/* Undefine this to use boost::function and boost::bind instead of
+   std::function and std::bind. */
 #ifndef QL_USE_STD_FUNCTION
-//#    define QL_USE_STD_FUNCTION
+#    define QL_USE_STD_FUNCTION
 #endif
 
-/* Define this to use std::tuple instead of boost::tuple. */
+/* Undefine this to use boost::tuple instead of std::tuple. */
 #ifndef QL_USE_STD_TUPLE
-//#    define QL_USE_STD_TUPLE
+#    define QL_USE_STD_TUPLE
 #endif
 
 /* Define this to enable the implementation of Null as template functions. */

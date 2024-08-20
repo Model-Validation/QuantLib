@@ -60,6 +60,10 @@ namespace QuantLib {
                         const Date& refPeriodEnd = Date(),
                         const Date& exCouponDate = Date());
         //@}
+        //! \name LazyObject interface
+        //@{
+        void performCalculations() const override;
+        //@}
         //! \name CashFlow interface
         //@{
         Real amount() const override;
@@ -77,6 +81,7 @@ namespace QuantLib {
         //@}
       private:
         InterestRate rate_;
+        mutable Real amount_;
     };
 
 
@@ -84,7 +89,7 @@ namespace QuantLib {
     //! helper class building a sequence of fixed rate coupons
     class FixedRateLeg {
       public:
-        FixedRateLeg(const Schedule& schedule);
+        FixedRateLeg(Schedule schedule);
         FixedRateLeg& withNotionals(Real);
         FixedRateLeg& withNotionals(const std::vector<Real>&);
         FixedRateLeg& withCouponRates(Rate,
@@ -101,7 +106,7 @@ namespace QuantLib {
         FixedRateLeg& withFirstPeriodDayCounter(const DayCounter&);
         FixedRateLeg& withLastPeriodDayCounter(const DayCounter&);
         FixedRateLeg& withPaymentCalendar(const Calendar&);
-        FixedRateLeg& withPaymentLag(Natural lag);
+        FixedRateLeg& withPaymentLag(Integer lag);
         FixedRateLeg& withExCouponPeriod(const Period&,
                                          const Calendar&,
                                          BusinessDayConvention,
@@ -115,7 +120,7 @@ namespace QuantLib {
         DayCounter firstPeriodDC_ , lastPeriodDC_;
         Calendar paymentCalendar_;
         BusinessDayConvention paymentAdjustment_ = Following;
-        Natural paymentLag_ = 0;
+        Integer paymentLag_ = 0;
         Period exCouponPeriod_;
         Calendar exCouponCalendar_;
         BusinessDayConvention exCouponAdjustment_ = Following;

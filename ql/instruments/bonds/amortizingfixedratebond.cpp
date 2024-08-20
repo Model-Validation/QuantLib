@@ -27,7 +27,7 @@ namespace QuantLib {
     AmortizingFixedRateBond::AmortizingFixedRateBond(
                                       Natural settlementDays,
                                       const std::vector<Real>& notionals,
-                                      const Schedule& schedule,
+                                      Schedule schedule,
                                       const std::vector<Rate>& coupons,
                                       const DayCounter& accrualDayCounter,
                                       BusinessDayConvention paymentConvention,
@@ -35,90 +35,26 @@ namespace QuantLib {
                                       const Period& exCouponPeriod,
                                       const Calendar& exCouponCalendar,
                                       const BusinessDayConvention exCouponConvention,
-                                      bool exCouponEndOfMonth)
+                                      bool exCouponEndOfMonth,
+                                      const std::vector<Real>& redemptions,
+                                      Integer paymentLag)
     : Bond(settlementDays, schedule.calendar(), issueDate),
       frequency_(schedule.tenor().frequency()),
       dayCounter_(accrualDayCounter) {
 
         maturityDate_ = schedule.endDate();
 
-        cashflows_ = FixedRateLeg(schedule)
+        cashflows_ = FixedRateLeg(std::move(schedule))
             .withNotionals(notionals)
             .withCouponRates(coupons, accrualDayCounter)
             .withPaymentAdjustment(paymentConvention)
             .withExCouponPeriod(exCouponPeriod,
                                 exCouponCalendar,
                                 exCouponConvention,
-                                exCouponEndOfMonth);
+                                exCouponEndOfMonth)
+            .withPaymentLag(paymentLag);
 
-        addRedemptionsToCashflows();
-
-        QL_ENSURE(!cashflows().empty(), "bond with no cashflows!");
-    }
-
-
-    AmortizingFixedRateBond::AmortizingFixedRateBond(
-                                      Natural settlementDays,
-                                      const Calendar& calendar,
-                                      Real initialFaceAmount,
-                                      const Date& startDate,
-                                      const Period& bondTenor,
-                                      const Frequency& sinkingFrequency,
-                                      const Rate coupon,
-                                      const DayCounter& accrualDayCounter,
-                                      BusinessDayConvention paymentConvention,
-                                      const Date& issueDate)
-    : Bond(settlementDays, calendar, issueDate),
-      frequency_(sinkingFrequency),
-      dayCounter_(accrualDayCounter) {
-
-        QL_REQUIRE(bondTenor.length() > 0,
-                   "bond tenor must be positive. "
-                   << bondTenor << " is not allowed.");
-        maturityDate_ = startDate + bondTenor;
-
-        cashflows_ =
-            FixedRateLeg(sinkingSchedule(startDate, bondTenor,
-                                         sinkingFrequency, calendar))
-            .withNotionals(sinkingNotionals(bondTenor,
-                                            sinkingFrequency, coupon,
-                                            initialFaceAmount))
-            .withCouponRates(coupon, accrualDayCounter)
-            .withPaymentAdjustment(paymentConvention);
-
-        addRedemptionsToCashflows();
-    }
-
-    AmortizingFixedRateBond::AmortizingFixedRateBond(
-                                      Natural settlementDays,
-                                      const std::vector<Real>& notionals,
-                                      const Schedule& schedule,
-                                      const std::vector<InterestRate>& coupons,
-                                      BusinessDayConvention paymentConvention,
-                                      const Date& issueDate,
-                                      const Calendar& paymentCalendar,
-                                      const Period& exCouponPeriod,
-                                      const Calendar& exCouponCalendar,
-                                      const BusinessDayConvention exCouponConvention,
-                                      bool exCouponEndOfMonth)
-    : Bond(settlementDays,
-        paymentCalendar==Calendar() ? schedule.calendar() : paymentCalendar,
-        issueDate),
-      frequency_(schedule.tenor().frequency()),
-      dayCounter_(coupons[0].dayCounter()) {
-
-        maturityDate_ = schedule.endDate();
-
-        cashflows_ = FixedRateLeg(schedule)
-            .withNotionals(notionals)
-            .withCouponRates(coupons)
-            .withPaymentAdjustment(paymentConvention)
-            .withExCouponPeriod(exCouponPeriod,
-                                exCouponCalendar,
-                                exCouponConvention,
-                                exCouponEndOfMonth);
-
-        addRedemptionsToCashflows();
+        addRedemptionsToCashflows(redemptions);
 
         QL_ENSURE(!cashflows().empty(), "bond with no cashflows!");
     }
