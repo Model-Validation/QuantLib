@@ -268,7 +268,7 @@ namespace QuantLib {
         }
         results_.additionalResults["strike"] = strike;
         results_.additionalResults["atmForward"] = atmForward;
-        results_.additionalResults["underlyingNPV"] = swap ? swap->NPV() : swapOis->NPV();
+        results_.additionalResults["underlyingNPV"] = swap->NPV();
 
         Real annuity;
         if (arguments_.settlementType == Settlement::Physical ||

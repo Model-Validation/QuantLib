@@ -150,22 +150,9 @@ namespace QuantLib {
         vanilla_ = ext::dynamic_pointer_cast<VanillaSwap>(swap_);
     }
 
-    Swaption::Swaption(ext::shared_ptr<OvernightIndexedSwap> swap,
-                       const ext::shared_ptr<Exercise>& exercise,
-                       Settlement::Type delivery,
-                       Settlement::Method settlementMethod)
-    : Option(ext::shared_ptr<Payoff>(), exercise), swapOis_(std::move(swap)),
-      settlementType_(delivery), settlementMethod_(settlementMethod) {
-        registerWith(swapOis_);
-        // a swaption engine might not calculate the underlying swap
-        swapOis_->alwaysForwardNotifications();
-    }
-
     void Swaption::deepUpdate() {
         if (swap_)
             swap_->deepUpdate();
-        if (swapOis_)
-            swapOis_->deepUpdate();
         update();
     }
 
@@ -181,7 +168,6 @@ namespace QuantLib {
         QL_REQUIRE(arguments != nullptr, "wrong argument type");
 
         arguments->swap = swap_;
-        arguments->swapOis = swapOis_;
         arguments->settlementType = settlementType_;
         arguments->settlementMethod = settlementMethod_;
         arguments->exercise = exercise_;

@@ -115,14 +115,6 @@ namespace QuantLib {
         Date historicalFixingUnkown = std::min(today, lastAvailableFixingPeriod.second);
         Date latestNeededDate = fixingDate;
         
-        QL_DEPRECATED_DISABLE_WARNING
-        if (interpolated_) { // might need the next one too
-            std::pair<Date, Date> p = inflationPeriod(fixingDate, frequency_);
-            if (fixingDate > p.first)
-                latestNeededDate += Period(frequency_);
-        }
-        QL_DEPRECATED_ENABLE_WARNING
-        
         if (latestNeededDate <= historicalFixingKnown) {
             // the fixing date is well before the availability lag, so
             // we know that fixings were provided.
@@ -136,7 +128,8 @@ namespace QuantLib {
             // check.  Todo: check which fixings are not possible, to
             // avoid using fixings in the future, assuming that a fixing
             // isn't available before the 10th of the current month.
-            Real f = timeSeries()[latestNeededDate];
+            Date lookupFixingDate = Date(1, latestNeededDate.month(), latestNeededDate.year());
+            Real f = timeSeries()[lookupFixingDate];
             return (f == Null<Real>() || today.dayOfMonth()<10);
         }
     }

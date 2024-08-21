@@ -71,9 +71,6 @@ namespace QuantLib {
         */
         void unfreeze();
 
-        /*! Returns true if the object is calculated, false otherwise */
-        bool isCalculated() const;
-
       protected:
         /*! This method performs all needed calculations by calling
             the <i><b>performCalculations</b></i> method.

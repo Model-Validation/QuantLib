@@ -311,7 +311,7 @@ namespace QuantLib {
         swap_ = ext::make_shared<CreditDefaultSwap>(
             Protection::Buyer, 100.0, 0.01, schedule_, paymentConvention_,
             dayCounter_, settlesAccrual_, protectionPaymentTime_, protectionStart_,
-            ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_, evaluationDate_));
+            ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_, evaluationDate_);
 
         switch (model_) {
           case CreditDefaultSwap::ISDA:
@@ -458,7 +458,7 @@ namespace QuantLib {
             paymentConvention_, dayCounter_, settlesAccrual_,
             protectionPaymentTime_, protectionStart_, upfrontDate_,
             ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_,
-            evaluationDate_));
+            evaluationDate_);
         
         switch (model_) {
           case CreditDefaultSwap::ISDA:
