@@ -126,7 +126,7 @@ namespace QuantLib {
         */
         [[deprecated("Use the overload taking a pointer and pass an empty one to remove seasonality.")]]
         void setSeasonality() { setSeasonality({}); }
-        void setSeasonality(const ext::shared_ptr<Seasonality>& seasonality);
+        virtual void setSeasonality(const ext::shared_ptr<Seasonality>& seasonality);
         ext::shared_ptr<Seasonality> seasonality() const;
         bool hasSeasonality() const;
         //@}
