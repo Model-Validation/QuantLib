@@ -160,9 +160,11 @@ namespace QuantLib {
             Date d1 = d + n*unit;
 
             // we are sure the unit is Months or Years
-            if (endOfMonth && isEndOfMonth(d))
+            if(endOfMonth && isEndOfMonth(d) && !eomConvention && c == Unadjusted){
+                return Date::endOfMonth(d1);
+            } else if(endOfMonth && isEndOfMonth(d)){
                 return Calendar::endOfMonth(d1, eomConvention);
-
+            }
             return adjust(d1, c);
         }
     }

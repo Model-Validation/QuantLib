@@ -265,8 +265,8 @@ namespace QuantLib {
                 dates_.push_back(effectiveDate);
                 isRegular_.push_back(false);
             }
-	    std::reverse(dates_.begin(), dates_.end());
-	    std::reverse(isRegular_.begin(), isRegular_.end());
+	        std::reverse(dates_.begin(), dates_.end());
+	        std::reverse(isRegular_.begin(), isRegular_.end());
             break;
 
           case DateGeneration::Twentieth:
