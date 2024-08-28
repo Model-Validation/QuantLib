@@ -151,6 +151,10 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">BasketLosses-mt</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">BasketLosses-x64-mt</TargetName>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(Boost_INCLUDE_DIRS);$(IncludePath)</IncludePath>
+    <LibraryPath>$(BOOST_LIB64);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
       <TypeLibraryName>.\build\$(PlatformToolset)\$(Platform)\$(Configuration)\BasketLosses.tlb</TypeLibraryName>

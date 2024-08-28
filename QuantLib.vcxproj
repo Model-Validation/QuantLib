@@ -38,6 +38,7 @@
     <ProjectName>QuantLib</ProjectName>
     <ProjectGuid>{AD0A27DA-91DA-46A2-ACBD-296C419ED3AA}</ProjectGuid>
     <RootNamespace>QuantLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="QuantLib.props" />
@@ -89,24 +90,28 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug (static runtime)|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Boost.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Boost.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Boost.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Boost.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -135,6 +140,26 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|x64'">QuantLib-x64-mt-s</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">QuantLib-mt</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">QuantLib-x64-mt</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ExecutablePath>C:\ws\git\scs\build\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\ProgramData\chocolatey\lib\eigen\include\eigen3;C:\ws\git\scs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\ProgramData\chocolatey\lib\eigen;C:\ws\git\scs\build\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (static runtime)|x64'">
+    <ExecutablePath>C:\ws\git\scs\build\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\ws\git\scs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\ws\git\scs\build\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ExecutablePath>C:\ws\git\scs\build\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\ProgramData\chocolatey\lib\eigen\include\eigen3;C:\ws\git\scs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\ProgramData\chocolatey\lib;C:\ws\git\scs\build\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (static runtime)|x64'">
+    <ExecutablePath>C:\ws\git\scs\build\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\ProgramData\chocolatey\lib\eigen\include\eigen3;C:\ws\git\scs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\ProgramData\chocolatey\lib;C:\ws\git\scs\build\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -188,7 +213,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\ws\git\scs\build\lib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_LIB;_SCL_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -211,6 +236,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <CombineFilesOnlyFromTheSameFolder>true</CombineFilesOnlyFromTheSameFolder>
       <IncludeInUnityFile>true</IncludeInUnityFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -276,7 +302,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\ws\git\scs\build\lib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;WIN32;_LIB;_SCL_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -299,6 +325,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <CombineFilesOnlyFromTheSameFolder>true</CombineFilesOnlyFromTheSameFolder>
       <IncludeInUnityFile>true</IncludeInUnityFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -368,7 +395,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\ws\git\scs\include;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_LIB;_SCL_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -391,6 +418,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <CombineFilesOnlyFromTheSameFolder>true</CombineFilesOnlyFromTheSameFolder>
       <IncludeInUnityFile>true</IncludeInUnityFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -456,7 +484,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\ws\git\scs\build\lib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;WIN32;_LIB;_SCL_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -479,6 +507,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <CombineFilesOnlyFromTheSameFolder>true</CombineFilesOnlyFromTheSameFolder>
       <IncludeInUnityFile>true</IncludeInUnityFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1039,6 +1068,12 @@
     <ClInclude Include="ql\math\interpolations\backwardflatlinearinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\bicubicsplineinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\bilinearinterpolation.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\all.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineinterpolation.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\eigenutilities.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splineconstraints.hpp" />
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splinestructure.hpp" />
     <ClInclude Include="ql\math\interpolations\chebyshevinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\convexmonotoneinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\cubicinterpolation.hpp" />
@@ -1053,7 +1088,9 @@
     <ClInclude Include="ql\math\interpolations\loginterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\mixedinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\multicubicspline.hpp" />
+    <ClInclude Include="ql\math\interpolations\ratetimeinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\sabrinterpolation.hpp" />
+    <ClInclude Include="ql\math\interpolations\spreadedinterpolation.hpp" />
     <ClInclude Include="ql\math\interpolations\xabrinterpolation.hpp" />
     <ClInclude Include="ql\math\kernelfunctions.hpp" />
     <ClInclude Include="ql\math\lexicographicalview.hpp" />
@@ -1769,6 +1806,8 @@
     <ClInclude Include="ql\termstructures\yield\piecewisezerospreadedtermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\quantotermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\ratehelpers.hpp" />
+    <ClInclude Include="ql\termstructures\yield\rtcurve.hpp" />
+    <ClInclude Include="ql\termstructures\yield\rtstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\ultimateforwardtermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\zerocurve.hpp" />
     <ClInclude Include="ql\termstructures\yield\zerospreadedtermstructure.hpp" />
@@ -2270,6 +2309,10 @@
     <ClCompile Include="ql\math\integrals\integral.cpp" />
     <ClCompile Include="ql\math\integrals\kronrodintegral.cpp" />
     <ClCompile Include="ql\math\integrals\segmentintegral.cpp" />
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.cpp" />
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\eigenutilities.cpp" />
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splineconstraints.cpp" />
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splinestructure.cpp" />
     <ClCompile Include="ql\math\interpolations\chebyshevinterpolation.cpp" />
     <ClCompile Include="ql\math\matrix.cpp" />
     <ClCompile Include="ql\math\matrixutilities\basisincompleteordered.cpp" />
@@ -2748,6 +2791,7 @@
     <ClCompile Include="ql\termstructures\yield\oisratehelper.cpp" />
     <ClCompile Include="ql\termstructures\yield\overnightindexfutureratehelper.cpp" />
     <ClCompile Include="ql\termstructures\yield\ratehelpers.cpp" />
+    <ClCompile Include="ql\termstructures\yield\rtstructure.cpp" />
     <ClCompile Include="ql\termstructures\yield\zeroyieldstructure.cpp" />
     <ClCompile Include="ql\termstructures\yieldtermstructure.cpp" />
     <ClCompile Include="ql\time\asx.cpp" />
