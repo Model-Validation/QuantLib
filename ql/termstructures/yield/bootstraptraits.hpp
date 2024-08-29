@@ -31,6 +31,7 @@
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/interpolatedsimplezerocurve.hpp>
 #include <ql/termstructures/yield/forwardcurve.hpp>
+#include <ql/termstructures/yield/rtcurve.hpp>
 #include <ql/termstructures/bootstraphelper.hpp>
 
 namespace QuantLib {
@@ -272,6 +273,65 @@ namespace QuantLib {
         // upper bound for convergence loop
         static Size maxIterations() { return 100; }
     };
+
+    struct RateTime {
+        // interpolated curve type
+        template <class Interpolator>
+        struct curve {
+            typedef InterpolatedRateTimeCurve<Interpolator> type;
+        };
+        // helper class
+        typedef BootstrapHelper<YieldTermStructure> helper;
+
+
+        public:
+        // start of curve data
+        static Date initialDate(const YieldTermStructure* c) { return c->referenceDate(); }
+
+        static Real initialValue(const YieldTermStructure* c) {
+            return detail::avgRate / c->maxTime();
+        }
+
+
+        template <class C>
+        static Real guess(Size i, const C* c, bool validData, Size) {
+            if (validData) {
+                return c->data()[i];
+            }
+            Time t = c->times()[i];
+            return std::max(detail::avgRate * t, detail::avgRate * 0.05);
+        }
+
+        template <class C>
+        static Real minValueAfter(Size i, const C* c, bool validData, Size) {
+            if (validData) {
+                Real r = *(std::min_element(c->data().begin() + i, c->data().end()));
+                return r < 0.0 ? Real(2.0 * r) : Real(r / 2.0);
+            }
+            Time t = c->times().back();
+            return std::min(-detail::maxRate * t, -detail::maxRate * 0.05);
+        }
+
+        template <class C>
+        static Real maxValueAfter(Size i, const C* c, bool validData, Size) {
+            if (validData) {
+                Real r = *(std::max_element(c->data().begin() + i, c->data().end()));
+                return r < 0.0 ? Real(r / 2.0) : Real(2.0 * r);
+            }
+            Time t = c->times().back();
+            return std::max(detail::maxRate * t, detail::maxRate * 0.05);
+        }
+
+        static void updateGuess(std::vector<Real>& data, Real rate_time, Size i) {
+            data[i] = rate_time;
+            if (i == 1)
+                data[0] = 0.0; // first point is updated as well
+
+        }
+
+        static Size maxIterations() { return 100; }
+    };
+
 
     //! Simple Zero-curve traits
     struct SimpleZeroYield {

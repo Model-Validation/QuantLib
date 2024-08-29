@@ -20,6 +20,7 @@ this_include_HEADERS = \
 	lagrangeinterpolation.hpp \
 	linearinterpolation.hpp \
 	loginterpolation.hpp \
+	ratetimeinterpolation.hpp \
 	mixedinterpolation.hpp \
 	multicubicspline.hpp \
 	sabrinterpolation.hpp \

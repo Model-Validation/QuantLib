@@ -40,7 +40,7 @@ namespace QuantLib {
     /*! \ingroup yieldtermstructures */
     template <class Interpolator>
     class InterpolatedZeroCurve : public ZeroYieldStructure,
-                                  protected InterpolatedCurve<Interpolator> {
+                                  public InterpolatedCurve<Interpolator> {
       public:
         // constructor
         InterpolatedZeroCurve(

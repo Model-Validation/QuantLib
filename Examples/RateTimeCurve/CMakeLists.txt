@@ -1,0 +1,6 @@
+add_executable(RateTimeCurve RateTimeCurve.cpp)
+target_link_libraries(RateTimeCurve ql_library ${QL_THREAD_LIBRARIES})
+if (QL_INSTALL_EXAMPLES)
+    install(TARGETS RateTimeCurve RUNTIME DESTINATION ${QL_INSTALL_EXAMPLESDIR})
+endif()
+

@@ -110,7 +110,7 @@
    Note that std::shared_ptr does not check access and can
    cause segmentation faults. */
 #ifndef QL_USE_STD_SHARED_PTR
-//#    define QL_USE_STD_SHARED_PTR
+// #define QL_USE_STD_SHARED_PTR
 #endif
 
 /* Undefine this to use boost::function and boost::bind instead of

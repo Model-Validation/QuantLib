@@ -340,6 +340,9 @@
     <Filter Include="experimental\asian">
       <UniqueIdentifier>{0abb3851-b409-4ea6-8e55-120d00a9fcdb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="math\interpolations\bsplineinterpolation">
+      <UniqueIdentifier>{b62ee771-0560-42c4-87dd-c0de852c212c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ql\methods\all.hpp">
@@ -1090,6 +1093,9 @@
       <Filter>math\interpolations</Filter>
     </ClInclude>
     <ClInclude Include="ql\math\interpolations\loginterpolation.hpp">
+      <Filter>math\interpolations</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\ratetimeinterpolation.hpp">
       <Filter>math\interpolations</Filter>
     </ClInclude>
     <ClInclude Include="ql\math\interpolations\mixedinterpolation.hpp">
@@ -4464,6 +4470,36 @@
     <ClInclude Include="ql\indexes\ibor\swestr.hpp">
       <Filter>indexes\ibor</Filter>
     </ClInclude>
+    <ClInclude Include="ql\termstructures\yield\rtcurve.hpp">
+      <Filter>termstructures\yield</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\termstructures\yield\rtstructure.hpp">
+      <Filter>termstructures\yield</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\ratetimeinterpolation.hpp">
+      <Filter>math\interpolations</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineinterpolation.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splinestructure.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splineconstraints.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\eigenutilities.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\all.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\spreadedinterpolation.hpp">
+      <Filter>math\interpolations</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\methods\montecarlo\brownianbridge.cpp">
@@ -7215,6 +7251,21 @@
     </ClCompile>
     <ClCompile Include="ql\time\daycounters\yearfractiontodate.cpp">
       <Filter>time\daycounters</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\termstructures\yield\rtstructure.cpp">
+      <Filter>termstructures\yield</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splinestructure.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splineconstraints.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\eigenutilities.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

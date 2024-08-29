@@ -41,6 +41,9 @@ namespace QuantLib {
     class InterpolatedCurve {
       public:
         ~InterpolatedCurve() = default;
+        const Interpolation getInterpolation() const { return interpolation_; }
+       
+    friend class SpreadedInterpolation;
 
       protected:
         //! \name Building

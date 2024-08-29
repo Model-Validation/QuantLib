@@ -38,7 +38,7 @@ namespace QuantLib {
     /*! \ingroup yieldtermstructures */
     template <class Interpolator>
     class InterpolatedForwardCurve : public ForwardRateStructure,
-                                     protected InterpolatedCurve<Interpolator> {
+                                     public InterpolatedCurve<Interpolator> {
       public:
         // constructor
         InterpolatedForwardCurve(

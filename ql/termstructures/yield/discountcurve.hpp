@@ -40,7 +40,7 @@ namespace QuantLib {
     template <class Interpolator>
     class InterpolatedDiscountCurve
         : public YieldTermStructure,
-          protected InterpolatedCurve<Interpolator> {
+          public InterpolatedCurve<Interpolator> {
       public:
         InterpolatedDiscountCurve(
             const std::vector<Date>& dates,

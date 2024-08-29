@@ -65,6 +65,7 @@ namespace QuantLib {
                                    bool extrapolate) const {
         QL_REQUIRE(t >= 0.0,
                    "negative time (" << t << ") given");
+
         QL_REQUIRE(extrapolate || allowsExtrapolation()
                    || t <= maxTime() || close_enough(t, maxTime()),
                    "time (" << t << ") is past max curve time ("

@@ -18,8 +18,9 @@
 #include <ql/math/interpolations/lagrangeinterpolation.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/loginterpolation.hpp>
+#include <ql/math/interpolations/ratetimeinterpolation.hpp>
 #include <ql/math/interpolations/mixedinterpolation.hpp>
 #include <ql/math/interpolations/multicubicspline.hpp>
 #include <ql/math/interpolations/sabrinterpolation.hpp>
+#include <ql/math/interpolations/spreadedinterpolation.hpp>
 #include <ql/math/interpolations/xabrinterpolation.hpp>
-
