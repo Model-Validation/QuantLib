@@ -30,6 +30,7 @@
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/comparison.hpp>
 #include <utility>
+#include <cmath>
 
 namespace QuantLib {
 
@@ -47,6 +48,7 @@ namespace QuantLib {
                                        Frequency frequency,
                                        std::vector<Date> dates,
                                        const std::vector<Rate>& rates,
+                                       bool discountRates = false,
                                        const Interpolator& interpolator = Interpolator());
 
         //! \name InflationTermStructure interface
@@ -63,6 +65,9 @@ namespace QuantLib {
         const std::vector<Rate>& rates() const;
         std::vector<std::pair<Date,Rate> > nodes() const;
         //@}
+
+      private:
+        bool discountRates_;
 
       protected:
         //! \name ZeroInflationTermStructure Interface
@@ -81,6 +86,7 @@ namespace QuantLib {
                                        const Period& lag,
                                        Frequency frequency,
                                        Rate baseZeroRate,
+                                       bool discountRates = false,
                                        const Interpolator &interpolator = Interpolator());
     };
 
@@ -99,10 +105,11 @@ namespace QuantLib {
         Frequency frequency,
         std::vector<Date> dates,
         const std::vector<Rate>& rates,
+        bool discountRates,
         const Interpolator& interpolator)
     : ZeroInflationTermStructure(referenceDate, calendar, dayCounter, rates[0], lag, frequency),
       InterpolatedCurve<Interpolator>(std::vector<Time>(), rates, interpolator),
-      dates_(std::move(dates)) {
+      discountRates_(discountRates), dates_(std::move(dates)) {
 
         QL_REQUIRE(dates_.size() > 1, "too few dates: " << dates_.size());
 
@@ -122,8 +129,15 @@ namespace QuantLib {
             // must be greater than -1
             QL_REQUIRE(this->data_[i] > -1.0, "zero inflation data < -100 %");
         }
-
         this->setupTimes(dates_, referenceDate, dayCounter);
+        // convert to df if discountRates
+        std::vector<Rate> dfs;
+        if (discountRates_) {
+            for (Size i = 0; i < dates_.size(); i++) {
+                dfs.push_back(pow(1 + rates[i], times_[i]));
+            }
+            this->data_ = dfs;
+        }
         this->setupInterpolation();
         this->interpolation_.update();
     }
@@ -136,10 +150,11 @@ namespace QuantLib {
                                    const Period& lag,
                                    Frequency frequency,
                                    Rate baseZeroRate,
+                                   bool discountRates,
                                    const Interpolator& interpolator)
     :  ZeroInflationTermStructure(referenceDate, calendar, dayCounter,
                                   baseZeroRate, lag, frequency),
-       InterpolatedCurve<Interpolator>(interpolator) {
+       InterpolatedCurve<Interpolator>(interpolator), discountRates_(discountRates) {
     }
 
     template <class T>
@@ -154,7 +169,7 @@ namespace QuantLib {
 
     template <class T>
     inline Rate InterpolatedZeroInflationCurve<T>::zeroRateImpl(Time t) const {
-        return this->interpolation_(t, true);
+        return discountRates_ ? exp(log(this->interpolation_(t, true)) / t) - 1 : this->interpolation_(t, true);
     }
 
     template <class T>

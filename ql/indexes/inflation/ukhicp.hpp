@@ -35,6 +35,18 @@ namespace QuantLib {
         explicit UKHICP(const Handle<ZeroInflationTermStructure>& ts = {})
         : ZeroInflationIndex(
               "HICP", UKRegion(), false, Monthly, Period(1, Months), GBPCurrency(), ts) {}
+
+        
+        /*! \deprecated Use the constructor without the "interpolated" parameter.
+            Deprecated in version 1.29.
+        */
+        QL_DEPRECATED
+        explicit UKHICP(bool interpolated, const Handle<ZeroInflationTermStructure>& ts = {})
+        : UKHICP(ts) {
+            QL_DEPRECATED_DISABLE_WARNING
+            interpolated_ = interpolated;
+            QL_DEPRECATED_ENABLE_WARNING
+        }
     };
 }
 
