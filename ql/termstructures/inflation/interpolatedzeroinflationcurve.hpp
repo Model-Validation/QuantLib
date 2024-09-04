@@ -134,7 +134,7 @@ namespace QuantLib {
         std::vector<Rate> dfs;
         if (discountRates_) {
             for (Size i = 0; i < dates_.size(); i++) {
-                dfs.push_back(pow(1 + rates[i], times_[i]));
+                dfs.push_back(pow(1 + rates[i], -times_[i]));
             }
             this->data_ = dfs;
         }
@@ -169,7 +169,7 @@ namespace QuantLib {
 
     template <class T>
     inline Rate InterpolatedZeroInflationCurve<T>::zeroRateImpl(Time t) const {
-        return discountRates_ ? exp(log(this->interpolation_(t, true)) / t) - 1 : this->interpolation_(t, true);
+        return discountRates_ ? pow(this->interpolation_(t, true), -1/t) - 1 : this->interpolation_(t, true);
     }
 
     template <class T>
