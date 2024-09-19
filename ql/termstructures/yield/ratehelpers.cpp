@@ -1028,12 +1028,15 @@ namespace QuantLib {
     void FxSwapRateHelper::initializeDates() {
         // if the evaluation date is not a business day
         // then move to the next business day
-        Date refDate = cal_.adjust(evaluationDate_);
-        earliestDate_ = cal_.advance(refDate, fixingDays_*Days);
+        Date refDate = evaluationDate_; // cal_.adjust(evaluationDate_
+        earliestDate_ = fixingDays_ != 0 ? cal_.advance(refDate, fixingDays_ * Days) : refDate;
 
         if (!tradingCalendar_.empty()) {
             // check if fx trade can be settled in US, if not, adjust it
-            earliestDate_ = jointCalendar_.adjust(earliestDate_);
+
+            earliestDate_ = tradingCalendar_.isHoliday(earliestDate_) ?
+                                jointCalendar_.adjust(earliestDate_) :
+                                earliestDate_;
             latestDate_ = jointCalendar_.advance(earliestDate_, tenor_,
                                                  conv_, eom_);
         } else {
