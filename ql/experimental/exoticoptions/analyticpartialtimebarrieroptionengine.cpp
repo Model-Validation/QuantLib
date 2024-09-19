@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2014 Master IMAFA - Polytech'Nice Sophia - Université de Nice Sophia Antipolis
+ Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -21,6 +22,7 @@
 #include <ql/experimental/exoticoptions/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/math/distributions/bivariatenormaldistribution.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/quotes/simplequote.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -40,6 +42,15 @@ namespace QuantLib {
 
         Real spot = process_->x0();
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
+
+        results_.additionalResults["residualTime"] = residualTime();
+        results_.additionalResults["coverEventTime"] = coverEventTime();
+        results_.additionalResults["volatility(t1)"] = volatility(coverEventTime());
+        results_.additionalResults["volatility(T2)"] = volatility(residualTime());
+        results_.additionalResults["barrier"] = barrier();
+        results_.additionalResults["strike"] = strike();
+        results_.additionalResults["riskFreeRate"] = riskFreeRate();
+        results_.additionalResults["dividendYield"] = dividendYield();
 
         PartialBarrier::Type barrierType = arguments_.barrierType;
         PartialBarrier::Range barrierRange = arguments_.barrierRange;
@@ -69,8 +80,12 @@ namespace QuantLib {
                   case PartialBarrier::Start:
                     results_.value = CIA(1);
                     break;
-                  case PartialBarrier::End:
-                    QL_FAIL("Down-and-in partial-time end barrier is not implemented");
+                  case PartialBarrier::EndB1:
+                    results_.value = underlyingOption()->NPV() - CoB1();
+                    break;
+                  case PartialBarrier::EndB2:
+                    results_.value = underlyingOption()->NPV() - CoB2(PartialBarrier::DownOut);
+                    break;
                   default:
                     QL_FAIL("invalid barrier range");
                 }
@@ -97,8 +112,12 @@ namespace QuantLib {
                   case PartialBarrier::Start:
                     results_.value = CIA(-1);
                     break;
-                  case PartialBarrier::End:
-                    QL_FAIL("Up-and-in partial-time end barrier is not implemented");
+                  case PartialBarrier::EndB1:
+                    results_.value = underlyingOption()->NPV() - CoB1();
+                    break;
+                  case PartialBarrier::EndB2:
+                    results_.value = underlyingOption()->NPV() - CoB2(PartialBarrier::UpOut);
+                    break;
                   default:
                     QL_FAIL("invalid barrier range");
                 }
@@ -108,9 +127,66 @@ namespace QuantLib {
             }
             break;
 
-          case Option::Put:
-            QL_FAIL("Partial-time barrier Put option is not implemented");
+          case Option::Put: {
+            /*
+            We use two approaches here to properly value put options. 
+            Specifically, out-style options are directly transformed into call options, 
+            while in-style options are valued as a vanilla put minus a corresponding out-style option.
+            */
+            ext::shared_ptr<EuropeanExercise> exercise =
+                ext::dynamic_pointer_cast<EuropeanExercise>(arguments_.exercise);
 
+            // For the put-call tranformation, we invert the barrier
+            // direction. Up becomes down, down becomes up
+            if (barrierType == PartialBarrier::DownIn || barrierType == PartialBarrier::UpIn) {
+              auto vanillaPutOption = underlyingOption();
+              PartialBarrier::Type barrierTypePut =
+                  (barrierType == PartialBarrier::DownIn ? PartialBarrier::DownOut :
+                                                            PartialBarrier::UpOut);
+              ext::shared_ptr<PlainVanillaPayoff> payoffPut=
+                  ext::make_shared<PlainVanillaPayoff>(Option::Put, strike());
+
+              PartialTimeBarrierOption ptBarrierPutOut(
+                  barrierTypePut, barrierRange, barrier(), rebate(),
+                  arguments_.coverEventDate, payoffPut, exercise);
+              ptBarrierPutOut.setPricingEngine(
+                  ext::make_shared<AnalyticPartialTimeBarrierOptionEngine>(process_));
+
+              results_.value = vanillaPutOption->NPV() - ptBarrierPutOut.NPV();
+              for (auto res : ptBarrierPutOut.additionalResults()) {
+                results_.additionalResults["PUT_" + res.first] = res.second;
+              }
+            } else if (barrierType == PartialBarrier::DownOut ||
+                       barrierType == PartialBarrier::UpOut) {
+              PartialBarrier::Type barrierTypeCall =
+                  (barrierType == PartialBarrier::DownOut ? PartialBarrier::UpOut :
+                                                            PartialBarrier::DownOut);
+              ext::shared_ptr<PlainVanillaPayoff> payoffCall =
+                  ext::make_shared<PlainVanillaPayoff>(Option::Call, underlying());
+
+              PartialTimeBarrierOption ptBarrierCall(
+                  barrierTypeCall, barrierRange, underlying() * strike() / barrier(), rebate(),
+                  arguments_.coverEventDate, payoffCall, exercise);
+
+              Handle<Quote> strikeAsSpot = Handle<Quote>(ext::make_shared<SimpleQuote>(strike()));
+              // New process with flipped rfr/div term structures
+              ext::shared_ptr<GeneralizedBlackScholesProcess> gbsp =
+                  ext::make_shared<GeneralizedBlackScholesProcess>(
+                      strikeAsSpot, process_->riskFreeRate(), process_->dividendYield(),
+                      process_->blackVolatility());
+              ptBarrierCall.setPricingEngine(
+                  ext::make_shared<AnalyticPartialTimeBarrierOptionEngine>(gbsp));
+
+              results_.value = ptBarrierCall.NPV();
+              for (auto res : ptBarrierCall.additionalResults()) {
+                results_.additionalResults["CALL_" + res.first] = res.second;
+              }
+            } else {
+              QL_FAIL("unknown barrier type");
+            }
+
+            break;
+          }
           default:
             QL_FAIL("unknown option type");
         }
@@ -140,7 +216,14 @@ namespace QuantLib {
                 QL_FAIL("invalid barrier type");
             }
         } else {
-            QL_FAIL("case of strike>barrier is not implemented for OutEnd B2 type");
+            switch (barrierType) {
+              case PartialBarrier::DownOut:
+                return CoB1();
+              case PartialBarrier::UpOut:
+                return 0.0;
+              default:
+                QL_FAIL("invalid barrier type");
+            }
         }
     }
 
@@ -171,18 +254,7 @@ namespace QuantLib {
     // eta = -1: Up-and-In Call
     // eta =  1: Down-and-In Call
     Real AnalyticPartialTimeBarrierOptionEngine::CIA(Integer eta) const {
-        ext::shared_ptr<EuropeanExercise> exercise =
-            ext::dynamic_pointer_cast<EuropeanExercise>(arguments_.exercise);
-
-        ext::shared_ptr<PlainVanillaPayoff> payoff =
-            ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments_.payoff);
-
-        VanillaOption europeanOption(payoff, exercise);
-
-        europeanOption.setPricingEngine(
-                        ext::make_shared<AnalyticEuropeanEngine>(process_));
-
-        return europeanOption.NPV() - CA(eta);
+        return underlyingOption()->NPV() - CA(eta);
     }
 
     Real AnalyticPartialTimeBarrierOptionEngine::CA(Integer eta) const {
@@ -341,6 +413,21 @@ namespace QuantLib {
     Real AnalyticPartialTimeBarrierOptionEngine::HS(Real S, Real H, Real power) const {
         return std::pow((H/S),power);
     }
+
+    const ext::shared_ptr<VanillaOption>
+    AnalyticPartialTimeBarrierOptionEngine::underlyingOption() const {
+        ext::shared_ptr<EuropeanExercise> exercise =
+            ext::dynamic_pointer_cast<EuropeanExercise>(arguments_.exercise);
+
+        ext::shared_ptr<PlainVanillaPayoff> payoff =
+            ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments_.payoff);
+
+        ext::shared_ptr<VanillaOption> europeanOption= ext::make_shared<VanillaOption>(payoff, exercise);
+
+        europeanOption->setPricingEngine(ext::make_shared<AnalyticEuropeanEngine>(process_));
+        return europeanOption;
+    }
+
 
 }
 

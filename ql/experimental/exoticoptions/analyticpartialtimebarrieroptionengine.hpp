@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2014 Master IMAFA - Polytech'Nice Sophia - Université de Nice Sophia Antipolis
+ Copyright (C) 2023 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -25,10 +26,25 @@
 #define quantlib_analytic_partial_time_barrier_option_engine_hpp
 
 #include <ql/experimental/exoticoptions/partialtimebarrieroption.hpp>
+#include <ql/instruments/vanillaoption.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 
 namespace QuantLib {
 
+    //! Partial-time barrier option engine
+    /*!
+        Pricing engine for partial-time single-asset barrier options.
+        Covers various forms of partial-time-start (type A) and -end (type B1 and B2) barriers.
+
+        Reference: Espen G. Haug, The Complete Guide to Option Pricing Formulas,
+        McGraw Hill, section 4.17.4
+
+        \ingroup barrierengines
+
+        \todo
+        - Extend covered barrier types
+        - Add to test coverage for types other than EndB1
+    */
     class AnalyticPartialTimeBarrierOptionEngine
         : public PartialTimeBarrierOption::engine {
       public:
@@ -45,11 +61,11 @@ namespace QuantLib {
         Volatility volatility(Time t) const;
         Real barrier() const;
         Real rebate() const;
-        Real stdDeviation() const;
+        Real stdDeviation() const; // This is never used
         Rate riskFreeRate() const;
-        DiscountFactor riskFreeDiscount() const;
+        DiscountFactor riskFreeDiscount() const; // This is never used
         Rate dividendYield() const;
-        DiscountFactor dividendDiscount() const;
+        DiscountFactor dividendDiscount() const; // This is never used
         Real M(Real a,Real b,Real rho) const;
         Real d1()const;
         Real d2()const;
@@ -70,6 +86,8 @@ namespace QuantLib {
         Real g3()const;
         Real g4()const;
         Real HS(Real S, Real H, Real power)const;
+
+        const ext::shared_ptr<VanillaOption> underlyingOption() const;
     };
 
 }

@@ -33,7 +33,7 @@ namespace QuantLib {
     class GeneralizedBlackScholesProcess;
 
     struct PartialBarrier : public Barrier {
-        enum Range { Start, End, EndB1, EndB2 };
+        enum Range { Start, EndB1, EndB2 };
     };
 
     class PartialTimeBarrierOption : public OneAssetOption {
