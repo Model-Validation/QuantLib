@@ -49,6 +49,15 @@ void TurnbullWakemanAsianEngine::calculate() const {
     results_.additionalResults["strike"] = payoff->strike();
     results_.additionalResults["effective_strike"] = effectiveStrike;
 
+    // If there are no remaining fixings, evaluate payoff in terms of a forward until expiry
+    if (futureFixings == 0) {
+        Real sign = payoff->optionType() == Option::Type::Call ? 1.0 : -1.0;
+        results_.value = std::max(sign * (accruedAverage - payoff->strike()), 0.0) * discount;
+        results_.delta = 0;
+        results_.gamma = 0;
+        return;
+    }
+
     // If the effective strike is negative, exercise resp. permanent OTM is guaranteed and the
     // valuation is made easy
     Size m = futureFixings + pastFixings;
