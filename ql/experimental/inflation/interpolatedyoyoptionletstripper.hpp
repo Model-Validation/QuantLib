@@ -41,33 +41,13 @@ namespace QuantLib {
     \bug Tests currently fail.
 */
 
-class YoYOptionletStripperBaseSolver {
+class YoYOptionletBaseSolver {
 public:
-    virtual ~YoYOptionletStripperBaseSolver() {}
+    virtual ~YoYOptionletBaseSolver() {}
     virtual Real solveForImpliedVol(YoYInflationCapFloor::Type type, Real slope, Rate K, Period& lag,
                                     Natural fixingDays, const ext::shared_ptr<YoYInflationIndex>& anIndex,
                                     const ext::shared_ptr<YoYCapFloorTermPriceSurface>&,
-                                    ext::shared_ptr<YoYInflationCapFloorEngine> p, Real priceToMatch) const = 0;
-};
-
-class YoYOptionletStripperSolver : public YoYOptionletStripperBaseSolver {
-public:
-    YoYOptionletStripperSolver() {} ;
-    Real solveForImpliedVol(YoYInflationCapFloor::Type type, Real slope, Rate K, Period& lag, Natural fixingDays,
-                            const ext::shared_ptr<YoYInflationIndex>& anIndex,
-                            const ext::shared_ptr<YoYCapFloorTermPriceSurface>& surface,
-                            ext::shared_ptr<YoYInflationCapFloorEngine> p, Real priceToMatch) const override {
-        Brent solver;
-        Real solverTolerance_ = 1e-7;
-        // these are VOLATILITY guesses (always +)
-        Real lo = 0.00001, hi = 0.08;
-        Real guess = (hi + lo) / 2.0;
-        Real found;
-        found = solver.solve(ObjectiveFunction(type, slope, K, lag, fixingDays, anIndex, surface, p, priceToMatch),
-                             solverTolerance_, guess, lo, hi);
-        return found;
-    }
-
+                                    ext::shared_ptr<YoYInflationCapFloorEngine> p, Real priceToMatch) const = 0;      
 protected:
     class ObjectiveFunction {
     public:
@@ -96,7 +76,7 @@ protected:
 
             capfloor_->setPricingEngine(p_);
         }
-        Real operator()(Volatility guess) const{
+        Real operator()(Volatility guess) const {
             vvec_[1] = guess;
             vvec_[0] = guess - slope_ * (tvec_[1] - tvec_[0]) * guess;
             // could have Interpolator1D instead of Linear
@@ -127,13 +107,32 @@ protected:
     };
 };
 
+class YoYOptionletSolver : public YoYOptionletBaseSolver {
+public:
+    YoYOptionletSolver() {} ;
+    Real solveForImpliedVol(YoYInflationCapFloor::Type type, Real slope, Rate K, Period& lag, Natural fixingDays,
+                            const ext::shared_ptr<YoYInflationIndex>& anIndex,
+                            const ext::shared_ptr<YoYCapFloorTermPriceSurface>& surface,
+                            ext::shared_ptr<YoYInflationCapFloorEngine> p, Real priceToMatch) const override {
+        Brent solver;
+        Real solverTolerance_ = 1e-7;
+        // these are VOLATILITY guesses (always +)
+        Real lo = 0.00001, hi = 0.08;
+        Real guess = (hi + lo) / 2.0;
+        Real found;
+        found = solver.solve(ObjectiveFunction(type, slope, K, lag, fixingDays, anIndex, surface, p, priceToMatch),
+                             solverTolerance_, guess, lo, hi);
+        return found;
+    }
+};
+
 template <class Interpolator1D, template <class> class Bootstrap = QuantLib::IterativeBootstrap>
 class InterpolatedYoYOptionletStripper : public YoYOptionletStripper {
 public:
     typedef typename PiecewiseYoYOptionletVolatilityCurve<Interpolator1D, Bootstrap>::this_curve optionlet_curve;
 
-    InterpolatedYoYOptionletStripper(std::unique_ptr<YoYOptionletStripperBaseSolver> firstCapSolver =
-                                         std::make_unique<YoYOptionletStripperSolver>(),
+    InterpolatedYoYOptionletStripper(std::unique_ptr<YoYOptionletBaseSolver> firstCapSolver =
+                                         std::make_unique<YoYOptionletSolver>(),
                                      const Bootstrap<optionlet_curve>& bootstrap = Bootstrap<optionlet_curve>())
         : firstCapSolver_(std::move(firstCapSolver)), bootstrap_(bootstrap){
     };
@@ -149,7 +148,7 @@ public:
 
 protected:
     mutable std::vector<ext::shared_ptr<YoYOptionletVolatilitySurface>> volCurves_;
-    std::unique_ptr<YoYOptionletStripperBaseSolver> firstCapSolver_;
+    std::unique_ptr<YoYOptionletBaseSolver> firstCapSolver_;
     Bootstrap<optionlet_curve> bootstrap_;
     // used to set up the first point on each vol curve
     // using assumptions on unobserved vols at start
