@@ -234,7 +234,7 @@ void InterpolatedYoYOptionletStripper<Interpolator1D, Bootstrap>::initialize(
         Rate minStrike = K - eps;
         Rate maxStrike = K + eps;
 
-        auto testPW = ext::make_shared<PiecewiseYoYOptionletVolatilityCurve<Interpolator1D>>(
+        auto testPW = ext::make_shared<PiecewiseYoYOptionletVolatilityCurve<Interpolator1D, Bootstrap>>(
                                              settlementDays, cal, bdc, dc, lag_, frequency_, indexIsInterpolated_,
                                              minStrike, maxStrike, baseYoYVolatility, helperInstruments, 1.0e-12,
                                              Interpolator1D(), bootstrap_);
