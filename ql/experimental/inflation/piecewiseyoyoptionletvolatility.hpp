@@ -109,13 +109,13 @@ namespace QuantLib {
     class PiecewiseYoYOptionletVolatilityCurve
         : public InterpolatedYoYOptionletVolatilityCurve<Interpolator>,
           public LazyObject {
-      private:
+    public:
         typedef InterpolatedYoYOptionletVolatilityCurve<Interpolator>
                                                                    base_curve;
         typedef PiecewiseYoYOptionletVolatilityCurve<Interpolator,
                                                      Bootstrap,
                                                      Traits> this_curve;
-      public:
+      
         typedef Traits traits_type;
         typedef Interpolator interpolator_type;
 
@@ -132,7 +132,8 @@ namespace QuantLib {
             Volatility baseYoYVolatility,
             std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
             Real accuracy = 1.0e-12,
-            const Interpolator& interpolator = Interpolator())
+            const Interpolator& interpolator = Interpolator(),
+            const Bootstrap<this_curve>& bootstrap = Bootstrap<this_curve>())
         : base_curve(settlementDays,
                      cal,
                      bdc,
@@ -144,7 +145,7 @@ namespace QuantLib {
                      maxStrike,
                      baseYoYVolatility,
                      interpolator),
-          instruments_(std::move(instruments)), accuracy_(accuracy) {
+          instruments_(std::move(instruments)), accuracy_(accuracy), bootstrap_(bootstrap) {
             bootstrap_.setup(this);
         }
 
@@ -170,7 +171,6 @@ namespace QuantLib {
         // data members
         std::vector<ext::shared_ptr<typename Traits::helper> > instruments_;
         Real accuracy_;
-
         friend class Bootstrap<this_curve>;
         friend class BootstrapError<this_curve>;
         Bootstrap<this_curve> bootstrap_;
