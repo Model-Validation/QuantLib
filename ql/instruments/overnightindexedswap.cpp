@@ -144,7 +144,7 @@ namespace QuantLib {
                                                bool applyObservationShift)
     : FixedVsFloatingSwap(type, std::move(fixedNominals), std::move(fixedSchedule), fixedRate, std::move(fixedDC),
                           overnightNominals, std::move(overnightSchedule), overnightIndex,
-                          spread, DayCounter(), ext::nullopt, paymentLag, paymentCalendar),
+                          spread, DayCounter(), paymentAdjustment, paymentLag, paymentCalendar),
                           overnightIndex_(overnightIndex), averagingMethod_(averagingMethod),
                           lookbackDays_(lookbackDays), lockoutDays_(lockoutDays),
                           applyObservationShift_(applyObservationShift) {
