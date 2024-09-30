@@ -163,7 +163,7 @@ namespace QuantLib {
         if (settlementDays_ == Null<Size>()) {
             startDate = index_->valueDate(index_->fixingCalendar().adjust(exerciseDate));
         } else {
-            if (auto libor = boost::dynamic_pointer_cast<Libor>(index_)) {
+            if (auto libor = ext::dynamic_pointer_cast<Libor>(index_)) {
                 startDate = libor->jointCalendar().advance(exerciseDate, settlementDays_, Days,
                                                            index_->businessDayConvention());
             } else {
@@ -176,7 +176,7 @@ namespace QuantLib {
         if (endDate == Null<Date>())
             endDate = calendar.advance(startDate, length_,
                                        index_->businessDayConvention());
-        auto onIndex = boost::dynamic_pointer_cast<OvernightIndex>(index_);
+        auto onIndex = ext::dynamic_pointer_cast<OvernightIndex>(index_);
         Schedule fixedSchedule(startDate, endDate, fixedLegTenor_, calendar,
                                index_->businessDayConvention(), index_->businessDayConvention(),
                                DateGeneration::Forward, false);

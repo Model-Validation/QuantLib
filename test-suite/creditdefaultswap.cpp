@@ -678,11 +678,11 @@ BOOST_AUTO_TEST_CASE(testIsdaEngine) {
 
                 ext::shared_ptr<CreditDefaultSwap> quotedTrade =
                     MakeCreditDefaultSwap(termDate, spread).withNominal(10000000.);
-                quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
-                    Handle<DefaultProbabilityTermStructure>(boost::make_shared<FlatHazardRate>(
+                quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
+                    Handle<DefaultProbabilityTermStructure>(ext::make_shared<FlatHazardRate>(
                         0, NullCalendar(), 0.0, Actual365Fixed())),
                     0.0,
-                    Handle<YieldTermStructure>(boost::make_shared<FlatForward>(
+                    Handle<YieldTermStructure>(ext::make_shared<FlatForward>(
                         0, NullCalendar(), 0.0, Actual365Fixed()))));
 
                 Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
@@ -760,12 +760,12 @@ BOOST_AUTO_TEST_CASE(testAccrualRebateAmounts) {
         Settings::instance().evaluationDate() = input.first;
         CreditDefaultSwap cds = MakeCreditDefaultSwap(maturity, spread)
             .withNominal(notional);
-        cds.setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+        cds.setPricingEngine(ext::make_shared<MidPointCdsEngine>(
             Handle<DefaultProbabilityTermStructure>(
-                boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+                ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
             0.0,
             Handle<YieldTermStructure>(
-                boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+                ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
         BOOST_TEST_MESSAGE("asof " << io::iso_date(input.first)
                            << " expected " << std::fixed << std::setprecision(4) << input.second
                            << " calculated " << cds.accrualRebate()->amount());
@@ -835,12 +835,12 @@ BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleQuote) {
 
     ext::shared_ptr<CreditDefaultSwap> quotedTrade =
         MakeCreditDefaultSwap(instrumentMaturity, conventionalSpread).withNominal(nominal);
-    quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+    quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
         Handle<DefaultProbabilityTermStructure>(
-            boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+            ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
         0.0,
         Handle<YieldTermStructure>(
-            boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+            ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
 
     Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
                                             recovery, 1e-10, CreditDefaultSwap::ISDA);
@@ -952,12 +952,12 @@ BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleWithIssueDateInThePast) {
     ext::shared_ptr<CreditDefaultSwap> quotedTrade =
         MakeCreditDefaultSwap(instrumentMaturity, conventionalSpread)
         .withNominal(nominal);
-    quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+    quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
         Handle<DefaultProbabilityTermStructure>(
-            boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+            ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
         0.0,
         Handle<YieldTermStructure>(
-            boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+            ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
 
     Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
                                             recovery, 1e-10, CreditDefaultSwap::ISDA);
