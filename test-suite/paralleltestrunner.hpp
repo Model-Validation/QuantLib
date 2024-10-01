@@ -25,10 +25,7 @@
      of worker processes will be equal to the number of CPU cores.
  */
 
-
-#ifndef quantlib_parallel_test_runner_hpp
-#define quantlib_parallel_test_runner_hpp
-
+#pragma once
 
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
