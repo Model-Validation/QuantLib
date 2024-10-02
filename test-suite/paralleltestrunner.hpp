@@ -25,7 +25,10 @@
      of worker processes will be equal to the number of CPU cores.
  */
 
-#pragma once
+
+#ifndef quantlib_parallel_test_runner_hpp
+#define quantlib_parallel_test_runner_hpp
+
 
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
@@ -56,9 +59,12 @@
 #include <thread>
 #include <utility>
 
-#ifndef BOOST_TEST_MODULE
-#    define BOOST_TEST_MODULE "TestSuite"
+
+#ifndef BOOST_TEST_MODULE_NAME
+    #define BOOST_TEST_MODULE_NAME "TestSuite"
 #endif
+
+
 using boost::unit_test::test_results;
 using namespace boost::interprocess;
 using namespace boost::unit_test_framework;
@@ -133,7 +139,7 @@ test_suite* init_unit_test_suite(int, char*[]);
 int main(int argc, char* argv[]) {
     typedef QuantLib::Time Time;
 
-    std::string moduleName = BOOST_TEST_MODULE;
+    std::string moduleName = BOOST_TEST_MODULE_NAME;
     std::string profileFileNameStr = moduleName + "_unit_test_profile.txt";
     const char* const profileFileName = profileFileNameStr.c_str();
     std::string testUnitIdQueueNameStr = moduleName + "_test_unit_queue";
@@ -314,7 +320,7 @@ int main(int argc, char* argv[]) {
             seconds -= hours * 3600;
             int minutes = int(seconds / 60);
             seconds -= minutes * 60;
-            std::cout << std::endl << BOOST_TEST_MODULE << " tests completed in ";
+            std::cout << std::endl << BOOST_TEST_MODULE_NAME << " tests completed in ";
             if (hours > 0)
                 std::cout << hours << " h ";
             if (hours > 0 || minutes > 0)
@@ -453,3 +459,4 @@ int main(int argc, char* argv[]) {
                boost::exit_success :
                results_collector.results(framework::master_test_suite().p_id).result_code();
 }
+#endif
