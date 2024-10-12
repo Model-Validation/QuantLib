@@ -26,6 +26,7 @@
 #define quantlib_version_hpp
 
 #include <ql/qldefines.hpp>
+#include <string>
 
 /*! \addtogroup macros */
 /*! @{ */
@@ -45,6 +46,8 @@ namespace QuantLib {
         Using QuantLib header files compiled with a different version of boost
         than the library itself may result in undefined behaviour */
     std::size_t compiledBoostVersion();
+    /* Used in SWIG and exposed to e.g. python */
+    std::string quantlibBuildInfo();
 
 }
 
