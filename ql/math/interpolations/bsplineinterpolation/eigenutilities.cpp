@@ -40,12 +40,14 @@ namespace EigenUtilities {
 
     std::vector<Eigen::Triplet<double>>
     convertToTriplets(const Eigen::SparseMatrix<double>& matrix) {
-        std::vector<Eigen::Triplet<double>> triplets(matrix.nonZeros());
+        std::vector<Eigen::Triplet<double>> triplets(matrix.nonZeros()); // Preallocate space
+
+        Size index = 0; // Keep track of the current index
 
         for (int k = 0; k < matrix.outerSize(); ++k) {
             for (Eigen::SparseMatrix<double>::InnerIterator it(matrix, k); it; ++it) {
-                triplets.emplace_back(static_cast<Size>(it.row()),
-                                      static_cast<Size>(it.col()), it.value());
+                triplets[index++] = Eigen::Triplet<double>(static_cast<Size>(it.row()),
+                                                           static_cast<Size>(it.col()), it.value());
             }
         }
         return triplets;

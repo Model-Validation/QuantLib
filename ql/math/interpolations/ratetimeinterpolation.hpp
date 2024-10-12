@@ -31,6 +31,7 @@
 #include <ql/math/interpolations/cubicinterpolation.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/mixedinterpolation.hpp>
+#include <ql/math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp>
 #include <vector>
 
 namespace QuantLib {
@@ -68,6 +69,48 @@ namespace QuantLib {
         }
         static const bool global = false;
         static const Size requiredPoints = 2;
+    };
+
+    //! %ratetime-linear interpolation between discrete points
+    /*! \ingroup interpolations
+        \warning See the Interpolation class for information about the
+                 required lifetime of the underlying data.
+    */
+    class RateTimeBSplineInterpolation : public Interpolation {
+      public:
+        /*! \pre the \f$ x \f$ values must be sorted. */
+        template <class I1, class I2>
+        RateTimeBSplineInterpolation(const I1& xBegin,
+                                     const I1& xEnd,
+                                     const I2& yBegin,
+                                     ext::shared_ptr<BSplineSegment> splineSegment) {
+            impl_ = ext::shared_ptr<Interpolation::Impl>(
+                new detail::RateTimeInterpolationImpl<I1, I2, BSplineModel>(xBegin, xEnd, yBegin, BSplineModel(splineSegment)));
+            impl_->update();
+        }
+    };
+
+    class RateTimeBSpline {
+    public:
+        RateTimeBSpline(ext::shared_ptr<BSplineSegment>& splineStructure):
+            splineStructure_(splineStructure) {};
+
+        template <class I1, class I2>
+        Interpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+            return RateTimeBSplineInterpolation(xBegin, xEnd,
+                                                yBegin, splineStructure_);
+        }
+        static const bool global = false;
+        static const Size requiredPoints = 2;
+
+        // Getter functions for the start and end points of splineSegment_
+        double getStartPoint() const {
+            return splineStructure_->range().first;
+        }
+        double getEndPoint() const { return splineStructure_->range().second; }
+
+    private:
+        ext::shared_ptr<BSplineSegment> splineStructure_;
     };
 
     //! %ratetime-cubic interpolation between discrete points
@@ -431,13 +474,16 @@ namespace QuantLib {
           rightType_(rightCondition), leftValue_(leftConditionValue),
           rightValue_(rightConditionValue) {}
         template <class I1, class I2>
-        Interpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+        MixedRateTimeLinearCubicInterpolation
+        interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
             return MixedRateTimeLinearCubicInterpolation(xBegin, xEnd, yBegin, n_, behavior_, da_,
                                                          monotonic_, leftType_, leftValue_,
                                                          rightType_, rightValue_);
         }
         // fix below
+        // ReSharper disable once CppVariableCanBeMadeConstexpr
         static const bool global = true;
+        // ReSharper disable once CppVariableCanBeMadeConstexpr
         static const Size requiredPoints = 3;
 
       private:
@@ -458,6 +504,51 @@ namespace QuantLib {
                         false) {}
     };
 
+    ///*! \ingroup interpolations
+    //    \warning See the Interpolation class for information about the
+    //             required lifetime of the underlying data.
+    //*/
+    //class MixedRateTimeBSplineBSplineInterpolation : public Interpolation {
+    //  public:
+    //    /*! \pre the \f$ x \f$ values must be sorted. */
+    //    template <class I1, class I2>
+    //    MixedRateTimeBSplineBSplineInterpolation(const I1& xBegin,
+    //                                          const I1& xEnd,
+    //                                          const I2& yBegin,
+    //                                          ext::shared_ptr<BSplineSegment>& splineSegment1,
+    //                                          ext::shared_ptr<BSplineSegment>& splineSegment2
+    //    ) {
+    //        impl_ = ext::shared_ptr<Interpolation::Impl>(
+    //            new detail::MixedBSplineInterpolationImpl<I1, I2, RateTimeBSpline, BSplineModel>(
+    //                xBegin, xEnd, yBegin, RateTimeBSpline(splineSegment1), BSplineModel(splineSegment2)
+    //            )
+    //        );
+    //        impl_->update();
+    //    }
+    //};
+
+    ////! mixed rate time bspline and bspline interpolation factory and traits
+    ///*! \ingroup interpolations */
+
+    //class MixedRateTimeBSplineBSpline {
+    //  public:
+    //    MixedRateTimeBSplineBSpline(ext::shared_ptr<BSplineSegment>& splineSegment1,
+    //                                ext::shared_ptr<BSplineSegment>& splineSegment2)
+    //    : splineSegment1_(splineSegment1), splineSegment2_(splineSegment2) {}
+
+    //    template <class I1, class I2>
+    //    Interpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+    //        return MixedRateTimeBSplineBSplineInterpolation(xBegin, xEnd, yBegin, splineSegment1_, splineSegment2_);
+    //    }
+    //    // fix below
+    //    static const bool global = true;
+    //    static const Size requiredPoints = 2;
+
+    //  private:
+    //    ext::shared_ptr<BSplineSegment>& splineSegment1_;
+    //    ext::shared_ptr<BSplineSegment>& splineSegment2_;
+    //};
+
     // convenience classes
 
     namespace detail {
@@ -471,7 +562,7 @@ namespace QuantLib {
                                       const Interpolator& factory = Interpolator())
             : Interpolation::templateImpl<I1, I2>(
                   xBegin, xEnd, yBegin, Interpolator::requiredPoints),
-              ratetimeY_(xEnd - xBegin) {
+              ratetimeY_(std::distance(xBegin, xEnd)) {
                 interpolation_ =
                     factory.interpolate(this->xBegin_, this->xEnd_, ratetimeY_.begin());
             }

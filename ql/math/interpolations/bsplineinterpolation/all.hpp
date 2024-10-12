@@ -5,4 +5,4 @@
 #include <ql/math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/eigenutilities.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/splineconstraints.hpp>
-#include <ql/math/interpolations/bsplineinterpolation/splinestructure.hpp>
+#include <ql/math/interpolations/bsplineinterpolation/splinesegment.hpp>

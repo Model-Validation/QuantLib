@@ -44,11 +44,11 @@
 namespace RateTimePrintInfo {
     using namespace QuantLib;
 
-    template <typename T, typename U>
+    template <typename T, typename U, template <class> class B>
     void printInformation(std::vector<ext::shared_ptr<RateHelper>>& rateHelpers,
                           //PiecewiseYieldCurve<T, U>& piecewiseCurve,
                           //ext::shared_ptr<YieldTermStructure>& piecewiseCurve,
-                          ext::shared_ptr<PiecewiseYieldCurve<T, U>>& piecewiseCurve,
+                          ext::shared_ptr<PiecewiseYieldCurve<T, U, B>>& piecewiseCurve,
                           Date& settlementDate,
                           Handle<QuantLib::YieldTermStructure>& curve,
                           DayCounter& dayCounter) {

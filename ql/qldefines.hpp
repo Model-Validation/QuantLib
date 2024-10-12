@@ -27,6 +27,8 @@
 /* install-hook */
 #define quantlib_defines_hpp
 
+#define QL_USE_STD_SHARED_PTR
+
 #ifdef _MSC_VER
 /* Microsoft-specific, but needs to be defined before
    including <boost/config.hpp> which somehow includes

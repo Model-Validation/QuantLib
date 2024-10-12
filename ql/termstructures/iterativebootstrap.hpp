@@ -33,6 +33,7 @@
 #include <ql/math/solvers1d/finitedifferencenewtonsafe.hpp>
 #include <ql/math/solvers1d/brent.hpp>
 #include <ql/utilities/dataformatters.hpp>
+#include <iostream>
 
 namespace QuantLib {
 
@@ -263,8 +264,10 @@ namespace detail {
 
         // there might be a valid curve state to use as guess
         bool validData = validCurve_;
-
-        for (Size iteration=0; ; ++iteration) {
+        Size iteration;
+        for (iteration=0; ; ++iteration) {
+            // TODO Remove this
+            //std::cout << vectorToString(ts_->data_) << "\n\n";
             previousData_ = ts_->data_;
 
             // Store min value and max value at each pillar so that we can expand search if necessary.
@@ -273,7 +276,6 @@ namespace detail {
             std::vector<Size> attempts(alive_+1, 1);
 
             for (Size i=1; i<=alive_; ++i) { // pillar loop
-
                 // shorter aliases for readability and to avoid duplication
                 Real& min = minValues[i];
                 Real& max = maxValues[i];
@@ -296,6 +298,7 @@ namespace detail {
                 Real guess = Traits::guess(i, ts_, validData, firstAliveHelper_);
 
                 // adjust guess if needed
+
                 if (guess >= max)
                     guess = max - (max - min) / 5.0;
                 else if (guess <= min)
@@ -313,6 +316,7 @@ namespace detail {
 
                         // otherwise use Linear while the target
                         // interpolation is not usable yet
+                        std::cout << "Overriding interpolation, using Linear";
                         ts_->interpolation_ = Linear().interpolate(
                             times.begin(), times.begin()+i+1, data.begin());
                     }
@@ -372,6 +376,9 @@ namespace detail {
                 change = std::max(change, std::fabs(data[i]-previousData_[i]));
             if (change<=accuracy)  // convergence reached
                 break;
+            // TODO Remove this
+            std::cout << "Error in iteration " << iteration << " is " << std::scientific
+                      << std::setprecision(4) << change << "\n";
 
             // If we hit the max number of iterations and dontThrow is true, just use what we have
             if (iteration == maxIterations) {
@@ -386,6 +393,8 @@ namespace detail {
 
             validData = true;
         }
+        // TODO Remove this
+        std::cout << "Bootstrapped in " << iteration << " iterations.\n";
         validCurve_ = true;
     }
 

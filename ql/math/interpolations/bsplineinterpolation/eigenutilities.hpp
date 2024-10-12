@@ -24,15 +24,37 @@
 #include <vector>
 
 namespace EigenUtilities {
+
+    /*!
+     * \brief Convert a 2D vector to a list of Eigen triplets.
+     * \param matrix 2D vector representing the matrix.
+     * \return Vector of Eigen triplets.
+     */
     std::vector<Eigen::Triplet<double>>
     convertToTriplets(const std::vector<std::vector<double>>& matrix);
 
+    /*!
+     * \brief Convert an Eigen sparse matrix to a list of Eigen triplets.
+     * \param matrix Eigen sparse matrix.
+     * \return Vector of Eigen triplets.
+     */
     std::vector<Eigen::Triplet<double>>
     convertToTriplets(const Eigen::SparseMatrix<double>& matrix);
 
+    /*!
+     * \brief Convert a 2D vector to an Eigen sparse matrix.
+     * \param vecMatrix 2D vector representing the matrix.
+     * \return Eigen sparse matrix.
+     */
     Eigen::SparseMatrix<double>
     convertToEigenSparseMatrix(const std::vector<std::vector<double>>& vecMatrix);
 
+    /*!
+     * \brief Convert a 1D vector to an Eigen vector.
+     * \param vec 1D vector.
+     * \return Eigen vector.
+     */
     Eigen::VectorXd convertToEigenVector(const std::vector<double>& vec);
 }
+
 #endif // eigen_utilities_hpp

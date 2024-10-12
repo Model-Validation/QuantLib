@@ -220,31 +220,30 @@ namespace QuantLib {
                                std::max(Size(Interpolator1::requiredPoints),
                                         Size(Interpolator2::requiredPoints))),
               n_(n) {
-
                 xBegin2_ = this->xBegin_ + n_;
                 yBegin2_ = this->yBegin_ + n_;
 
-                QL_REQUIRE(xBegin2_<this->xEnd_,
+                QL_REQUIRE(xBegin2_ < this->xEnd_,
                            "too large n (" << n << ") for " <<
                            this->xEnd_-this->xBegin_ << "-element x sequence");
 
                 switch (behavior) {
-                  case MixedInterpolation::ShareRanges:
-                    interpolation1_ = factory1.interpolate(this->xBegin_,
-                                                           this->xEnd_,
-                                                           this->yBegin_);
-                    interpolation2_ = factory2.interpolate(this->xBegin_,
-                                                           this->xEnd_,
-                                                           this->yBegin_);
-                    break;
-                  case MixedInterpolation::SplitRanges:
-                    interpolation1_ = factory1.interpolate(this->xBegin_,
-                                                           this->xBegin2_+1,
-                                                           this->yBegin_);
-                    interpolation2_ = factory2.interpolate(this->xBegin2_,
-                                                           this->xEnd_,
-                                                           this->yBegin2_);
-                    break;
+                    case MixedInterpolation::ShareRanges:
+                        interpolation1_ =
+                            factory1.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        interpolation2_ =
+                            factory2.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        break;
+                    case MixedInterpolation::SplitRanges:
+                        if (this->xEnd_ < xBegin2_ + 1) {
+                            interpolation1_ =
+                                factory1.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        } else {
+                            interpolation1_ =
+                                factory1.interpolate(this->xBegin_, xBegin2_ + 1, this->yBegin_);
+                            interpolation2_ = factory2.interpolate(xBegin2_, this->xEnd_, yBegin2_);
+                        }
+                        break;
                   default:
                     QL_FAIL("unknown mixed-interpolation behavior: " << behavior);
                 }
@@ -252,10 +251,13 @@ namespace QuantLib {
 
             void update() {
                 interpolation1_.update();
-                interpolation2_.update();
+                if (this->xEnd_ > xBegin2_) {
+                    interpolation2_.update();
+                }
             }
             Real value(Real x) const {
-                if (x<*(this->xBegin2_))
+                // TODO this = sign is maybe not correct, but needed to avoid crashing
+                if (x<=*(this->xBegin2_))
                     return interpolation1_(x, true);
                 return interpolation2_(x, true);
             }
@@ -284,6 +286,70 @@ namespace QuantLib {
             Interpolation interpolation1_, interpolation2_;
         };
 
+        // A BSplineInterpolator is e.g. the factory RateTimeBSpline or BSplineModel
+        template <class I1, class I2, class BSplineInterpolator1, class BSplineInterpolator2>
+        class MixedBSplineInterpolationImpl : public Interpolation::templateImpl<I1, I2> {
+          public:
+            MixedBSplineInterpolationImpl(
+                const I1& xBegin,
+                const I1& xEnd,
+                const I2& yBegin,
+                const BSplineInterpolator1& factory1 = BSplineInterpolator1(),
+                const BSplineInterpolator2& factory2 = BSplineInterpolator2())
+            : Interpolation::templateImpl<I1, I2>(
+                  xBegin,
+                  xEnd,
+                  yBegin,
+                  std::max(Size(BSplineInterpolator1::requiredPoints),
+                           Size(BSplineInterpolator2::requiredPoints)))
+            {
+                QL_REQUIRE(factory1.getEndPoint() == factory2.getStartPoint(), "Spline structures must have exactly matching end points");
+                switchPoint_ = factory1.getEndPoint();
+                xBegin2_ = std::lower_bound(this->xBegin_, this->xEnd_ + 1, switchPoint_); // Should be binary search
+                yBegin2_ = this->yBegin_ +
+                           std::distance(this->xBegin_, this->xBegin2_); // Add pointer distance
+
+                interpolation1_ = factory1.interpolate(this->xBegin_, this->xBegin2_ + 1, this->yBegin_);
+                interpolation2_ = factory2.interpolate(this->xBegin2_, this->xEnd_, yBegin2_);
+            }
+
+            void update() {
+                interpolation1_.update();
+                if (this->xEnd_ > this->xBegin2_) {
+                    interpolation2_.update();
+                }
+            }
+            Real value(Real x) const {
+                // TODO this = sign is maybe not correct, but needed to avoid crashing
+                if (x <= *(this->xBegin2_))
+                    return interpolation1_(x, true);
+                return interpolation2_(x, true);
+            }
+            Real primitive(Real x) const {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.primitive(x, true);
+                return interpolation2_.primitive(x, true) -
+                       interpolation2_.primitive(*xBegin2_, true) +
+                       interpolation1_.primitive(*xBegin2_, true);
+            }
+            Real derivative(Real x) const {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.derivative(x, true);
+                return interpolation2_.derivative(x, true);
+            }
+            Real secondDerivative(Real x) const {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.secondDerivative(x, true);
+                return interpolation2_.secondDerivative(x, true);
+            }
+            Size switchPoint() { return this->switchPoint_; }
+
+          private:
+            I1 xBegin2_;
+            I2 yBegin2_;
+            Real switchPoint_;
+            Interpolation interpolation1_, interpolation2_;
+        };
     }
 
 }

@@ -147,8 +147,7 @@ namespace QuantLib {
 
             // extrapolate
             Date d = c->dates()[i];
-            return c->zeroRate(d, c->dayCounter(),
-                               Continuous, Annual, true);
+            return c->zeroRate(d, c->dayCounter(), Continuous, Annual, true);
         }
 
         // possible constraints based on previous values
@@ -278,7 +277,7 @@ namespace QuantLib {
         // interpolated curve type
         template <class Interpolator>
         struct curve {
-            typedef InterpolatedRateTimeCurve<Interpolator> type;
+            typedef InterpolatedZeroCurve<Interpolator> type;
         };
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
@@ -289,7 +288,7 @@ namespace QuantLib {
         static Date initialDate(const YieldTermStructure* c) { return c->referenceDate(); }
 
         static Real initialValue(const YieldTermStructure* c) {
-            return detail::avgRate / c->maxTime();
+            return 0.0;
         }
 
 
@@ -299,33 +298,33 @@ namespace QuantLib {
                 return c->data()[i];
             }
             Time t = c->times()[i];
-            return std::max(detail::avgRate * t, detail::avgRate * 0.05);
+            return std::min(std::max(t, 0.05), 1.0) * detail::avgRate;
         }
 
         template <class C>
         static Real minValueAfter(Size i, const C* c, bool validData, Size) {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin() + i, c->data().end()));
-                return r < 0.0 ? Real(2.0 * r) : Real(r / 2.0);
+                return r < 0.0 ? static_cast<Real>(2.0 * r) : static_cast<Real>(r / 2.0);
             }
             Time t = c->times().back();
-            return std::min(-detail::maxRate * t, -detail::maxRate * 0.05);
+            return -std::min(std::max(t, 0.05), 1.0) * detail::maxRate;
         }
 
         template <class C>
         static Real maxValueAfter(Size i, const C* c, bool validData, Size) {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin() + i, c->data().end()));
-                return r < 0.0 ? Real(r / 2.0) : Real(2.0 * r);
+                return r < 0.0 ? static_cast<Real>(r / 2.0) : static_cast<Real>(2.0 * r);
             }
             Time t = c->times().back();
-            return std::max(detail::maxRate * t, detail::maxRate * 0.05);
+            return std::min(std::max(t, 0.05), 1.0) * detail::maxRate;
         }
 
         static void updateGuess(std::vector<Real>& data, Real rate_time, Size i) {
             data[i] = rate_time;
-            if (i == 1)
-                data[0] = 0.0; // first point is updated as well
+            //if (i == 1)
+            //    data[0] = 0.0; // first point is updated as well
 
         }
 

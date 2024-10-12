@@ -25,6 +25,9 @@
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
 
+//  TODO Lets ReSharper relax about the type mismatch between QuantLib::Size and Eigen::Index, should revisit this
+//  ReSharper disable CppClangTidyBugproneNarrowingConversions
+
 namespace QuantLib {
     BSplineEvaluator::BSplineEvaluator() : knots_({0.0, 1.0}), degree_(0), numBasisFunctions_(1) {}
 
@@ -34,7 +37,7 @@ namespace QuantLib {
         initializeTempVectors();
     }
 
-    void BSplineEvaluator::precomputeRkMatrices() {
+    void BSplineEvaluator::precomputeRkMatrices() const {
         Rk_matrices_.resize(degree_ + 1);
         for (Size k = 1; k <= degree_; ++k) {
             Rk_matrices_[k] = Eigen::SparseMatrix<double>(k + 1, k);
@@ -42,7 +45,7 @@ namespace QuantLib {
         }
     }
 
-    void BSplineEvaluator::initializeTempVectors() {
+    void BSplineEvaluator::initializeTempVectors() const {
         tempB1_.resize(degree_ + 1);
         tempB2_.resize(degree_ + 1);
     }
@@ -55,14 +58,16 @@ namespace QuantLib {
 
     Size BSplineEvaluator::findKnotSpan(double x) const {
         // TODO need to rethink this a bit, should maybe return the last one in the second case
+        // This returns the index of the first knot that is greater than x
         auto it = std::upper_bound(knots_.begin(), knots_.end(), x);  // Should be binary search
         if (it != knots_.end()) {
             return std::distance(knots_.begin(), it);
-        } else if (x == knots_.back()) {
-            return knots_.size() - degree_ - 1; // TODO Not 2, right?
+        } else if (x >= knots_.back()) {
+            return knots_.size() - degree_ - 1; // TODO Not -2, right?
         } else {
             //TODO This never happens, right?
-            throw std::out_of_range("x is outside the range of the knots");
+            QL_FAIL("x = " << x << " is outside the range of the knots [" << knots_.front() << ", "
+                           << knots_.back() << "]");
         }
     }
 
@@ -75,6 +80,9 @@ namespace QuantLib {
         return B;
     }
 
+    /*
+     * This implementation is inspired from Lyche-Morken "Spline Methods" book, chapter 2.4
+     */
     void BSplineEvaluator::evaluate(Eigen::Ref<Eigen::VectorXd> B, double x, Size mu) const {
         Size d = degree_;
         //Eigen::VectorXd* tempB1 = &tempB1_;
@@ -96,6 +104,8 @@ namespace QuantLib {
                 }
             }
             //tempB2->head(k + 1) = Rk * tempB1->head(k);
+            // The noalias is needed to avoid aliasing issues, meaning that the result is stored
+            // in a temporary result and then copied to the destination
             tempB2_.head(k + 1).noalias() = Rk * tempB1_.head(k);
             tempB1_.swap(tempB2_);
             //std::swap(tempB1, tempB2);
@@ -104,14 +114,15 @@ namespace QuantLib {
         B.head(d + 1) = tempB1_.head(d + 1);
     }
 
-    double BSplineEvaluator::value(const Eigen::VectorXd& coeffs, double x) const {
-        QL_REQUIRE(coeffs.size() == numBasisFunctions_,
+    // Pre: x is within domain of the spline
+    double BSplineEvaluator::value(const Eigen::VectorXd& coefficients, double x) const {
+        QL_REQUIRE(coefficients.size() == numBasisFunctions_,
                    "The size of coefficients vector must match the number of basis functions.");
 
         Size mu = findKnotSpan(x);
         evaluate(tempB1_, x, mu);
 
         // Compute the inner product with only the relevant coefficients
-        return tempB1_.dot(coeffs.segment(mu - degree_ - 1, degree_ + 1));
+        return tempB1_.dot(coefficients.segment(mu - degree_ - 1, degree_ + 1));
     }
 } // namespace QuantLib

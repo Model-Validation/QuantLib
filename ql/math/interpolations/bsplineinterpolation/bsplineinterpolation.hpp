@@ -17,99 +17,161 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-
-#ifndef quantlib_b_spline_interpolation_hpp
-#define quantlib_b_spline_interpolation_hpp
+#ifndef b_spline_interpolation_hpp
+#define b_spline_interpolation_hpp
 
 #include "bsplineevaluator.hpp"
-#include <vector>
+#include "bsplinestructure.hpp"
 #include <ql/errors.hpp>
-#include <ql/math/interpolation.hpp>
-#include <ql/math/interpolations/bsplineinterpolation/splinestructure.hpp>
 #include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
+#include <ql/math/interpolation.hpp>
+#include <ql/math/interpolations/bsplineinterpolation/splinesegment.hpp>
+#include <vector>
 
 /*! \file bsplineinterpolation.hpp
-    \brief B-spline interpolation based on linear equality and inequality constraints on coefficients,
-    and a quadratic objective. This allows separation spline knots and interpolation nodes, underdetermined constraints 
+    \brief B-spline interpolation based on linear equality and inequality constraints on
+   coefficients, and a quadratic objective. This allows separation spline knots and interpolation
+   nodes, under-determined constraints
 */
 
 namespace QuantLib {
     namespace detail {
+
+        /*!
+         * \brief Implementation of B-spline interpolation.
+         * \tparam I1 Iterator type for x values.
+         * \tparam I2 Iterator type for y values.
+         */
         template <class I1, class I2>
-        class BSplineInterpolationImpl : public Interpolation::templateImpl<I1, I2> {
-        
-            public:
-                BSplineInterpolationImpl(const I1& xBegin,
-                                         const I1& xEnd,
-                                         const I2& yBegin,
-                                       const ext::shared_ptr<BSplineStructure>& splineStructure)
+        class BSplineInterpolationImpl final : public Interpolation::templateImpl<I1, I2> {
+
+          public:
+            /*!
+             * \brief Constructor for BSplineInterpolationImpl.
+             * \param xBegin Iterator to the beginning of x values.
+             * \param xEnd Iterator to the end of x values.
+             * \param yBegin Iterator to the beginning of y values.
+             * \param splineStructure Shared pointer to the B-spline structure.
+             */
+            BSplineInterpolationImpl(const I1& xBegin,
+                                        const I1& xEnd,
+                                        const I2& yBegin,
+                                        const ext::shared_ptr<BSplineStructure>& splineStructure)
                 : Interpolation::templateImpl<I1, I2>(xBegin, xEnd, yBegin),
-                  xSize_(Size(xEnd - xBegin)),
-                splineStructure_(ext::make_shared<BSplineStructure>(*splineStructure)) {
-                    splineEvaluator_ = BSplineEvaluator(splineStructure_->knots(), splineStructure_->degree());
+                    xSize_(static_cast<Size>(std::distance(xBegin, xEnd))),
+              splineStructure_(ext::make_shared<BSplineStructure>(*splineStructure)) {
+            }
+
+            /*!
+             * \brief Update the interpolation coefficients.
+             */
+            void update() override {
+                coefficients_ = splineStructure_->interpolate(
+                    std::vector<double>(this->xBegin_, this->xEnd_),
+                    std::vector<double>(this->yBegin_, this->yBegin_ + xSize_));
+            }
+
+            /*!
+             * \brief Extrapolate the value at a given point.
+             * \param x The point at which to extrapolate.
+             * \return The extrapolated value.
+             */
+            Real extrapolate(Real x) const { return 0.0; }
+
+            /*!
+             * \brief Get the interpolated value at a given point.
+             * \param x The point at which to get the value.
+             * \return The interpolated value.
+             */
+            Real value(Real x) const override {
+                const Real xMin = splineStructure_->range().first;
+                const Real xMax = splineStructure_->range().second;
+                if (x < xMin || x > xMax) {
+                    return this->extrapolate(x);
                 }
 
-                void update() override {
-                    coeffs_ = splineStructure_->interpolate(std::vector<double>(xBegin_, xEnd_),
-                        std::vector<double>(yBegin_, yBegin_+xSize_));
+                return splineStructure_->value(coefficients_, x);
+            }
+
+            /*!
+             * \brief Get the primitive of the interpolation (not implemented).
+             * \param x The point at which to get the primitive.
+             * \return The primitive value.
+             */
+            Real primitive(Real x) const override {
+                QL_FAIL("Primitive calculation not implemented "
+                        "for B-spline interpolation");
+            }
+
+            /*!
+             * \brief Get the first derivative of the interpolation (not implemented).
+             * \param x The point at which to get the derivative.
+             * \return The first derivative value.
+             */
+            Real derivative(Real x) const override {
+                const Real xMin = this->xBegin_[0];
+                const Real xMax = this->xBegin_[xSize_ - 1];
+                if (x < xMin || x > xMax) {
+                    return this->extrapolate(x);
                 }
+                //QL_FAIL("First derivative calculation not implemented for B-spline interpolation");
+                //splineStructure_->evaluateAll(x);
+                return 0.0;
+            }
 
-                Real extrapolate(Real x) const { return 0.0; }
+            /*!
+             * \brief Get the second derivative of the interpolation (not implemented).
+             * \param x The point at which to get the second derivative.
+             * \return The second derivative value.
+             */
+            Real secondDerivative(Real x) const override {
+                QL_FAIL("Second derivative calculation not implemented "
+                        "for B-spline interpolation");
+            }
 
-                Real value(Real x) const override {
-                    const Real xMin = splineStructure_->range().first;
-                    const Real xMax = splineStructure_->range().second;
-                    if (x < xMin || x > xMax) {
-                        return this->extrapolate(x);
-                    }
+            /*!
+             * \brief Get the minimum x value of the interpolation range.
+             * \return The minimum x value.
+             */
+            Real xMin() const override { return splineStructure_->range().first; }
 
-                    return splineEvaluator_.value(coeffs_, x);
-                }
+            /*!
+             * \brief Get the maximum x value of the interpolation range.
+             * \return The maximum x value.
+             */
+            Real xMax() const override { return splineStructure_->range().second; }
 
-                Real primitive(Real) const override {
-                    QL_FAIL("Primitive calculation not implemented "
-                            "for kernel interpolation");
-                }
-
-                Real derivative(Real x) const override {
-                    const Real xMin = this->xBegin_[0];
-                    const Real xMax = this->xBegin_[xSize_ - 1];
-                    if (x < xMin || x > xMax) {
-                        return this->extrapolate(x);
-                    }
-                    QL_FAIL("First derivative calculation not implemented "
-                            "for kernel interpolation");
-                    splineStructure_->evaluateAll(x);
-                }
-
-                Real secondDerivative(Real) const override {
-                    QL_FAIL("Second derivative calculation not implemented "
-                            "for kernel interpolation");
-                }
-                Real xMin() const override { return splineStructure_->range().first; }
-                Real xMax() const override { return splineStructure_->range().second; }
-
-             private:
-                Size xSize_;
-                ext::shared_ptr<BSplineStructure> splineStructure_;
-                BSplineEvaluator splineEvaluator_;
-                Eigen::VectorXd coeffs_;
-
+          private:
+            Size xSize_; /*!< Size of the x values. */
+            ext::shared_ptr<BSplineStructure>
+                splineStructure_;              /*!< Shared pointer to the B-spline structure. */
+            Eigen::VectorXd coefficients_;           /*!< Interpolation coefficients. */
         };
 
     }; // end namespace detail
+
     //! B-spline interpolation between discrete points
     /*!
         \ingroup interpolations
         \warning See the Interpolation class for information about the
                  required lifetime of the underlying data.
     */
-    class BSplineInterpolation : public Interpolation {
+    class BSplineInterpolation final : public Interpolation {
       public:
         /*! \pre the \f$ x \f$ values must be sorted.
 
         */
+
+        /*!
+         * \brief Constructor for BSplineInterpolation with composite spline structure.
+         * \tparam I1 Iterator type for x values.
+         * \tparam I2 Iterator type for y values.
+         * \param xBegin Iterator to the beginning of x values.
+         * \param xEnd Iterator to the end of x values.
+         * \param yBegin Iterator to the beginning of y values.
+         * \param splineStructure Shared pointer to the composite B-spline structure.
+         */
         template <class I1, class I2>
         BSplineInterpolation(const I1& xBegin,
                              const I1& xEnd,
@@ -120,37 +182,70 @@ namespace QuantLib {
             impl_->update();
         }
 
-        // Non-template constructor
+        /*!
+         * \brief Non-template constructor for BSplineInterpolation.
+         * \param x Vector of x values.
+         * \param y Vector of y values.
+         * \param splineStructure Shared pointer to the B-spline structure.
+         */
         BSplineInterpolation(const std::vector<double>& x,
                              const std::vector<double>& y,
                              const ext::shared_ptr<BSplineStructure>& splineStructure) {
             using ConstIterator = std::vector<double>::const_iterator;
 
             impl_ =
-                ext::make_shared<detail::BSplineInterpolationImpl<ConstIterator, ConstIterator> >(
-                x.begin(), x.end(), y.begin(), splineStructure);
+                ext::make_shared<detail::BSplineInterpolationImpl<ConstIterator, ConstIterator>>(
+                    x.begin(), x.end(), y.begin(), splineStructure);
             impl_->update();
         }
     };
-        
 
     //! %BSplineModel interpolation factory and traits (unfortunately BSpline is taken)
     /*! \ingroup interpolations */
     class BSplineModel {
       public:
-        BSplineModel(ext::shared_ptr<BSplineStructure>& splineStructure)
+        /*!
+         * \brief Constructor for BSplineModel.
+         * \param splineStructure Shared pointer to the B-spline structure.
+         */
+        BSplineModel(ext::shared_ptr<BSplineStructure> splineStructure)
         : splineStructure_(std::move(splineStructure)) {}
+
+        /*!
+         * \brief Interpolate values using the B-spline model.
+         * \tparam I1 Iterator type for x values.
+         * \tparam I2 Iterator type for y values.
+         * \param xBegin Iterator to the beginning of x values.
+         * \param xEnd Iterator to the end of x values.
+         * \param yBegin Iterator to the beginning of y values.
+         * \return Interpolation object.
+         */
         template <class I1, class I2>
-        Interpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+        BSplineInterpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
             return BSplineInterpolation(xBegin, xEnd, yBegin, splineStructure_);
         }
+
+        // ReSharper disable once CppVariableCanBeMadeConstexpr
         static const bool global = true;
+        // ReSharper disable once CppVariableCanBeMadeConstexpr
         static const Size requiredPoints = 2;
 
+        /*!
+         * \brief Get the start point of the spline structure.
+         * \return The start point.
+         */
+        Real getStartPoint() const { return splineStructure_->range().first; }
+
+        /*!
+         * \brief Get the end point of the spline structure.
+         * \return The end point.
+         */
+        Real getEndPoint() const { return splineStructure_->range().second; }
+
       private:
-        ext::shared_ptr<BSplineStructure> splineStructure_;
+        ext::shared_ptr<BSplineStructure> splineStructure_; /*!< Shared pointer to the B-spline structure. */
     };
 
 }
 
-#endif
+#endif // b_spline_interpolation_hpp

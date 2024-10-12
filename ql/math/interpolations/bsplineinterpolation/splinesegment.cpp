@@ -17,9 +17,13 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+// TODO Lets ReSharper relax about the type mismatch between QuantLib::Size and Eigen::Index, should revisit this
+// ReSharper disable CppClangTidyBugproneNarrowingConversions
 #include "bsplineevaluator.hpp"
 #include "splineconstraints.hpp"
-#include "splinestructure.hpp"
+#include "splinesegment.hpp"
+#include "ql/math/factorial.hpp"
+#include "ql/termstructures/iterativebootstrap.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iosfwd>
@@ -31,35 +35,54 @@
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
 #include <ql/shared_ptr.hpp>
+#include <iostream>
+
+inline std::string vectorToString(const std::vector<Integer>& matrix) {
+    std::ostringstream oss;
+
+    oss << "{"; // Start each row with an opening brace
+
+    bool first = true;
+    for (auto value : matrix) {
+        if (first == false) {
+            oss << ", ";
+        }
+        oss << value;
+        first = false;
+    }
+
+    oss << "}";
+
+    return oss.str(); // Convert the string stream to a string
+}
+
 
 namespace QuantLib {
     /*
     Class for a spline structure holding the necessary information on knots, degree and constraints
     for a spline.
     */
-    BSplineStructure::BSplineStructure(const std::vector<double>& simpleKnots,
-                                     Size degree,
-                                     const std::vector<Integer>& knotIndices,
-                                     ext::shared_ptr<SplineConstraints>& splineConstraints,
-                                     InterpolationSmoothness smoothness,
-                                     Side side,
-                                     //const std::vector<double>& interpolationNodes,
-                                     //double knotTolerance,
-                                     //double rankTolerance,
-                                     int requiredPoints,
-                                     bool isGlobal)
-    : simpleKnots_(simpleKnots), degree_(degree), nSimpleKnots_(simpleKnots.size()),
-      knotIndices_(knotIndices),
-      splineConstraints_(std::move(splineConstraints)), side_(side), 
-        interpolationSmoothness_(smoothness),
+    BSplineSegment::BSplineSegment(const std::vector<Real>& simpleKnots,
+                                       Integer degree,
+                                       const std::vector<Integer>& knotIndices,
+                                       InterpolationSmoothness smoothness,
+                                       InterpolationTransform interpolationTransform,
+                                       Side side,
+                                       const Size requiredPoints,
+                                       const bool isGlobal)
+    : simpleKnots_(simpleKnots), degree_(degree), knotIndices_(knotIndices),
+      interpolationSmoothness_(smoothness),
+    interpolationTransform_(interpolationTransform),
+        side_(side), requiredPoints_(requiredPoints),
       //knotTolerance_(knotTolerance), rankTolerance_(rankTolerance),
-      requiredPoints_(requiredPoints), isGlobal_(isGlobal),
-      startPoint_(simpleKnots.front()),
-      endPoint_(simpleKnots.back()) {
-
+      isGlobal_(isGlobal), startPoint_(simpleKnots.front()),
+      endPoint_(simpleKnots.back()),
+      nSimpleKnots_(static_cast<Integer>(simpleKnots.size())) {
         QL_REQUIRE(std::is_sorted(simpleKnots_.begin(), simpleKnots_.end(), std::less<>()),
                    "The x (simpleKnots) must be strictly increasing.");
 
+//        std::cout << "Transform is " << static_cast<Integer>(interpolationTransform) << std::endl;
+ 
         if (knotIndices_.empty()) {
             defaultKnotIndices();
         } else {
@@ -68,89 +91,115 @@ namespace QuantLib {
                 "The provided knots are invalid for the spline of the given degree.\n"
                 "The sequence must be non-decreasing and cover all indexes, no index repeated "
                 "more than degree+1 times, and the\n"
-                "end knots must have exactly that count.");
+                "end knots must have exactly that count.\n"
+                << vectorToString(knotIndices_) << "\nnSimpleKnots: " << nSimpleKnots_ 
+                << "\t Degree: " << degree_ << "\n");
         }
 
-        nKnots_ = knotIndices_.size();
+        nKnots_ = static_cast<Integer>(knotIndices_.size());
 
         knots_.resize(nKnots_);
-        for (Size i = 0; i < nKnots_; ++i) {
+        for (Integer i = 0; i < nKnots_; ++i) {
             knots_[i] = simpleKnots_[knotIndices_[i]];
         }
 
         spline_ = BSplineEvaluator(knots_, degree_);
+        //InterpolationTransform interpolationTransform = InterpolationTransform::Default;
+        // Initialize transform and inverse based on the transform parameter
+        switch (interpolationTransform) {
+            case InterpolationTransform::Log:
+                transform = [](Real t, Real x) { return std::log(x); };
+                transformDerivative = [](Real t, Real x, Natural n) {
+                    if (n == 0)
+                        return std::log(x);
+                    return ((n % 2 == 0) ? -1.0 : 1.0) * Factorial::get(n-1) /
+                           std::pow(x, static_cast<Real>(n));
+                };
+                inverse = [](Real t, Real x) { return std::exp(x); };
+                break;
+            case InterpolationTransform::Exp:
+                transform = [](Real t, Real x) { return std::exp(x); };
+                transformDerivative = [](Real t, Real x, Integer n) {
+                    return std::exp(x);
+                };
+                inverse = [](Real t, Real x) {
+                    return std::log(x);
+                };
+                break;
+            case InterpolationTransform::RateTime:
+                transform = [](Real t, Real x) { return t * x; };
+                transformDerivative = [](Real t, Real x, Integer n) {
+                    return (n == 0) ? t * x : ((n == 1) ? t : 0.0);
+                };
+                inverse = [this](Real t, Real x) {
+                    if (t > 0.0)
+                        return x / t;
+                    std::cout << "Using x0 " << this->x0_ << "\n";
+                    return this->x0_;
+                };
+                break;
+            case InterpolationTransform::Default:
+                transform = [](Real t, Real x) { return x; };
+                transformDerivative = [](Real t, Real x, Integer n) {
+                    return (n == 0) ? x : ((n == 1) ? 1.0 : 0.0);
+                };
+                inverse = [](Real t, Real x) { return x; };
+                break;
+        }
     }
 
     // Copy constructor
-    BSplineStructure::BSplineStructure(const BSplineStructure& other) {
-        *this = other;
-        splineConstraints_ = ext::make_shared<SplineConstraints>(*other.splineConstraints_);
-        spline_ = BSplineEvaluator(knots_, degree_);
+    BSplineSegment::BSplineSegment(const BSplineSegment& other)
+        : degree_(other.degree_),
+          knotIndices_(other.knotIndices_),
+          interpolationSmoothness_(other.interpolationSmoothness_),
+          interpolationTransform_(other.interpolationTransform_),
+          side_(other.side_),
+          requiredPoints_(other.requiredPoints_),
+          isGlobal_(other.isGlobal_),
+          startPoint_(other.startPoint_), endPoint_(other.endPoint_), knots_(other.knots_),
+          nSimpleKnots_(other.nSimpleKnots_), nKnots_(other.nKnots_) {
+        spline_ = BSplineEvaluator(knots_, degree_); // Recreate spline evaluator
     }
 
+    // Assignment operator
+    BSplineSegment& BSplineSegment::operator=(const BSplineSegment& other) {
+        // Check for self-assignment
+        if (this != &other) {
+            // Assign each member variable from the other object
+            degree_ = other.degree_;
+            knotIndices_ = other.knotIndices_;
+            interpolationSmoothness_ = other.interpolationSmoothness_;
+            interpolationTransform_ = other.interpolationTransform_;
+            side_ = other.side_;
+            requiredPoints_ = other.requiredPoints_;
+            isGlobal_ = other.isGlobal_;
+            startPoint_ = other.startPoint_;
+            endPoint_ = other.endPoint_;
+            knots_ = other.knots_;
+            nSimpleKnots_ = other.nSimpleKnots_;
+            nKnots_ = other.nKnots_;
+
+            // Recreate the spline evaluator with the new state
+            spline_ = BSplineEvaluator(knots_, degree_);
+        }
+        return *this; // Return *this to allow chained assignments
+    }
 
     // Accessor for knot range
-    const std::pair<double, double> BSplineStructure::range() const {
+    std::pair<double, double> BSplineSegment::range() const {
         return {startPoint_, endPoint_};
     }
 
-
     // Accessor for knots_
-    const std::vector<double>& BSplineStructure::knots() const {
+    const std::vector<double>& BSplineSegment::knots() const {
         return knots_;
     }
 
     // Accessor for degree_
-    Size BSplineStructure::degree() const {
+    Size BSplineSegment::degree() const {
         return degree_;
     }
-
-    void BSplineStructure::setConstraints(ext::shared_ptr<SplineConstraints>& splineConstraints) {
-        splineConstraints_ = splineConstraints;
-    }
-
-    void BSplineStructure::addInterpolationNodes(const std::vector<double>& interpolationNodes) {
-        Size nInterpolationNodes = interpolationNodes.size();
-        Size nConstraints = splineConstraints_->getNConstraints();
-        Size nParameters = splineConstraints_->getNParameters();
-        Size nVariables = splineConstraints_->getNVariables();
-        interpolationNodes_ = interpolationNodes;
-
-        for (Size i = 0; i < interpolationNodes.size(); ++i) {
-            Eigen::VectorXd row = evaluateAll(interpolationNodes[i], degree_, side_);
-            splineConstraints_->addLinearConstraint(row, 0.0);
-        }
-
-        // We still have the old constraint count
-        Eigen::SparseMatrix<double> B_new(nConstraints + nInterpolationNodes, nInterpolationNodes);
-        for (int i = 0; i < nInterpolationNodes; ++i) {
-            B_new.insert(nConstraints + i, i) = 1.0;
-        }
-
-        Eigen::SparseMatrix<double> C_new(nVariables, nInterpolationNodes);
-
-        splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
-    }
-
-    Eigen::VectorXd BSplineStructure::interpolate(const std::vector<double>& interpolationNodes, const std::vector<double> values) {
-        splineConstraints_->push();
-        addInterpolationNodes(interpolationNodes);
-        Eigen::VectorXd solution = solve(values);
-        splineConstraints_->pop();
-        return solution;
-    }
-
-    Eigen::VectorXd BSplineStructure::solve(const std::vector<double> parameters) {
-        splineConstraints_->update_b(parameters);
-        int status = splineConstraints_->solve();
-        QL_REQUIRE(status == 1, "Solution failed, returned " << status << std::endl);
-        return splineConstraints_->getSolution();
-    }
-
-    Eigen::VectorXd BSplineStructure::getSolution() {
-        return splineConstraints_->getSolution();
-    }
-
 
     /*
     This function calculates value at x of all spline basis functions given the knot sequence, and also
@@ -158,25 +207,25 @@ namespace QuantLib {
     value.
     */
     Eigen::VectorXd
-    BSplineStructure::evaluateAll(double x, Size degree, Side side) const {
-        Size p = (degree != -1) ? degree : degree_;
+    BSplineSegment::evaluateAll(Real x, Size degree, Side side) const {
+        Size p = (degree != static_cast<Size>(-1)) ? degree : static_cast<Size>(degree_);
         BSplineEvaluator spline;
 
         // Excess degree
-        Size e = (p > degree_) ? p - degree_ : 0;
+        Size e = (p > static_cast<Size>(degree_)) ? p - static_cast<Size>(degree_) : 0;
 
         std::vector<double> knotsVector(knots_.begin(), knots_.end());
 
         // Pad the knot sequence at the ends if the degree is higher than degree_, this may happen when
-        // integrating
-        if (p > degree_) {
+        // calculating anti-derivatives
+        if (p > static_cast<Size>(degree_)) {
             knotsVector.insert(knotsVector.begin(), e, startPoint_);
             knotsVector.insert(knotsVector.end(), e, endPoint_);
         }
 
         // The "basis" size (some are then 0 functions)
         // TODO: we could also do the padding of 0 is then answer and not burden the evaluation
-        Size n = knotsVector.size() - p - 1 + e * 2;
+        // Size n = knotsVector.size() - p - 1 + e * 2;
 
         // TODO the sidedness could be taken care of in the evaluation function, it just affects the
         // mu
@@ -204,11 +253,11 @@ namespace QuantLib {
     }
 
     // TODO this should only be sensitive to the smoothness, not RT or not, nor degree
-    void BSplineStructure::defaultKnotIndices() {
+    void BSplineSegment::defaultKnotIndices() {
         if (interpolationSmoothness_ == InterpolationSmoothness::Default) {
-            nKnots_ = nSimpleKnots_ + 2ULL * degree_;
+            nKnots_ = nSimpleKnots_ + 2 * degree_;
             knotIndices_.assign(degree_, 0);
-            for (Size i = 0; i < nSimpleKnots_; ++i) {
+            for (Integer i = 0; i < nSimpleKnots_; ++i) {
                 knotIndices_.push_back(i);
             }
             knotIndices_.insert(knotIndices_.end(), degree_, nSimpleKnots_ - 1);
@@ -217,9 +266,9 @@ namespace QuantLib {
             //structure_.push_back(degree_ + 1);
         } else if (interpolationSmoothness_ ==
                    InterpolationSmoothness::Hermite) {
-            nKnots_ = 2 * nSimpleKnots_ + 2ULL * (degree_ - 1);
+            nKnots_ = 2 * nSimpleKnots_ + 2 * (degree_ - 1);
             knotIndices_.assign(degree_ - 1, 0);
-            for (Size i = 0; i < 2 * nSimpleKnots_; ++i) {
+            for (Integer i = 0; i < 2 * nSimpleKnots_; ++i) {
                 knotIndices_.push_back(i / 2);
             }
             knotIndices_.insert(knotIndices_.end(), degree_ - 1, nSimpleKnots_ - 1);
@@ -228,25 +277,36 @@ namespace QuantLib {
             //structure_.push_back(degree_ + 1);
         } else {
             std::ostringstream oss;
-            oss << "Interpolation smoothness: " << int(interpolationSmoothness_) << " not supported yet";
+            oss << "Interpolation smoothness: " << static_cast<int>(interpolationSmoothness_) << " not supported yet";
             throw std::runtime_error(oss.str());
         }
     }
 
     Eigen::VectorXd
-    BSplineStructure::derivative_(double x, int nu, Size degree, double x0, Side side) const {
-        return Eigen::VectorXd();
+    BSplineSegment::derivative(Real x, Integer nu, Size degree, Real x0, Side side) const {
+        return {};
     }
 
-    Eigen::SparseMatrix<double>
-    BSplineStructure::singleDerivativeMatrix(Size degree, bool differenceOperator) const {
+    // TODO implement sidedness
+    Real BSplineSegment::value(const Eigen::VectorXd& coefficients, const Real t, Side side)  {
+        if (t == 0.0 && interpolationTransform_ == InterpolationTransform::RateTime) {
+            // TODO this works for Linear RT only, general solution requires derivative
+            return value(coefficients, simpleKnots_[1]) / simpleKnots_[1];
+        }
+        //std::cout << t << ", " << spline_.value(coefficients, t) << ", "
+        //          << inverse(t, spline_.value(coefficients, t)) << "\n"
+        return inverse(t, spline_.value(coefficients, t));
+    }
+
+    Eigen::SparseMatrix<Real>
+    BSplineSegment::singleDerivativeMatrix(Size degree, bool differenceOperator) const {
         const auto& knots = knots_;
 
-        Size p = (degree != -1) ? degree : degree_;
+        Size p = (degree != static_cast<Size>(-1)) ? degree : degree_;
         Size n = knots.size() - p - 1;
 
         if (p == 0) {
-            return Eigen::SparseMatrix<double>(n + 1, n);
+            return {static_cast<Eigen::Index>(n+1), static_cast<Eigen::Index>(n)};
         }
 
         // Compute differences at p points apart
@@ -258,15 +318,15 @@ namespace QuantLib {
         // Compute reciprocals for non-zero differences
         Eigen::VectorXd reciprocals = Eigen::VectorXd::Zero(n + 1);
         for (Size i = 0; i <= n; ++i) {
-            if (differences[i] != 0) {
-                reciprocals[i] = static_cast<double>(p) / differences[i];
+            if (differences[i] != 0.0) {
+                reciprocals[i] = static_cast<Real>(p) / differences[i];
             }
         }
 
-        // Construct sparse pseudoinverse
+        // Construct sparse pseudo-inverse
         Eigen::SparseMatrix<double> t_matrix(n + 1, n + 1);
         for (Size i = 0; i <= n; ++i) {
-            if (reciprocals[i] != 0) {
+            if (reciprocals[i] != 0.0) {
                 t_matrix.insert(i, i) = reciprocals[i];
             }
         }
@@ -285,7 +345,7 @@ namespace QuantLib {
         }
     }
 
-    Eigen::MatrixXd BSplineStructure::singleAntiDerivativeMatrix(Size degree,
+    Eigen::MatrixXd BSplineSegment::singleAntiDerivativeMatrix(Size degree,
                                                                 double t0,
                                                                 bool differenceOperator) const {
 
@@ -293,18 +353,18 @@ namespace QuantLib {
             t0 = startPoint_;
         }
 
-        Size p = (degree != -1) ? degree : degree_;
-        Size e = (p > degree_) ? p - degree_ + 1 : 0;
+        Size p = (degree != static_cast<Size>(-1)) ? degree : static_cast<Size>(degree_);
+        Size e = (p > static_cast<Size>(degree_)) ? p - static_cast<Size>(degree_) + 1 : 0;
         std::vector<double> knotsVector = knots_;
 
-        if (p > degree_) {
+        if (p > static_cast<Size>(degree_)) {
             knotsVector.insert(knotsVector.begin(), e, startPoint_);
             knotsVector.insert(knotsVector.end(), e, endPoint_);
         }
 
         Size n = knotsVector.size() - p - 1 + 2 * e;
 
-        // Linear constraint sets the anti-derivative to be 0 at t0
+        // Linear constraint sets the antiderivative to be 0 at t0
         Eigen::VectorXd shiftConstraint = evaluateAll(t0, p + 1).segment(0, n - 1);
 
         // Compute differences at p+1 points apart
@@ -317,13 +377,13 @@ namespace QuantLib {
         // Construct sparse matrices
         Eigen::SparseMatrix<double> tMatrix(n, n);
         for (Size i = 0; i < n; ++i) {
-            if (reciprocals[i] != 0) {
+            if (reciprocals[i] != 0.0) {
                 tMatrix.insert(i, i) = reciprocals[i];
             }
         }
 
         // Mask for non-zero splines
-        Eigen::VectorXd mask = differences.unaryExpr([](double d) { return d != 0 ? 1.0 : 0.0; });
+        Eigen::VectorXd mask = differences.unaryExpr([](Real d) { return d != 0.0 ? 1.0 : 0.0; });
 
         Eigen::SparseMatrix<double> deltaMatrix(n, n - 1);
         for (Size i = 0; i < n - 1; ++i) {
@@ -343,7 +403,7 @@ namespace QuantLib {
         return resultMatrix;
     }
 
-    //EigenMatrix BSplineStructure::derivativeMatrix(int nu,
+    //EigenMatrix BSplineSegment::derivativeMatrix(int nu,
     //                                              Size degree,
     //                                              bool differenceOperator,
     //                                              double t0) const {
@@ -383,7 +443,7 @@ namespace QuantLib {
     //    }
     //}
 
-    //Eigen::VectorXd BSplineStructure::derivative_(
+    //Eigen::VectorXd BSplineSegment::derivative(
     //    double x, int nu, Size degree, double x0, Splines::Side side) const {
     //    Size p = (degree != -1) ? degree : degree_;
     //    Splines::Side side_ = side;
@@ -415,40 +475,39 @@ namespace QuantLib {
     //        return evaluate_all * std::get<Eigen::MatrixXd>(derivativeMatrix(nu, p));
     //    }
     //}
+}
 
-    static bool checkKnotIndices(const std::vector<Integer>& knotIndices, Integer degree, Size n) {
+bool checkKnotIndices(const std::vector<Integer>& knotIndices, Integer degree, Integer n) {
 
-        if (knotIndices.front() != 0 || knotIndices.back() != n) {
-            return false;
-        }
-
-        for (Size i = 0; i < knotIndices.size() - 1; ++i) {
-            if (knotIndices[i] > knotIndices[i + 1] || knotIndices[i + 1] - knotIndices[i] > 1) {
-                return false;
-            }
-        }
-
-        std::unordered_map<Integer, Integer> knotCountMap;
-        for (Integer index : knotIndices) {
-            knotCountMap[index]++;
-        }
-
-        std::vector<Integer> counts;
-        for (const auto& pair : knotCountMap) {
-            counts.push_back(pair.second);
-        }
-
-        if (std::any_of(counts.begin(), counts.end(),
-                        [degree](Integer value) { return value > degree + 1; })) {
-            return false;
-        }
-
-        if (counts.front() != degree + 1 || counts.back() != degree + 1) {
-            return false;
-        }
-
-        return true;
+    if (knotIndices.front() != 0 || knotIndices.back() != n) {
+        return false;
     }
 
+    for (Size i = 0; i < knotIndices.size() - 1; ++i) {
+        if (knotIndices[i] > knotIndices[i + 1] || knotIndices[i + 1] - knotIndices[i] > 1) {
+            return false;
+        }
+    }
 
+    std::unordered_map<Integer, Integer> knotCountMap;
+    for (Integer index : knotIndices) {
+        knotCountMap[index]++;
+    }
+
+    std::vector<Integer> counts;
+    counts.reserve(knotCountMap.size());
+    for (const auto& pair : knotCountMap) {
+        counts.emplace_back(pair.second);
+    }
+
+    if (std::any_of(counts.begin(), counts.end(),
+                    [degree](Integer value) { return value > degree + 1; })) {
+        return false;
+    }
+
+    if (counts.front() != degree + 1 || counts.back() != degree + 1) {
+        return false;
+    }
+
+    return true;
 }

@@ -50,8 +50,8 @@ namespace QuantLib {
         SpreadedInterpolation(const I1& xBegin,
                               const I1& xEnd,
                               const I2& yBegin,
-                              Interpolator& factory,
-                              ext::shared_ptr<Interpolation>& baseCurve) {
+                              Interpolator factory,
+                              ext::shared_ptr<Interpolation> baseCurve) {
             impl_ = ext::shared_ptr<Interpolation::Impl>(
                 new detail::SpreadedInterpolationImpl<I1, I2, Interpolator>(
                     xBegin, xEnd, yBegin, factory, baseCurve
@@ -63,7 +63,7 @@ namespace QuantLib {
 
     namespace detail {
         template <class I1, class I2, class Interpolator>
-        class SpreadedInterpolationImpl : public Interpolation::templateImpl<I1, I2> {
+        class SpreadedInterpolationImpl final : public Interpolation::templateImpl<I1, I2> {
           public:
             SpreadedInterpolationImpl(
                 const I1& xBegin,
@@ -75,25 +75,25 @@ namespace QuantLib {
               factory_(std::move(factory)), baseCurve_(std::move(baseCurve)),
               spreadY_(xEnd - xBegin) {}
 
-            void update() {
+            void update() override {
                 // Calculate the spreaded values
                 for (size_t i = 0; i < spreadY_.size(); ++i) {
-                    Real xValue = xBegin_[i];
-                    Real yValue = yBegin_[i];
+                    Real xValue = this->xBegin_[i];
+                    Real yValue = this->yBegin_[i];
                     Real baseValue = baseCurve_->operator()(xValue);
                     spreadY_[i] = yValue - baseValue;
                 }
 
-                spread_ = factory_.interpolate(xBegin_, xEnd_, spreadY_.begin());
+                spread_ = factory_.interpolate(this->xBegin_, this->xEnd_, spreadY_.begin());
             }
-            Real value(Real x) const { return spread_(x, true) + baseCurve_->operator()(x, true); }
-            Real primitive(Real x) const {
+            Real value(Real x) const override { return spread_(x, true) + baseCurve_->operator()(x, true); }
+            Real primitive(Real x) const override {
                 return spread_.primitive(x, true) + baseCurve_->primitive(x, true);
             }
-            Real derivative(Real x) const {
+            Real derivative(Real x) const override {
                 return spread_.derivative(x, true) + baseCurve_->derivative(x, true);
             }
-            Real secondDerivative(Real x) const {
+            Real secondDerivative(Real x) const override {
                 return spread_.secondDerivative(x, true) + baseCurve_->secondDerivative(x, true);
             }
             Real xMin() const override { return std::max(spread_.xMin(), baseCurve_->xMin()); }
@@ -114,11 +114,12 @@ namespace QuantLib {
     template <class Interpolator>
     class SpreadedInterpolationModel {
       public:
-        SpreadedInterpolationModel(Interpolator& factory, ext::shared_ptr<Interpolation>& baseCurve)
+        SpreadedInterpolationModel(Interpolator factory, ext::shared_ptr<Interpolation> baseCurve)
         : factory_(std::move(factory)), baseCurve_(*baseCurve) {}
 
         template <class I1, class I2> 
-        Interpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+        SpreadedInterpolation
+        interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
             return SpreadedInterpolation(xBegin, xEnd, yBegin, factory_, ext::make_shared<Interpolation>(baseCurve_));
         }
         static const bool global = true;
