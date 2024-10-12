@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = QuantLib
-PROJECT_NUMBER         = ql_version
+PROJECT_NUMBER         = 1.35
 PROJECT_BRIEF          = "A free/open-source library for quantitative finance"
 PROJECT_LOGO           =
 PROJECT_ICON           =
@@ -20,8 +20,8 @@ ABBREVIATE_BRIEF       =
 ALWAYS_DETAILED_SEC    = NO
 INLINE_INHERITED_MEMB  = NO
 FULL_PATH_NAMES        = YES
-STRIP_FROM_PATH        = ql_basepath
-STRIP_FROM_INC_PATH    = ql_basepath
+STRIP_FROM_PATH        = c:/ws/git/ql134/QuantLib
+STRIP_FROM_INC_PATH    = c:/ws/git/ql134/QuantLib
 SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = NO
 JAVADOC_BANNER         = NO
@@ -80,7 +80,7 @@ HIDE_SCOPE_NAMES       = YES
 HIDE_COMPOUND_REFERENCE= NO
 SHOW_HEADERFILE        = YES
 SHOW_INCLUDE_FILES     = YES
-SHOW_GROUPED_MEMB_INC  = NO
+SHOW_GROUPED_MEMB_INC  = YES
 FORCE_LOCAL_INCLUDES   = NO
 INLINE_INFO            = NO
 SORT_MEMBER_DOCS       = NO
@@ -96,8 +96,8 @@ GENERATE_DEPRECATEDLIST= YES
 ENABLED_SECTIONS       =
 MAX_INITIALIZER_LINES  = 30
 SHOW_USED_FILES        = NO
-SHOW_FILES             = NO
-SHOW_NAMESPACES        = NO
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
 FILE_VERSION_FILTER    =
 LAYOUT_FILE            =
 CITE_BIB_FILES         =
@@ -111,28 +111,29 @@ WARN_IF_DOC_ERROR      = YES
 WARN_IF_INCOMPLETE_DOC = NO
 WARN_NO_PARAMDOC       = NO
 WARN_IF_UNDOC_ENUM_VAL = NO
-WARN_AS_ERROR          = YES
+WARN_AS_ERROR          = NO
 WARN_FORMAT            = "$file:$line: $text"
 WARN_LINE_FORMAT       = "at line $line of file $file"
 WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ql_basepath/Docs//pages \
-                         ql_basepath/ql
+INPUT                  = c:/ws/git/ql134/QuantLib/Docs/pages \
+                         c:/ws/git/ql134/QuantLib/ql/math/interpolations/bsplineinterpolation \
+                         C:\ws\git\scs\include
 INPUT_ENCODING         = UTF-8
 INPUT_FILE_ENCODING    =
 FILE_PATTERNS          = *.docs \
                          *.hpp \
-                         *.h
+                         *.h \
+                         *.cpp
 RECURSIVE              = YES
-EXCLUDE                = ql_basepath//ql/config.hpp \
-                         ql_basepath//ql/config.msvc.hpp
+EXCLUDE                = c:/ws/git/ql134/QuantLib/ql/config.hpp \
+                         c:/ws/git/ql134/QuantLib/ql/config.msvc.hpp
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */all.hpp
 EXCLUDE_SYMBOLS        =
-EXAMPLE_PATH           = ql_basepath/Examples \
-                         .
+EXAMPLE_PATH           = c:/ws/git/ql134/QuantLib/Examples
 EXAMPLE_PATTERNS       = *.cpp
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
@@ -145,8 +146,8 @@ FORTRAN_COMMENT_AFTER  = 72
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing
 #---------------------------------------------------------------------------
-SOURCE_BROWSER         = NO
-INLINE_SOURCES         = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = YES
 STRIP_CODE_COMMENTS    = YES
 REFERENCED_BY_RELATION = NO
 REFERENCES_RELATION    = NO
@@ -165,11 +166,11 @@ IGNORE_PREFIX          =
 GENERATE_HTML          = YES
 HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
-HTML_HEADER            = ql_basepath/Docs/quantlibheader.html
-HTML_FOOTER            = ql_basepath/Docs/quantlibfooter.html
+HTML_HEADER            = c:/ws/git/ql134/QuantLib/Docs/quantlibheader.html
+HTML_FOOTER            = c:/ws/git/ql134/QuantLib/Docs/quantlibfooter.html
 HTML_STYLESHEET        =
-HTML_EXTRA_STYLESHEET  = ql_basepath/Docs/quantlibextra.css
-HTML_EXTRA_FILES       = ql_basepath/Docs/images/favicon.ico
+HTML_EXTRA_STYLESHEET  = c:/ws/git/ql134/QuantLib/Docs/quantlibextra.css
+HTML_EXTRA_FILES       = c:/ws/git/ql134/QuantLib/Docs/images/favicon.ico
 HTML_COLORSTYLE        = AUTO_LIGHT
 HTML_COLORSTYLE_HUE    = 220
 HTML_COLORSTYLE_SAT    = 100
@@ -319,27 +320,27 @@ EXTERNAL_PAGES         = YES
 #---------------------------------------------------------------------------
 HIDE_UNDOC_RELATIONS   = NO
 HAVE_DOT               = YES
-DOT_NUM_THREADS        = 0
-DOT_COMMON_ATTR        = "fontname=Helvetica,fontsize=10"
-DOT_EDGE_ATTR          = "labelfontname=Helvetica,labelfontsize=10"
-DOT_NODE_ATTR          = "shape=box,height=0.2,width=0.4"
+DOT_NUM_THREADS        = 4
+DOT_COMMON_ATTR        = "fontname=Verdana,fontsize=12"
+DOT_EDGE_ATTR          = "labelfontname=Verdana,labelfontsize=12"
+DOT_NODE_ATTR          = "shape=box,height=3.0,width=10.0"
 DOT_FONTPATH           =
 CLASS_GRAPH            = YES
-COLLABORATION_GRAPH    = NO
+COLLABORATION_GRAPH    = YES
 GROUP_GRAPHS           = NO
-UML_LOOK               = NO
-UML_LIMIT_NUM_FIELDS   = 10
-DOT_UML_DETAILS        = NO
-DOT_WRAP_THRESHOLD     = 17
-TEMPLATE_RELATIONS     = NO
-INCLUDE_GRAPH          = NO
-INCLUDED_BY_GRAPH      = NO
-CALL_GRAPH             = NO
-CALLER_GRAPH           = NO
+UML_LOOK               = YES
+UML_LIMIT_NUM_FIELDS   = 20
+DOT_UML_DETAILS        = YES
+DOT_WRAP_THRESHOLD     = 85
+TEMPLATE_RELATIONS     = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
 GRAPHICAL_HIERARCHY    = YES
-DIRECTORY_GRAPH        = NO
-DIR_GRAPH_MAX_DEPTH    = 1
-DOT_IMAGE_FORMAT       = png
+DIRECTORY_GRAPH        = YES
+DIR_GRAPH_MAX_DEPTH    = 3
+DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = NO
 DOT_PATH               =
 DOTFILE_DIRS           =

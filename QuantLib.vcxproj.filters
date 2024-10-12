@@ -4482,7 +4482,7 @@
     <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineinterpolation.hpp">
       <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClInclude>
-    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splinestructure.hpp">
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\splinesegment.hpp">
       <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClInclude>
     <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.hpp">
@@ -4499,6 +4499,12 @@
     </ClInclude>
     <ClInclude Include="ql\math\interpolations\spreadedinterpolation.hpp">
       <Filter>math\interpolations</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\bsplinestructure.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\math\interpolations\bsplineinterpolation\scssolver.hpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -7255,7 +7261,7 @@
     <ClCompile Include="ql\termstructures\yield\rtstructure.cpp">
       <Filter>termstructures\yield</Filter>
     </ClCompile>
-    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splinestructure.cpp">
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\splinesegment.cpp">
       <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClCompile>
     <ClCompile Include="ql\math\interpolations\bsplineinterpolation\bsplineevaluator.cpp">
@@ -7265,6 +7271,12 @@
       <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClCompile>
     <ClCompile Include="ql\math\interpolations\bsplineinterpolation\eigenutilities.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\bsplinestructure.cpp">
+      <Filter>math\interpolations\bsplineinterpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\math\interpolations\bsplineinterpolation\scssolver.cpp">
       <Filter>math\interpolations\bsplineinterpolation</Filter>
     </ClCompile>
   </ItemGroup>
