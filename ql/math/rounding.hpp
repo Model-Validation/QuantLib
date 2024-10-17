@@ -25,6 +25,7 @@
 #define quantlib_rounding_hpp
 
 #include <ql/types.hpp>
+#include <boost/serialization/serialization.hpp>
 
 namespace QuantLib {
 
@@ -79,6 +80,12 @@ namespace QuantLib {
         Integer precision() const { return precision_; }
         Type type() const { return type_; }
         Integer roundingDigit() const { return digit_; }
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& precision_;
+            ar& type_;
+            ar& digit_;
+        }
       private:
         Integer precision_;
         Type type_ = None;

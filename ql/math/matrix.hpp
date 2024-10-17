@@ -29,6 +29,8 @@
 #include <ql/math/array.hpp>
 #include <ql/utilities/steppingiterator.hpp>
 #include <initializer_list>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/unique_ptr.hpp>
 
 namespace QuantLib {
 
@@ -145,6 +147,25 @@ namespace QuantLib {
       private:
         std::unique_ptr<Real[]> data_;
         Size rows_ = 0, columns_ = 0;
+
+        friend class boost::serialization::access;
+
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& rows_;
+            ar& columns_;
+
+            Size matrix_size = rows_ * columns_;
+
+            // checks if deserialising
+            if (Archive::is_loading::value)
+                // resets data and resizes it to match the size
+                data_.reset(new Real[matrix_size]);
+
+            // if serialising, iterate through the entire Matrix and serialise each value
+            for (Size i = 0; i < matrix_size; ++i)
+                ar& data_[i];
+        }
     };
 
     // algebraic operators

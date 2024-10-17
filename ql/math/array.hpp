@@ -39,6 +39,10 @@
 #include <iomanip>
 #include <memory>
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unique_ptr.hpp>
+
 namespace QuantLib {
 
     //! 1-D array used in linear algebra.
@@ -143,6 +147,23 @@ namespace QuantLib {
       private:
         std::unique_ptr<Real[]> data_;
         Size n_;
+
+        friend class boost::serialization::access;
+
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& n_;
+
+            // if deserialising
+            if (Archive::is_loading::value)
+                // resets the pointer to match the saved size
+                data_.reset(new Real[n_]);
+
+            // iterates through the array
+            for (Size i = 0; i < n_; ++i)
+                // serialise each value
+                ar& data_[i]
+        }
     };
 
     #ifdef QL_NULL_AS_FUNCTIONS

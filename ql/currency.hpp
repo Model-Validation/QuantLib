@@ -29,6 +29,10 @@
 #include <ql/errors.hpp>
 #include <iosfwd>
 #include <set>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -86,6 +90,11 @@ namespace QuantLib {
         //! minor unit codes, e.g. GBp, GBX for GBP
         const std::set<std::string>& minorUnitCodes() const;
         //@}
+        friend class boost::serialization::access;
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& data_;
+        }
       protected:
         struct Data;
         ext::shared_ptr<Data> data_;
@@ -114,6 +123,19 @@ namespace QuantLib {
              Currency triangulationCurrency = Currency(),
              std::set<std::string> minorUnitCodes = {});
     };
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar& name;
+        ar& code;
+        ar& numericCode;
+        ar& symbol;
+        ar& fractionSymbol;
+        ar& fractionsPerUnit;
+        ar& rounding;
+        ar& formatString;
+        ar& minorUnitCodes;
+    }
 
     /*! \relates Currency */
     bool operator==(const Currency&,
