@@ -45,7 +45,7 @@ jobs:
             tests: true
           - name: "gcc 12.x"
             shortname: gcc12
-            tag: kinetic
+            tag: lunar
             cc: gcc
             cxx: g++
             tests: true
@@ -97,7 +97,7 @@ jobs:
             tests: true
           - name: "Clang 15"
             shortname: clang15
-            tag: kinetic
+            tag: lunar
             cc: clang
             cxx: clang++
             tests: true
@@ -132,6 +132,13 @@ jobs:
             cxx: g++
             configureflags: --enable-intraday
             tests: true
+          - name: "Throwing in cycles enabled"
+            shortname: cycles
+            tag: rolling
+            cc: gcc
+            cxx: g++
+            configureflags: --enable-throwing-in-cycles --disable-faster-lazy-objects
+            tests: true
           - name: "Indexed coupons enabled"
             shortname: indexed
             tag: rolling
@@ -144,7 +151,7 @@ jobs:
             tag: rolling
             cc: gcc
             cxx: g++
-            configureflags: --enable-std-classes
+            configureflags: --enable-std-classes --enable-std-any --enable-std-optional
             tests: true
           - name: "Thread-safe observer enabled"
             shortname: threadsafe
@@ -152,13 +159,6 @@ jobs:
             cc: gcc
             cxx: g++
             configureflags: --enable-thread-safe-observer-pattern
-            tests: true
-          - name: "Thread-safe singleton init enabled"
-            shortname: threadsafeinit
-            tag: rolling
-            cc: gcc
-            cxx: g++
-            configureflags: --enable-thread-safe-singleton-init
             tests: true
           - name: "Sessions enabled"
             shortname: sessions
@@ -194,11 +194,10 @@ jobs:
     - name: Cache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: linux-ci-build-${{ matrix.shortname }}-${{ github.ref }}-${{ github.head_ref }}-${{ hashFiles('**/*.hpp', '**/*.cpp') }}
+        key: linux-ci-build-${{ matrix.shortname }}-${{ github.ref }}
         restore-keys: |
-          linux-ci-build-${{ matrix.shortname }}-${{ github.ref }}-${{ github.head_ref }}-
-          linux-ci-build-${{ matrix.shortname }}-${{ github.ref }}-
-          linux-ci-build-${{ matrix.shortname }}-refs/heads/master-
+          linux-ci-build-${{ matrix.shortname }}-${{ github.ref }}
+          linux-ci-build-${{ matrix.shortname }}-refs/heads/master
           linux-ci-build-${{ matrix.shortname }}-
     - name: Compiler version
       run: |
@@ -221,8 +220,5 @@ jobs:
       run: |
         echo "#include <ql/quantlib.hpp>" > test1.cpp && echo "int main() { return 0; }" >> test1.cpp
         echo "#include <ql/quantlib.hpp>" > test2.cpp
-        if test ${{ matrix.shortname }} = sessions ; then
-            echo "namespace QuantLib { ThreadKey sessionId() { return 0; } }" >> test2.cpp
-        fi
         make install
         ${{ matrix.cxx }} -O2 -g0 -Wall -Wno-unknown-pragmas -Werror ${{ matrix.cxxflags }} `quantlib-config --cflags` test1.cpp test2.cpp `quantlib-config --libs` ${{ matrix.moreflags }}

@@ -28,6 +28,7 @@
 #include <ql/math/interpolations/bicubicsplineinterpolation.hpp>
 #include <ql/math/interpolations/bilinearinterpolation.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/experimental/variancegamma/fftvanillaengine.hpp>
@@ -92,9 +93,9 @@ namespace european_option_test {
                 const ext::shared_ptr<BlackVolTermStructure>& vol) {
         return ext::make_shared<BlackScholesMertonProcess>(
            Handle<Quote>(u),
-                                         Handle<YieldTermStructure>(q),
-                                         Handle<YieldTermStructure>(r),
-                                         Handle<BlackVolTermStructure>(vol));
+           Handle<YieldTermStructure>(q),
+           Handle<YieldTermStructure>(r),
+           Handle<BlackVolTermStructure>(vol));
     }
 
     ext::shared_ptr<VanillaOption>
@@ -194,8 +195,6 @@ void EuropeanOptionTest::testValues() {
     BOOST_TEST_MESSAGE("Testing European option values...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     /* The data below are from
        "Option pricing formulas", E.G. Haug, McGraw-Hill 1998
@@ -312,8 +311,6 @@ void EuropeanOptionTest::testGreekValues() {
     BOOST_TEST_MESSAGE("Testing European option greek values...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     /* The data below are from
        "Option pricing formulas", E.G. Haug, McGraw-Hill 1998
@@ -604,8 +601,6 @@ void EuropeanOptionTest::testGreeks() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     std::map<std::string,Real> calculated, expected, tolerance;
     tolerance["delta"]  = 1.0e-5;
     tolerance["gamma"]  = 1.0e-5;
@@ -757,8 +752,6 @@ void EuropeanOptionTest::testImpliedVol() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     Size maxEvaluations = 100;
     Real tolerance = 1.0e-6;
 
@@ -869,12 +862,127 @@ void EuropeanOptionTest::testImpliedVol() {
 }
 
 
+void EuropeanOptionTest::testImpliedVolWithDividends() {
+
+    BOOST_TEST_MESSAGE("Testing European option implied volatility with dividends...");
+
+    using namespace european_option_test;
+
+    Size maxEvaluations = 100;
+    Real tolerance = 1.0e-6;
+
+    // test options
+    Option::Type types[] = { Option::Call, Option::Put };
+    Real strikes[] = { 90.0, 99.5, 100.0, 100.5, 110.0 };
+    Integer lengths[] = { 36, 180, 360, 1080 };
+
+    // test data
+    Real underlyings[] = { 90.0, 95.0, 99.9, 100.0, 100.1, 105.0, 110.0 };
+    Rate qRates[] = { 0.01, 0.05, 0.10 };
+    Rate rRates[] = { 0.01, 0.05, 0.10 };
+    Volatility vols[] = { 0.01, 0.20, 0.30, 0.70, 0.90 };
+
+    DayCounter dc = Actual360();
+    Date today = Date::todaysDate();
+
+    ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(0.0));
+    ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(0.0));
+    ext::shared_ptr<BlackVolTermStructure> volTS = flatVol(today, vol, dc);
+    ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
+    ext::shared_ptr<SimpleQuote> rRate(new SimpleQuote(0.0));
+    ext::shared_ptr<YieldTermStructure> rTS = flatRate(today, rRate, dc);
+
+    for (auto& type : types) {
+        for (Real& strike : strikes) {
+            for (int length : lengths) {
+                // option to check
+                Date exDate = today + length;
+                ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
+                ext::shared_ptr<StrikedTypePayoff> payoff(new PlainVanillaPayoff(type, strike));
+                auto process = makeProcess(spot, qTS, rTS, volTS);
+                auto dividends = DividendVector({ today + length/2 }, { 1.0 });
+                auto option = makeOption(
+                    payoff, exercise, spot, qTS, rTS, volTS, Analytic, Null<Size>(), Null<Size>());
+                auto divEngine = ext::make_shared<AnalyticDividendEuropeanEngine>(process, dividends);
+                option->setPricingEngine(divEngine);
+
+                for (Real u : underlyings) {
+                    for (Real m : qRates) {
+                        for (Real n : rRates) {
+                            for (Real v : vols) {
+                                Rate q = m, r = n;
+                                spot->setValue(u);
+                                qRate->setValue(q);
+                                rRate->setValue(r);
+                                vol->setValue(v);
+
+                                Real value = option->NPV();
+                                Volatility implVol = 0.0; // just to remove a warning...
+                                if (value != 0.0) {
+                                    // shift guess somehow
+                                    vol->setValue(v * 0.5);
+                                    if (std::fabs(value - option->NPV()) <= 1.0e-12) {
+                                        // flat price vs vol --- pointless (and
+                                        // numerically unstable) to solve
+                                        continue;
+                                    }
+                                    try {
+                                        implVol = option->impliedVolatility(
+                                            value, process, dividends, tolerance, maxEvaluations);
+                                    } catch (std::exception& e) {
+                                        BOOST_ERROR("\nimplied vol calculation failed:"
+                                                    << "\n   option:         " << type
+                                                    << "\n   strike:         " << strike
+                                                    << "\n   spot value:     " << u
+                                                    << "\n   dividend yield: " << io::rate(q)
+                                                    << "\n   risk-free rate: " << io::rate(r)
+                                                    << "\n   today:          " << today
+                                                    << "\n   maturity:       " << exDate
+                                                    << "\n   volatility:     " << io::volatility(v)
+                                                    << "\n   option value:   " << value << "\n"
+                                                    << e.what());
+                                    }
+                                    if (std::fabs(implVol - v) > tolerance) {
+                                        // the difference might not matter
+                                        vol->setValue(implVol);
+                                        Real value2 = option->NPV();
+                                        Real error = relativeError(value, value2, u);
+                                        if (error > tolerance) {
+                                            BOOST_ERROR(
+                                                type
+                                                << " option :\n"
+                                                << "    spot value:          " << u << "\n"
+                                                << "    strike:              " << strike << "\n"
+                                                << "    dividend yield:      " << io::rate(q)
+                                                << "\n"
+                                                << "    risk-free rate:      " << io::rate(r)
+                                                << "\n"
+                                                << "    maturity:            " << exDate << "\n\n"
+                                                << "    original volatility: " << io::volatility(v)
+                                                << "\n"
+                                                << "    price:               " << value << "\n"
+                                                << "    implied volatility:  "
+                                                << io::volatility(implVol) << "\n"
+                                                << "    corresponding price: " << value2 << "\n"
+                                                << "    error:               " << error);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 void EuropeanOptionTest::testImpliedVolContainment() {
 
     BOOST_TEST_MESSAGE("Testing self-containment of "
                        "implied volatility calculation...");
-
-    SavedSettings backup;
 
     Size maxEvaluations = 100;
     Real tolerance = 1.0e-6;
@@ -1008,7 +1116,6 @@ namespace {
                                     expected.clear();
                                     calculated.clear();
 
-                                    // FLOATING_POINT_EXCEPTION
                                     expected["value"] = refOption->NPV();
                                     calculated["value"] = option->NPV();
 
@@ -1050,8 +1157,6 @@ void EuropeanOptionTest::testJRBinomialEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = JR;
     Size steps = 251;
     Size samples = Null<Size>();
@@ -1069,8 +1174,6 @@ void EuropeanOptionTest::testCRRBinomialEngines() {
                        "against analytic results...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     EngineType engine = CRR;
     Size steps = 501;
@@ -1090,8 +1193,6 @@ void EuropeanOptionTest::testEQPBinomialEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = EQP;
     Size steps = 501;
     Size samples = Null<Size>();
@@ -1109,8 +1210,6 @@ void EuropeanOptionTest::testTGEOBinomialEngines() {
                        "against analytic results...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     EngineType engine = TGEO;
     Size steps = 251;
@@ -1130,8 +1229,6 @@ void EuropeanOptionTest::testTIANBinomialEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = TIAN;
     Size steps = 251;
     Size samples = Null<Size>();
@@ -1149,8 +1246,6 @@ void EuropeanOptionTest::testLRBinomialEngines() {
                        "against analytic results...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     EngineType engine = LR;
     Size steps = 251;
@@ -1170,8 +1265,6 @@ void EuropeanOptionTest::testJOSHIBinomialEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = JOSHI;
     Size steps = 251;
     Size samples = Null<Size>();
@@ -1190,8 +1283,6 @@ void EuropeanOptionTest::testFdEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = FiniteDifferences;
     Size timeSteps = 500;
     Size gridPoints = 500;
@@ -1209,8 +1300,6 @@ void EuropeanOptionTest::testIntegralEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = Integral;
     Size timeSteps = 300;
     Size gridPoints = 300;
@@ -1225,8 +1314,6 @@ void EuropeanOptionTest::testMcEngines() {
                        "against analytic results...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     EngineType engine = PseudoMonteCarlo;
     Size steps = Null<Size>();
@@ -1243,8 +1330,6 @@ void EuropeanOptionTest::testQmcEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = QuasiMonteCarlo;
     Size steps = Null<Size>();
     Size samples = 4095; // 2^12-1
@@ -1260,8 +1345,6 @@ void EuropeanOptionTest::testFFTEngines() {
 
     using namespace european_option_test;
 
-    SavedSettings backup;
-
     EngineType engine = FFT;
     Size steps = Null<Size>();
     Size samples = Null<Size>();
@@ -1275,8 +1358,6 @@ void EuropeanOptionTest::testLocalVolatility() {
     BOOST_TEST_MESSAGE("Testing finite-differences with local volatility...");
 
     using namespace european_option_test;
-
-    SavedSettings backup;
 
     const Date settlementDate(5, July, 2002);
     Settings::instance().evaluationDate() = settlementDate;
@@ -1417,8 +1498,6 @@ void EuropeanOptionTest::testAnalyticEngineDiscountCurve() {
     BOOST_TEST_MESSAGE(
         "Testing separate discount curve for analytic European engine...");
 
-    SavedSettings backup;
-
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
@@ -1463,10 +1542,7 @@ void EuropeanOptionTest::testAnalyticEngineDiscountCurve() {
 
 
 void EuropeanOptionTest::testPDESchemes() {
-    BOOST_TEST_MESSAGE("Testing different PDE schemes "
-            "to solve Black-Scholes PDEs...");
-
-    SavedSettings backup;
+    BOOST_TEST_MESSAGE("Testing different PDE schemes to solve Black-Scholes PDEs...");
 
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(18, February, 2018);
@@ -1537,8 +1613,6 @@ void EuropeanOptionTest::testPDESchemes() {
         std::make_pair(trBDF2, "TR-BDF2")
     };
 
-    const Size nEngines = LENGTH(engines);
-
     const ext::shared_ptr<PlainVanillaPayoff> payoff(
         ext::make_shared<PlainVanillaPayoff>(Option::Put, spot->value()));
 
@@ -1564,66 +1638,11 @@ void EuropeanOptionTest::testPDESchemes() {
                        << "\n    difference: " << diff << "\n    tolerance:  " << tol);
         }
     }
-
-    DividendVanillaOption dividendOption(
-        payoff, exercise,
-        std::vector<Date>(1, today + Period(3, Months)),
-        std::vector<Real>(1, 5.0));
-
-    Array dividendPrices(nEngines);
-    for (Size i=0; i < nEngines; ++i) {
-        dividendOption.setPricingEngine(engines[i].first);
-        dividendPrices[i] = dividendOption.NPV();
-    }
-
-    const Real expectedDiv = std::accumulate(
-        dividendPrices.begin(), dividendPrices.end(), Real(0.0))/nEngines;
-
-    for (Size i=0; i < nEngines; ++i) {
-        const Real calculated = dividendPrices[i];
-        const Real diff = std::fabs(expectedDiv - calculated);
-
-        if (diff > tol) {
-            BOOST_FAIL("Failed to reproduce European option values "
-                    "with dividend and the "
-                    << engines[i].second << " PDE scheme"
-                       << "\n    calculated: " << calculated
-                       << "\n    expected:   " << expectedDiv
-                       << "\n    difference: " << diff
-                       << "\n    tolerance:  " << tol);
-        }
-    }
-
-    // make sure that Douglas and Crank-Nicolson are giving the same result
-    const Size idxDouglas =
-        std::distance(std::begin(engines),
-                      std::find(std::begin(engines), std::end(engines),
-                                std::make_pair(douglas, std::string("Douglas"))));
-    const Real douglasNPV = dividendPrices[idxDouglas];
-
-    const Size idxCrankNicolson =
-        std::distance(std::begin(engines),
-                      std::find(std::begin(engines), std::end(engines),
-                                std::make_pair(crankNicolson, std::string("Crank-Nicolson"))));
-    const Real crankNicolsonNPV = dividendPrices[idxCrankNicolson];
-
-    const Real schemeTol = 1e-12;
-    const Real schemeDiff = std::fabs(crankNicolsonNPV - douglasNPV);
-    if (schemeDiff > schemeTol) {
-        BOOST_FAIL("Failed to reproduce Douglas scheme option values "
-                "with the Crank-Nicolson PDE scheme "
-                   << "\n    Dougles NPV:        " << douglasNPV
-                   << "\n    Crank-Nicolson NPV: " << crankNicolsonNPV
-                   << "\n    difference:         " << schemeDiff
-                   << "\n    tolerance:          " << schemeTol);
-    }
 }
 
 void EuropeanOptionTest::testFdEngineWithNonConstantParameters() {
     BOOST_TEST_MESSAGE("Testing finite-difference European engine "
                        "with non-constant parameters...");
-
-    SavedSettings backup;
 
     Real u = 190.0;
     Volatility v = 0.20;
@@ -1679,8 +1698,6 @@ void EuropeanOptionTest::testFdEngineWithNonConstantParameters() {
 void EuropeanOptionTest::testDouglasVsCrankNicolson() {
     BOOST_TEST_MESSAGE("Testing Douglas vs Crank-Nicolson scheme "
                         "for finite-difference European PDE engines...");
-
-    SavedSettings backup;
 
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(5, October, 2018);
@@ -1744,38 +1761,72 @@ void EuropeanOptionTest::testDouglasVsCrankNicolson() {
     }
 }
 
+void EuropeanOptionTest::testVanillaAndDividendEngine() {
+    BOOST_TEST_MESSAGE("Testing the use of a single engine for vanilla and dividend options...");
+
+    auto today = Date(1, January, 2023);
+    Settings::instance().evaluationDate() = today;
+
+    auto u = Handle<Quote>(ext::make_shared<SimpleQuote>(100.0));
+    auto r = Handle<YieldTermStructure>(ext::make_shared<FlatForward>(today, 0.01, Actual360()));
+    auto sigma = Handle<BlackVolTermStructure>(
+        ext::make_shared<BlackConstantVol>(today, TARGET(), 0.20, Actual360()));
+    auto process = ext::make_shared<BlackScholesProcess>(u, r, sigma);
+
+    auto engine = ext::make_shared<FdBlackScholesVanillaEngine>(process);
+
+    auto payoff = ext::make_shared<PlainVanillaPayoff>(Option::Call, 100.0);
+
+    auto option1 =
+        VanillaOption(payoff, ext::make_shared<AmericanExercise>(today, Date(1, June, 2023)));
+    QL_DEPRECATED_DISABLE_WARNING
+    auto option2 = DividendVanillaOption(
+        payoff, ext::make_shared<AmericanExercise>(today, Date(1, June, 2023)),
+        {Date(1, February, 2023)}, {1.0});
+    QL_DEPRECATED_ENABLE_WARNING
+
+    option1.setPricingEngine(engine);
+    option2.setPricingEngine(engine);
+
+    auto npv_before = option1.NPV();
+    option2.NPV();
+
+    option1.recalculate();
+    auto npv_after = option1.NPV();
+
+    if (npv_after != npv_before) {
+        BOOST_FAIL("Failed to price vanilla option correctly "
+                   "after using the engine on a dividend option: "
+                   << "\n    before usage: " << npv_before
+                   << "\n    after usage:  " << npv_after);
+    }
+}
+
 test_suite* EuropeanOptionTest::suite() {
     auto* suite = BOOST_TEST_SUITE("European option tests");
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testValues));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testGreekValues));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testGreeks));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testImpliedVol));
-    suite->add(QUANTLIB_TEST_CASE(
-                           &EuropeanOptionTest::testImpliedVolContainment));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testImpliedVolWithDividends));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testImpliedVolContainment));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testJRBinomialEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testCRRBinomialEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testEQPBinomialEngines));
-    suite->add(QUANTLIB_TEST_CASE(
-                               &EuropeanOptionTest::testTGEOBinomialEngines));
-    suite->add(QUANTLIB_TEST_CASE(
-                               &EuropeanOptionTest::testTIANBinomialEngines));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testTGEOBinomialEngines));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testTIANBinomialEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testLRBinomialEngines));
-    suite->add(QUANTLIB_TEST_CASE(
-                              &EuropeanOptionTest::testJOSHIBinomialEngines));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testJOSHIBinomialEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testFdEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testIntegralEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testMcEngines));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testQmcEngines));
-
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testLocalVolatility));
-
-    suite->add(QUANTLIB_TEST_CASE(
-                       &EuropeanOptionTest::testAnalyticEngineDiscountCurve));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testAnalyticEngineDiscountCurve));
     suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testPDESchemes));
-    suite->add(QUANTLIB_TEST_CASE(
-                 &EuropeanOptionTest::testFdEngineWithNonConstantParameters));
-    suite->add(QUANTLIB_TEST_CASE(
-                 &EuropeanOptionTest::testDouglasVsCrankNicolson));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testFdEngineWithNonConstantParameters));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testDouglasVsCrankNicolson));
+    suite->add(QUANTLIB_TEST_CASE(&EuropeanOptionTest::testVanillaAndDividendEngine));
 
     return suite;
 }

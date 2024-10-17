@@ -36,20 +36,26 @@ namespace QuantLib {
         <li>Maunday Thursday</li>
         <li>Good Friday</li>
         <li>Easter Monday</li>
-        <li>General Prayer Day, 25 days after Easter Monday</li>
+        <li>General Prayer Day, 25 days after Easter Monday (up until 2023)</li>
         <li>Ascension</li>
+        <li>Day after Ascension (from 2009)</li>
         <li>Whit (Pentecost) Monday </li>
         <li>New Year's Day, January 1st</li>
         <li>Constitution Day, June 5th</li>
+        <li>Christmas Eve, December 24th</li>
         <li>Christmas, December 25th</li>
         <li>Boxing Day, December 26th</li>
+        <li>New Year's Eve, December 31st</li>
         </ul>
+
+        See: https://www.nasdaqomxnordic.com/tradinghours, 
+        and: https://www.nationalbanken.dk/da/Kontakt/aabningstider/Sider/default.aspx
 
         \ingroup calendars
     */
     class Denmark : public Calendar {
       private:
-        class Impl : public Calendar::WesternImpl {
+        class Impl final : public Calendar::WesternImpl {
           public:
             std::string name() const override { return "Denmark"; }
             bool isBusinessDay(const Date&) const override;

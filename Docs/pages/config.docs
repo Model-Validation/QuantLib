@@ -72,11 +72,11 @@
     \code
     #define QL_ENABLE_SESSIONS
     \endcode
+
     If defined, singletons will return different instances for
-    different sessions. You will have to provide and link with the
-    library a `sessionId()` function in namespace QuantLib, returning a
-    different session id for each session. This also implies thread-safe
-    Singleton initialization.  Undefined by default.
+    different threads; in particular, this means that the evaluation
+    date, the stored index fixings and any other settings will be
+    per-thread. Undefined by default.
 
     \code
     #define QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN
@@ -89,23 +89,36 @@
     at least C++17.
 
     \code
-    #define QL_ENABLE_SINGLETON_THREAD_SAFE_INIT
-    \endcode
-    Define this to make `Singleton` initialization thread-safe.
-    Undefined by default.  Not compatible with `QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN`.
-    Note that defining QL_ENABLE_SESSIONS implies thread-safe initialization,
-    whether this is defined or not.
-
-    \code
     #define QL_HIGH_RESOLUTION_DATE
     \endcode
     If defined, date objects support an intraday datetime
     resolution down to microseconds.  Strictly monotone daycounters
     (`Actual360`, `Actual365Fixed` and `ActualActual`) will take the
     additional information into account and allow for accurate
-    intraday pricing.  If disabled (the default) the smallest
+    intraday pricing.  If undefined (the default) the smallest
     resolution of date objects is a single day.  Intraday
     datetime resolution is experimental.
+
+    \code
+    #define QL_THROW_IN_CYCLES
+    \endcode
+    If defined, lazy objects will raise an exception when they detect
+    a notification cycle which would result in an infinite recursion
+    loop. If undefined (the default), they will break the recursion
+    without throwing.  Enabling this option is recommended but might
+    cause existing code to throw.
+
+    \code
+    #define QL_FASTER_LAZY_OBJECTS
+    \endcode
+    If defined (the default), lazy objects will forward the first
+    notification received, and discard the others until recalculated;
+    the rationale is that observers were already notified, and don't
+    need further notifications until they recalculate, at which point
+    this object would be recalculated too.  After recalculation, this
+    object would again forward the first notification received.
+    Although not always correct, this behavior is a lot faster and
+    thus is the current default.
 
     \code
     #define QL_USE_STD_SHARED_PTR
@@ -128,6 +141,20 @@
     If defined, `std::tuple` and related classes and functions
     are used instead of `boost::tuple`. If disabled (the
     default) the Boost facilities are used.
+
+    \code
+    #define QL_USE_STD_ANY
+    \endcode
+    If enabled, `std::any` and related classes and functions will be
+    used instead of `boost::any`. This requires C++17. If disabled
+    (the default) the Boost facilities are used.
+
+    \code
+    #define QL_USE_STD_OPTIONAL
+    \endcode
+    If enabled, `std::optional` and related classes and functions will
+    be used instead of `boost::optional`. This requires C++17. If
+    disabled (the default) the Boost facilities are used.
 
     \code
     #define QL_NULL_AS_FUNCTIONS

@@ -32,7 +32,7 @@
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
-#include <ql/experimental/barrieroption/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
@@ -224,8 +224,6 @@ void QuantoOptionTest::testValues() {
 
     BOOST_TEST_MESSAGE("Testing quanto option values...");
 
-    SavedSettings backup;
-
     /* The data below are from
        from "Option pricing formulas", E.G. Haug, McGraw-Hill 1998
     */
@@ -297,8 +295,6 @@ void QuantoOptionTest::testValues() {
 void QuantoOptionTest::testGreeks() {
 
     BOOST_TEST_MESSAGE("Testing quanto option greeks...");
-
-    SavedSettings backup;
 
     std::map<std::string,Real> calculated, expected, tolerance;
     tolerance["delta"]   = 1.0e-5;
@@ -497,8 +493,6 @@ void QuantoOptionTest::testForwardValues() {
 
     BOOST_TEST_MESSAGE("Testing quanto-forward option values...");
 
-    SavedSettings backup;
-
     QuantoForwardOptionData values[] = {
         //   type, moneyness,  spot,  div, risk-free rate, reset, maturity,  vol, fx risk-free rate, fx vol, corr,     result, tol
         // reset=0.0, quanto (not-forward) options
@@ -573,8 +567,6 @@ void QuantoOptionTest::testForwardValues() {
 void QuantoOptionTest::testForwardGreeks() {
 
     BOOST_TEST_MESSAGE("Testing quanto-forward option greeks...");
-
-    SavedSettings backup;
 
     std::map<std::string,Real> calculated, expected, tolerance;
     tolerance["delta"]   = 1.0e-5;
@@ -786,8 +778,6 @@ void QuantoOptionTest::testForwardPerformanceValues() {
 
     BOOST_TEST_MESSAGE("Testing quanto-forward-performance option values...");
 
-    SavedSettings backup;
-
     QuantoForwardOptionData values[] = {
         //   type, moneyness,  spot,  div, risk-free rate, reset, maturity,  vol, fx risk-free rate, fx vol, corr,     result, tol
         // reset=0.0, quanto-(not-forward)-performance options
@@ -865,8 +855,6 @@ void QuantoOptionTest::testForwardPerformanceValues() {
 void QuantoOptionTest::testBarrierValues()  {
 
     BOOST_TEST_MESSAGE("Testing quanto-barrier option values...");
-
-    SavedSettings backup;
 
     QuantoBarrierOptionData values[] = {
          // TODO:  Bench results against an existing prop calculator
@@ -946,8 +934,6 @@ void QuantoOptionTest::testDoubleBarrierValues()  {
 
     BOOST_TEST_MESSAGE("Testing quanto-double-barrier option values...");
 
-    SavedSettings backup;
-
     QuantoDoubleBarrierOptionData values[] = {
          // barrierType,           bar.lo, bar.hi, rebate,         type, spot,  strk,    q,   r,    T,  vol, fx rate, fx vol, corr, result, tol
         { DoubleBarrier::KnockOut,   50.0,  150.0,      0, Option::Call,  100, 100.0, 0.00, 0.1, 0.25, 0.15,    0.05,    0.2,  0.3,  3.4623, 1.0e-4},
@@ -1022,8 +1008,6 @@ void QuantoOptionTest::testDoubleBarrierValues()  {
 void QuantoOptionTest::testFDMQuantoHelper()  {
 
     BOOST_TEST_MESSAGE("Testing FDM quanto helper...");
-
-    SavedSettings backup;
 
     const DayCounter dc = Actual360();
     const Date today = Date(22, April, 2019);
@@ -1117,8 +1101,6 @@ void QuantoOptionTest::testFDMQuantoHelper()  {
 void QuantoOptionTest::testPDEOptionValues()  {
 
     BOOST_TEST_MESSAGE("Testing quanto-option values with PDEs...");
-
-    SavedSettings backup;
 
     const DayCounter dc = Actual360();
     const Date today = Date(21, April, 2019);
@@ -1223,8 +1205,6 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
 
     BOOST_TEST_MESSAGE("Testing American quanto-option values with PDEs...");
 
-    SavedSettings backup;
-
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(21, April, 2019);
     const Date maturity = today + Period(9, Months);
@@ -1270,15 +1250,17 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
 
     const Real strike = 105.0;
 
-    DividendVanillaOption option(
+    std::vector<Date> dividendDates = { today + Period(6, Months) };
+    std::vector<Real> dividendAmounts = { 8.0 };
+    auto dividends = DividendVector(dividendDates, dividendAmounts);
+
+    VanillaOption option(
         ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),
-        ext::make_shared<AmericanExercise>(maturity),
-        std::vector<Date>(1, today + Period(6, Months)),
-        std::vector<Real>(1, 8.0));
+        ext::make_shared<AmericanExercise>(maturity));
 
     option.setPricingEngine(
         ext::make_shared<FdBlackScholesVanillaEngine>(
-            bsmProcess, quantoHelper, 100, 400, 1));
+            bsmProcess, dividends, quantoHelper, 100, 400, 1));
 
     const Real tol = 1e-4;
     const Real expected = 8.90611734;
@@ -1293,7 +1275,7 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
 
     option.setPricingEngine(
         ext::make_shared<FdBlackScholesVanillaEngine>(
-            bsmProcess, quantoHelper, 100, 400, 1));
+            bsmProcess, dividends, quantoHelper, 100, 400, 1));
 
     const Real localVolCalculated = option.NPV();
     if (std::fabs(expected - localVolCalculated) > tol) {
@@ -1311,6 +1293,10 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
                     << "\n    calculated Black-Scholes: " << bsCalculated);
     }
 
+    VanillaOption divOption(
+        ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),
+        ext::make_shared<AmericanExercise>(maturity));
+
     const Real v0    = vol*vol;
     const Real kappa = 1.0;
     const Real theta = v0;
@@ -1322,11 +1308,11 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
             ext::make_shared<HestonProcess>(
                 domesticTS, divTS, spot, v0, kappa, theta, sigma, rho));
 
-    option.setPricingEngine(
+    divOption.setPricingEngine(
         ext::make_shared<FdHestonVanillaEngine>(
-            hestonModel, quantoHelper, 100, 400, 3, 1));
+            hestonModel, dividends, quantoHelper, 100, 400, 3, 1));
 
-    const Real hestonCalculated = option.NPV();
+    const Real hestonCalculated = divOption.NPV();
 
     if (std::fabs(expected - hestonCalculated) > tol) {
         BOOST_ERROR("failed to reproduce American quanto option prices "
@@ -1343,12 +1329,12 @@ void QuantoOptionTest::testAmericanQuantoOption()  {
             ext::make_shared<HestonProcess>(
                 domesticTS, divTS, spot, 0.25*v0, kappa, 0.25*theta, sigma, rho));
 
-    option.setPricingEngine(
+    divOption.setPricingEngine(
         ext::make_shared<FdHestonVanillaEngine>(
-            hestonModel05, quantoHelper, 100, 400, 3, 1,
+            hestonModel05, dividends, quantoHelper, 100, 400, 3, 1,
             FdmSchemeDesc::Hundsdorfer(), localConstVol));
 
-    const Real hestoSlvCalculated = option.NPV();
+    const Real hestoSlvCalculated = divOption.NPV();
 
     if (std::fabs(expected - hestoSlvCalculated) > tol) {
         BOOST_ERROR("failed to reproduce American quanto option prices "

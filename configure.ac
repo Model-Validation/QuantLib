@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([QuantLib], [1.28],
+AC_INIT([QuantLib], [1.31.1],
         [quantlib-dev@lists.sourceforge.net],
         [QuantLib])
 AC_PREREQ(2.62)
@@ -41,16 +41,6 @@ if test [ -n "$ql_boost_include_path" ] ; then
    AC_SUBST([BOOST_INCLUDE],["-isystem ${ql_boost_include_path}"])
    AC_SUBST([CPPFLAGS],["${CPPFLAGS} -isystem ${ql_boost_include_path}"])
 fi
-AC_ARG_WITH([boost-lib],
-            AS_HELP_STRING([--with-boost-lib=LIB_PATH],
-                           [Supply the location of Boost libraries]),
-            [ql_boost_lib_path="`cd ${withval} 2>/dev/null && pwd`"],
-            [ql_boost_lib_path=""])
-if test [ -n "$ql_boost_lib_path" ] ; then
-   AC_SUBST([BOOST_LIB],["-L${ql_boost_lib_path}"])
-   AC_SUBST([LDFLAGS],["${LDFLAGS} -L${ql_boost_lib_path}"])
-fi
-
 
 # Continue setup
 
@@ -82,7 +72,6 @@ QL_CHECK_SYSTEM_HEADER_PREFIX
 
 # Check for Boost components
 QL_CHECK_BOOST
-AM_CONDITIONAL(BOOST_UNIT_TEST_FOUND, test "x${HAVE_BOOST_TEST}" != "x")
 
 # Check for Emacs
 AM_PATH_LISPDIR
@@ -257,12 +246,14 @@ if test "$ql_use_tsop" = "yes" ; then
              [Define this if you want to enable 
               thread-safe observer pattern.])
 fi
-
-if test "$ql_use_sessions" = "yes" || test "$ql_use_tsop" = "yes" || test "$ql_use_safe_singleton_init" = "yes"; then
+# QL1.29 MergeConflict theirsi
+if test "$ql_use_sessions" = "yes" || test "$ql_use_tsop" = "yes"; then
+# QL1.29 MergeConflict ours
+# if test "$ql_use_sessions" = "yes" || test "$ql_use_tsop" = "yes" || test "$ql_use_safe_singleton_init" = "yes"; then
    QL_CHECK_BOOST_VERSION_1_58_OR_HIGHER
-   QL_CHECK_BOOST_TEST_THREAD_SIGNALS2_SYSTEM
+   QL_CHECK_BOOST_SIGNALS2
 else
-   AC_SUBST([BOOST_THREAD_LIB],[""])
+   AC_SUBST([PTHREAD_LIB],[""])
 fi
 
 AC_MSG_CHECKING([whether to enable parallel unit test runner])
@@ -295,6 +286,16 @@ AC_ARG_ENABLE([examples],
               [ql_install_examples=no])
 AM_CONDITIONAL(AUTO_EXAMPLES, test "$ql_install_examples" != "no")
 AC_MSG_RESULT([$ql_install_examples])
+
+AC_MSG_CHECKING([whether to skip examples])
+AC_ARG_ENABLE([skip-examples],
+              AS_HELP_STRING([--enable-skip-examples],
+                             [If enabled, examples are not built.
+                              Disabled by default.]),
+              [ql_skip_examples=$enableval],
+              [ql_skip_examples=no])
+AM_CONDITIONAL(AUTO_SKIP_EXAMPLES, test "$ql_skip_examples" != "no")
+AC_MSG_RESULT([$ql_skip_examples])
 
 AC_MSG_CHECKING([whether to install the benchmark])
 AC_ARG_ENABLE([benchmark],
@@ -341,6 +342,80 @@ if test "$ql_use_intraday" = "yes" ; then
              [Define this if you want to enable high resolution date class.])
 fi
 AC_MSG_RESULT([$ql_use_intraday])
+
+AC_MSG_CHECKING([whether to throw exceptions for notification cycles])
+AC_ARG_ENABLE([throwing-in-cycles],
+              AS_HELP_STRING([--enable-throwing-in-cycles],
+                             [If enabled, lazy objects will raise an
+                              exception when they detect a
+                              notification cycle which would result in
+                              an infinite recursion loop. If disabled
+                              (the default), they will break the
+                              recursion without throwing.  Enabling
+                              this option is recommended but might
+                              cause existing code to throw.]),
+              [ql_throw_in_cycles=$enableval],
+              [ql_throw_in_cycles=no])
+if test "$ql_throw_in_cycles" = "yes" ; then
+   AC_DEFINE([QL_THROW_IN_CYCLES],[1],
+             [Define this if you want to throw an exception when a notification loop is detected.])
+fi
+AC_MSG_RESULT([$ql_throw_in_cycles])
+
+AC_MSG_CHECKING([whether to reduce the number of notifications from lazy objects])
+AC_ARG_ENABLE([faster-lazy-objects],
+              AS_HELP_STRING([--enable-faster-lazy-objects],
+                             [If enabled, lazy objects will forward
+                              the first notification received, and
+                              discard the others until recalculated;
+                              the rationale is that observers were
+                              already notified, and don't need further
+                              notifications until they recalculate, at
+                              which point this object would be
+                              recalculated too.  After recalculation,
+                              this object would again forward the
+                              first notification received.  Although
+                              not always correct, this behavior is a
+                              lot faster and thus is the current
+                              default.]),
+              [ql_faster_lazy_objects=$enableval],
+              [ql_faster_lazy_objects=yes])
+if test "$ql_faster_lazy_objects" = "yes" ; then
+   AC_DEFINE([QL_FASTER_LAZY_OBJECTS],[1],
+             [Define this if you want lazy objects to forward fewer notifications.])
+fi
+AC_MSG_RESULT([$ql_faster_lazy_objects])
+
+AC_MSG_CHECKING([whether to enable std::any instead of boost::any])
+AC_ARG_ENABLE([std-any],
+              AS_HELP_STRING([--enable-std-any],
+                             [If enabled, std::any and related classes and
+                              functions will be used instead of boost::any.
+                              This requires C++17. If disabled (the default)
+                              the Boost facilities are used.]),
+              [ql_use_std_any=$enableval],
+              [ql_use_std_any=no])
+if test "$ql_use_std_any" = "yes" ; then
+   AC_DEFINE([QL_USE_STD_ANY],[1],
+             [Define this if you want to use std::any.])
+fi
+AC_MSG_RESULT([$ql_use_std_any])
+
+AC_MSG_CHECKING([whether to enable std::optional instead of boost::optional])
+AC_ARG_ENABLE([std-optional],
+              AS_HELP_STRING([--enable-std-optional],
+                             [If enabled, std::optional and related
+                              classes and functions will be used instead
+                              of boost::optional. This requires C++17.
+                              If disabled (the default) the Boost facilities
+                              are used.]),
+              [ql_use_std_optional=$enableval],
+              [ql_use_std_optional=no])
+if test "$ql_use_std_optional" = "yes" ; then
+   AC_DEFINE([QL_USE_STD_OPTIONAL],[1],
+             [Define this if you want to use std::optional.])
+fi
+AC_MSG_RESULT([$ql_use_std_optional])
 
 AC_MSG_CHECKING([whether to enable standard smart pointers])
 AC_ARG_ENABLE([std-pointers],
@@ -427,6 +502,17 @@ if test "$ql_use_null_functions" = "yes" ; then
              [Define this if you want to enable the implementation of Null as template functions.])
 fi
 AC_MSG_RESULT([$ql_use_null_functions])
+
+AC_MSG_CHECKING([whether to compile the test suite])
+AC_ARG_ENABLE([test-suite],
+              AS_HELP_STRING([--enable-test-suite],
+                             [If enabled (the default), the test suite is
+                              also built, assuming Boost.Test could be found.
+                              If disabled, it is not. Do not try this at home.]),
+              [ql_build_test_suite=$enableval],
+              [ql_build_test_suite=yes])
+AM_CONDITIONAL(BUILD_TEST_SUITE, test "$ql_build_test_suite" != "no" && test "x${HAVE_BOOST_TEST}" != "x" )
+AC_MSG_RESULT([$ql_build_test_suite])
 
 
 # manual configurations for specific hosts

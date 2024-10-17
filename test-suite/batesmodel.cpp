@@ -61,8 +61,6 @@ void BatesModelTest::testAnalyticVsBlack() {
 
     BOOST_TEST_MESSAGE("Testing analytic Bates engine against Black formula...");
 
-    SavedSettings backup;
-
     Date settlementDate = Date::todaysDate();
     Settings::instance().evaluationDate() = settlementDate;
 
@@ -174,8 +172,6 @@ void BatesModelTest::testAnalyticAndMcVsJumpDiffusion() {
 
     BOOST_TEST_MESSAGE("Testing analytic Bates engine against Merton-76 engine...");
 
-    SavedSettings backup;
-
     Date settlementDate = Date::todaysDate();
     Settings::instance().evaluationDate() = settlementDate;
 
@@ -189,7 +185,6 @@ void BatesModelTest::testAnalyticAndMcVsJumpDiffusion() {
     Handle<Quote> s0(ext::shared_ptr<Quote>(new SimpleQuote(100)));
 
     Real v0 = 0.0433;
-    // FLOATING_POINT_EXCEPTION
     ext::shared_ptr<SimpleQuote> vol(new SimpleQuote(std::sqrt(v0)));
     ext::shared_ptr<BlackVolTermStructure> volTS =
         flatVol(settlementDate, vol, dayCounter);
@@ -303,8 +298,6 @@ void BatesModelTest::testAnalyticVsMCPricing() {
 
     using namespace bates_model_test;
 
-    SavedSettings backup;
-
     Date settlementDate(30, March, 2007);
     Settings::instance().evaluationDate() = settlementDate;
 
@@ -384,8 +377,6 @@ void BatesModelTest::testDAXCalibration() {
 
     using namespace bates_model_test;
 
-    SavedSettings backup;
-
     Date settlementDate(5, July, 2002);
     Settings::instance().evaluationDate() = settlementDate;
 
@@ -403,7 +394,6 @@ void BatesModelTest::testDAXCalibration() {
         dates.push_back(settlementDate + t[i]);
         rates.push_back(r[i]);
     }
-     // FLOATING_POINT_EXCEPTION
     Handle<YieldTermStructure> riskFreeTS(
                        ext::shared_ptr<YieldTermStructure>(
                                     new ZeroCurve(dates, rates, dayCounter)));
@@ -529,10 +519,8 @@ void BatesModelTest::testDAXCalibration() {
 test_suite* BatesModelTest::suite() {
     auto* suite = BOOST_TEST_SUITE("Bates model tests");
     suite->add(QUANTLIB_TEST_CASE(&BatesModelTest::testAnalyticVsBlack));
-    suite->add(QUANTLIB_TEST_CASE(
-                        &BatesModelTest::testAnalyticAndMcVsJumpDiffusion));
+    suite->add(QUANTLIB_TEST_CASE(&BatesModelTest::testAnalyticAndMcVsJumpDiffusion));
     suite->add(QUANTLIB_TEST_CASE(&BatesModelTest::testAnalyticVsMCPricing));
-    // FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(&BatesModelTest::testDAXCalibration));
     return suite;
 }

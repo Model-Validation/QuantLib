@@ -229,8 +229,12 @@ namespace QuantLib {
         // the part of the swap preceding exerciseDate should be truncated
         // to avoid taking into account unwanted cashflows
         // for the moment we add a check avoiding this situation
-        auto swap = arguments_.swap;
-        auto swapOis = arguments_.swapOis;
+        // Furthermore, we take a copy of the underlying swap. This avoids notifying the swaption
+        // when we set a pricing engine on the swap below.
+        auto swap = arguments_.swap ? boost::make_shared<VanillaSwap>(*arguments_.swap) : nullptr;
+        auto swapOis = arguments_.swapOis ?
+                           boost::make_shared<OvernightIndexedSwap>(*arguments_.swapOis) :
+                           nullptr;
         QL_REQUIRE(swap || swapOis,
                    "BlackStyleSwaptionEngine: internal error, expected swap or swapOis to be set");
         const Leg& fixedLeg = swap ? swap->fixedLeg() : swapOis->fixedLeg();
@@ -263,10 +267,11 @@ namespace QuantLib {
             atmForward -= correction;
             results_.additionalResults["spreadCorrection"] = correction;
         } else {
-            results_.additionalResults["spreadCorrection"] = 0.0;
+            results_.additionalResults["spreadCorrection"] = Real(0.0);
         }
         results_.additionalResults["strike"] = strike;
         results_.additionalResults["atmForward"] = atmForward;
+        results_.additionalResults["underlyingNPV"] = swap ? swap->NPV() : swapOis->NPV();
 
         Real annuity;
         if (arguments_.settlementType == Settlement::Physical ||
@@ -330,7 +335,7 @@ namespace QuantLib {
         }
 
         results_.additionalResults["timeToExpiry"] = exerciseTime;
-        results_.additionalResults["impliedVolatility"] = stdDev / std::sqrt(exerciseTime);
+        results_.additionalResults["impliedVolatility"] = Real(stdDev / std::sqrt(exerciseTime));
     }
 
     }  // namespace detail

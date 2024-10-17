@@ -6,6 +6,7 @@
  Copyright (C) 2008 Roland Lichters
  Copyright (C) 2008 StatPro Italia srl
  Copyright (C) 2017 Quaternion Risk Management Ltd
+ Copyright (C) 2023 Andrea Pellegatta
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -66,7 +67,7 @@ namespace QuantLib {
                                distinction.
             @param recoveryRate  The recovery rate of the underlying reference entity.
             @param discountCurve  A handle to the relevant discount curve.
-            @param settlesAccrual  Set to \c true if accrued fee is paid on the occurence of a credit event and set 
+            @param settlesAccrual  Set to \c true if accrued fee is paid on the occurrence of a credit event and set 
                                    to \c false if it is not. Typically this is \c true.
             @param paysAtDefaultTime  Set to \c true if default payment is made at time of credit event or postponed 
                                       to the end of the coupon period. Typically this is \c true.
@@ -377,6 +378,7 @@ namespace QuantLib {
         Real impliedQuote() const override;
         
       private:
+        Date upfrontDate();
         void initializeDates() override;
         void resetEngine() override;
         Natural upfrontSettlementDays_;

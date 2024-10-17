@@ -32,6 +32,7 @@
 #include <ql/default.hpp>
 #include <ql/termstructures/defaulttermstructure.hpp>
 #include <ql/time/schedule.hpp>
+#include <ql/optional.hpp>
 
 namespace QuantLib {
 
@@ -108,8 +109,8 @@ namespace QuantLib {
                           const Schedule& schedule,
                           BusinessDayConvention paymentConvention,
                           const DayCounter& dayCounter,
-                          bool settlesAccrual = true,
-                          bool paysAtDefaultTime = true,
+                          bool settlesAccrual,
+                          bool paysAtDefaultTime,
                           const Date& protectionStart = Date(),
                           const ext::shared_ptr<Claim>& =
                                                   ext::shared_ptr<Claim>(),
@@ -163,8 +164,8 @@ namespace QuantLib {
                           const Schedule& schedule,
                           BusinessDayConvention paymentConvention,
                           const DayCounter& dayCounter,
-                          bool settlesAccrual = true,
-                          bool paysAtDefaultTime = true,
+                          bool settlesAccrual,
+                          bool paysAtDefaultTime,
                           const Date& protectionStart = Date(),
                           const Date& upfrontDate = Date(),
                           const ext::shared_ptr<Claim>& =
@@ -173,7 +174,7 @@ namespace QuantLib {
                           bool rebatesAccrual = true,
                           const Date& tradeDate = Date(),
                           Natural cashSettlementDays = 3);
-    //! \name Constructors
+        //! \name Constructors
     //@{
     //! CDS quoted as running-spread only
     /*! @param side  Whether the protection is bought or sold.
@@ -365,7 +366,7 @@ namespace QuantLib {
         Protection::Side side() const;
         Real notional() const;
         Rate runningSpread() const;
-        boost::optional<Rate> upfront() const;
+        ext::optional<Rate> upfront() const;
         bool settlesAccrual() const;
         ProtectionPaymentTime protectionPaymentTime() const;
         bool paysAtDefaultTime() const;
@@ -484,7 +485,7 @@ namespace QuantLib {
         // data members
         Protection::Side side_;
         Real notional_;
-        boost::optional<Rate> upfront_;
+        ext::optional<Rate> upfront_;
         Rate runningSpread_;
         Schedule schedule_;
         BusinessDayConvention paymentConvention_;
@@ -531,7 +532,7 @@ namespace QuantLib {
         arguments();
         Protection::Side side;
         Real notional;
-        boost::optional<Rate> upfront;
+        ext::optional<Rate> upfront;
         Rate spread;
         Leg leg;
         // if not initialized by constructors means theres no flows.

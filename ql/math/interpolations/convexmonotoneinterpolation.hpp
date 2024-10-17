@@ -93,9 +93,9 @@ namespace QuantLib {
         static const Size requiredPoints = 2;
         static const Size dataSizeAdjustment = 1;
 
-        explicit ConvexMonotone(Real quadraticity = 0.3,
-                                Real monotonicity = 0.7,
-                                bool forcePositive = true)
+        ConvexMonotone(Real quadraticity = 0.3,
+                       Real monotonicity = 0.7,
+                       bool forcePositive = true)
         : quadraticity_(quadraticity), monotonicity_(monotonicity),
           forcePositive_(forcePositive) {}
 
@@ -171,7 +171,7 @@ namespace QuantLib {
 
         //the first value in the y-vector is ignored.
         template <class I1, class I2>
-        class ConvexMonotoneImpl : public Interpolation::templateImpl<I1, I2> {
+        class ConvexMonotoneImpl final : public Interpolation::templateImpl<I1, I2> {
             typedef std::map<Real, ext::shared_ptr<SectionHelper> >
                                                                    helper_map;
           public:

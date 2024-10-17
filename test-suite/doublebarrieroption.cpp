@@ -26,12 +26,13 @@
 #include <ql/math/functional.hpp>
 #include <ql/math/interpolations/bicubicsplineinterpolation.hpp>
 #include <ql/pricingengines/blackformula.hpp>
-#include <ql/experimental/barrieroption/doublebarrieroption.hpp>
-#include <ql/experimental/barrieroption/analyticdoublebarrierengine.hpp>
+#include <ql/instruments/doublebarrieroption.hpp>
+#include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/binomialdoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/vannavolgadoublebarrierengine.hpp>
-#include <ql/experimental/finitedifferences/fdhestondoublebarrierengine.hpp>
+#include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -41,7 +42,6 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
-#include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -389,8 +389,6 @@ void DoubleBarrierOptionTest::testVannaVolgaDoubleBarrierValues() {
 
     using namespace double_barrier_option_test;
 
-    SavedSettings backup;
-
     DoubleBarrierFxOptionData values[] = {
 
         //            BarrierType, barr.1, barr.2, rebate,         type,    strike,          s,         q,         r,  t, vol25Put,    volAtm,vol25Call,      vol,    result,   tol
@@ -532,8 +530,6 @@ void DoubleBarrierOptionTest::testMonteCarloDoubleBarrierWithAnalytical() {
 
     using namespace double_barrier_option_test;
 
-    SavedSettings backup;
-
     Real tolerance = 0.01; //percentage difference between analytical and monte carlo values to be tolerated
 
     // set up dates
@@ -636,12 +632,9 @@ void DoubleBarrierOptionTest::testMonteCarloDoubleBarrierWithAnalytical() {
 
 }
 
-test_suite* DoubleBarrierOptionTest::suite(SpeedLevel speed) {
+test_suite* DoubleBarrierOptionTest::suite(SpeedLevel) {
     auto* suite = BOOST_TEST_SUITE("DoubleBarrier");
-
-    if (speed <= Fast) {
-        suite->add(QUANTLIB_TEST_CASE(&DoubleBarrierOptionTest::testEuropeanHaugValues));
-    }
+    suite->add(QUANTLIB_TEST_CASE(&DoubleBarrierOptionTest::testEuropeanHaugValues));
 
     return suite;
 }

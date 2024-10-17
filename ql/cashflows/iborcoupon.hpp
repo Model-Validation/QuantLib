@@ -33,6 +33,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/patterns/singleton.hpp>
 #include <ql/time/schedule.hpp>
+#include <ql/optional.hpp>
 
 namespace QuantLib {
 
@@ -44,6 +45,19 @@ namespace QuantLib {
                    const Date& startDate,
                    const Date& endDate,
                    Natural fixingDays,
+                   const ext::shared_ptr<IborIndex>& index,
+                   Real gearing = 1.0,
+                   Spread spread = 0.0,
+                   const Date& refPeriodStart = Date(),
+                   const Date& refPeriodEnd = Date(),
+                   const DayCounter& dayCounter = DayCounter(),
+                   bool isInArrears = false,
+                   const Date& exCouponDate = Date());
+        IborCoupon(const Date& paymentDate,
+                   Real nominal,
+                   const Date& startDate,
+                   const Date& endDate,
+                   const Date& fixingDate,
                    const ext::shared_ptr<IborIndex>& index,
                    Real gearing = 1.0,
                    Spread spread = 0.0,
@@ -89,7 +103,6 @@ namespace QuantLib {
       private:
         friend class IborCouponPricer;
         ext::shared_ptr<IborIndex> iborIndex_;
-        Date fixingDate_;
         // computed by coupon pricer (depending on par coupon flag) and stored here
         void initializeCachedData() const;
         mutable bool cachedDataIsInitialized_ = false;
@@ -99,18 +112,6 @@ namespace QuantLib {
       public:
         // IborCoupon::Settings forward declaration
         class Settings;
-        /*! \deprecated Use IborCouponSettings::Settings::instance().createAtParCoupons() instead
-                        Deprecated in version 1.24.
-        */
-        QL_DEPRECATED static void createAtParCoupons();
-        /*! \deprecated Use IborCouponSettings::Settings::instance().createIndexedCoupons() instead
-                        Deprecated in version 1.24.
-        */
-        QL_DEPRECATED static void createIndexedCoupons();
-        /*! \deprecated Use IborCouponSettings::Settings::instance().usingAtParCoupons() instead
-                        Deprecated in version 1.24.
-        */
-        QL_DEPRECATED static bool usingAtParCoupons();
     };
 
 
@@ -166,8 +167,9 @@ namespace QuantLib {
                                     const Calendar&,
                                     BusinessDayConvention,
                                     bool endOfMonth = false);
-        IborLeg& withIndexedCoupons(boost::optional<bool> b = true);
+        IborLeg& withIndexedCoupons(ext::optional<bool> b = true);
         IborLeg& withAtParCoupons(bool b = true);
+        IborLeg& withPaymentDates(const std::vector<Date>& paymentDates);
         operator Leg() const;
 
       private:
@@ -188,6 +190,7 @@ namespace QuantLib {
         BusinessDayConvention exCouponAdjustment_ = Unadjusted;
         bool exCouponEndOfMonth_ = false;
         boost::optional<bool> useIndexedCoupons_;
+        std::vector<Date> paymentDates_;
     };
 
 }

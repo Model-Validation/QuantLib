@@ -23,6 +23,20 @@ EXAMPLES = \
     Repo/Repo
 
 
+if AUTO_SKIP_EXAMPLES
+
+EXTRA_DIST = CMakeLists.txt README.txt
+
+dist-hook:
+	for i in $(notdir $(EXAMPLES)); do \
+	    cp $(srcdir)/$$i/$$i.cpp $(distdir)/$$i/ && \
+	    cp $(srcdir)/$$i/$$i.vcxproj $(distdir)/$$i/ && \
+	    cp $(srcdir)/$$i/$$i.vcxproj.filters $(distdir)/$$i/ && \
+	    cp $(srcdir)/$$i/CMakeLists.txt $(distdir)/$$i/ \
+	; done
+
+else
+
 if AUTO_EXAMPLES
 bin_PROGRAMS = $(EXAMPLES)
 TESTS = $(EXAMPLES)
@@ -30,7 +44,7 @@ else
 noinst_PROGRAMS = $(EXAMPLES)
 endif
 
-LDADDS = ../ql/libQuantLib.la ${BOOST_THREAD_LIB}
+LDADDS = ../ql/libQuantLib.la ${PTHREAD_LIB}
 
 BasketLosses_BasketLosses_SOURCES = BasketLosses/BasketLosses.cpp
 BasketLosses_BasketLosses_LDADD = $(LDADDS)
@@ -103,3 +117,4 @@ dist-hook:
 check-examples: $(EXAMPLES)
 	for i in $(EXAMPLES); do echo "========" && echo $$i && $$i || break -1 ; done
 
+endif

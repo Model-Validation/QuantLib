@@ -78,6 +78,9 @@ namespace QuantLib {
             Tuesday)</li>
         </ul>
 
+        Note that there are some one-off holidays not listed above.
+        See the implementation for the complete list.
+
         \ingroup calendars
 
         \todo add LIFFE
@@ -87,17 +90,17 @@ namespace QuantLib {
     */
     class UnitedKingdom : public Calendar {
       private:
-        class SettlementImpl : public Calendar::WesternImpl {
+        class SettlementImpl final : public Calendar::WesternImpl {
           public:
             std::string name() const override { return "UK settlement"; }
             bool isBusinessDay(const Date&) const override;
         };
-        class ExchangeImpl : public Calendar::WesternImpl {
+        class ExchangeImpl final : public Calendar::WesternImpl {
           public:
             std::string name() const override { return "London stock exchange"; }
             bool isBusinessDay(const Date&) const override;
         };
-        class MetalsImpl : public Calendar::WesternImpl {
+        class MetalsImpl final : public Calendar::WesternImpl {
           public:
             std::string name() const override { return "London metals exchange"; }
             bool isBusinessDay(const Date&) const override;

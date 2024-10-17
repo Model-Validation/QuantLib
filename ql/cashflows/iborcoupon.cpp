@@ -27,21 +27,10 @@
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/indexes/interestrateindex.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/optional.hpp>
 #include <utility>
 
 namespace QuantLib {
-
-    void IborCoupon::createAtParCoupons() {
-        Settings::instance().createAtParCoupons();
-    }
-
-    void IborCoupon::createIndexedCoupons() {
-        Settings::instance().createIndexedCoupons();
-    }
-
-    bool IborCoupon::usingAtParCoupons() {
-        return Settings::instance().usingAtParCoupons();
-    }
 
     IborCoupon::IborCoupon(const Date& paymentDate,
                            Real nominal,
@@ -60,9 +49,26 @@ namespace QuantLib {
                          fixingDays, iborIndex, gearing, spread,
                          refPeriodStart, refPeriodEnd,
                          dayCounter, isInArrears, exCouponDate),
-      iborIndex_(iborIndex) {
-        fixingDate_ = fixingDate();
-    }
+      iborIndex_(iborIndex) {}
+
+    IborCoupon::IborCoupon(const Date& paymentDate,
+                           Real nominal,
+                           const Date& startDate,
+                           const Date& endDate,
+                           const Date& fixingDate,
+                           const ext::shared_ptr<IborIndex>& iborIndex,
+                           Real gearing,
+                           Spread spread,
+                           const Date& refPeriodStart,
+                           const Date& refPeriodEnd,
+                           const DayCounter& dayCounter,
+                           bool isInArrears,
+                           const Date& exCouponDate)
+    : FloatingRateCoupon(paymentDate, nominal, startDate, endDate,
+                         fixingDate, iborIndex, gearing, spread,
+                         refPeriodStart, refPeriodEnd,
+                         dayCounter, isInArrears, exCouponDate),
+      iborIndex_(iborIndex) {}
 
     void IborCoupon::initializeCachedData() const {
         auto p = ext::dynamic_pointer_cast<IborCouponPricer>(pricer_);
@@ -267,7 +273,7 @@ namespace QuantLib {
         return *this;
 	}
 
-    IborLeg& IborLeg::withIndexedCoupons(boost::optional<bool> b) {
+    IborLeg& IborLeg::withIndexedCoupons(ext::optional<bool> b) {
         useIndexedCoupons_ = b;
         return *this;
     }
@@ -277,13 +283,19 @@ namespace QuantLib {
         return *this;
     }
 
+    IborLeg& IborLeg::withPaymentDates(const std::vector<Date>& paymentDates) {
+        paymentDates_ = paymentDates;
+        return *this;
+    }
+
     IborLeg::operator Leg() const {
 
         Leg leg = FloatingLeg<IborIndex, IborCoupon, CappedFlooredIborCoupon>(
                          schedule_, notionals_, index_, paymentDayCounter_,
                          paymentAdjustment_, fixingDays_, gearings_, spreads_,
                          caps_, floors_, inArrears_, zeroPayments_, paymentLag_, paymentCalendar_, 
-			             exCouponPeriod_, exCouponCalendar_, exCouponAdjustment_, exCouponEndOfMonth_);
+			             exCouponPeriod_, exCouponCalendar_, exCouponAdjustment_, exCouponEndOfMonth_,
+                         paymentDates_);
 
         if (caps_.empty() && floors_.empty() && !inArrears_) {
             ext::shared_ptr<IborCouponPricer> pricer = ext::make_shared<BlackIborCouponPricer>(

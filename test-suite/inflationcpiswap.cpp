@@ -78,7 +78,7 @@ namespace inflation_cpi_swap_test {
 
     struct CommonVars {
         // common data
-
+    
         Size length;
         Date startDate;
         Real volatility;
@@ -102,11 +102,6 @@ namespace inflation_cpi_swap_test {
         RelinkableHandle<YieldTermStructure> nominalTS;
         ext::shared_ptr<ZeroInflationTermStructure> cpiTS;
         RelinkableHandle<ZeroInflationTermStructure> hcpi;
-
-        // cleanup
-
-        SavedSettings backup;
-        IndexHistoryCleaner cleaner;
 
         // setup
         CommonVars()
@@ -147,9 +142,7 @@ namespace inflation_cpi_swap_test {
                 -999.0, -999.0 };
 
             // link from cpi index to cpi TS
-            bool interp = false;// this MUST be false because the observation lag is only 2 months
-                                // for ZCIIS; but not for contract if the contract uses a bigger lag.
-            ii = ext::make_shared<UKRPI>(interp, hcpi);
+            ii = ext::make_shared<UKRPI>(hcpi);
             for (Size i=0; i<rpiSchedule.size();i++) {
                 ii->addFixing(rpiSchedule[i], fixData[i], true);// force overwrite in case multiple use
             };

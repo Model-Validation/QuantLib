@@ -33,22 +33,47 @@ namespace QuantLib {
                                          const Calendar& calendar,
                                          BusinessDayConvention bdc,
                                          ext::shared_ptr<IborIndex> iborIndex,
-                                         const std::vector<Date>& optionletDates,
+                                         const vector<Date>& optionletDates,
                                          const vector<Rate>& strikes,
-                                         vector<vector<Handle<Quote> > > v,
+                                         vector<vector<Handle<Quote>>> v,
                                          DayCounter dc,
                                          VolatilityType type,
-                                         Real displacement)
+                                         Real displacement,
+                                         const std::vector<Real>& atmOptionletRates)
+    : StrippedOptionlet(settlementDays,
+                        calendar,
+                        bdc,
+                        std::move(iborIndex),
+                        optionletDates,
+                        vector<vector<Rate>>(optionletDates.size(), strikes),
+                        std::move(v),
+                        std::move(dc),
+                        type,
+                        displacement,
+                        atmOptionletRates) {}
+
+    StrippedOptionlet::StrippedOptionlet(Natural settlementDays,
+                                         const Calendar& calendar,
+                                         BusinessDayConvention bdc,
+                                         ext::shared_ptr<IborIndex> iborIndex,
+                                         const vector<Date>& optionletDates,
+                                         const vector<vector<Rate>>& strikes,
+                                         vector<vector<Handle<Quote>>> v,
+                                         DayCounter dc,
+                                         VolatilityType type,
+                                         Real displacement,
+                                         const std::vector<Real>& atmOptionletRates)
     : calendar_(calendar), settlementDays_(settlementDays), businessDayConvention_(bdc),
       dc_(std::move(dc)), iborIndex_(std::move(iborIndex)), type_(type),
       displacement_(displacement), nOptionletDates_(optionletDates.size()),
       optionletDates_(optionletDates), optionletTimes_(nOptionletDates_),
-      optionletAtmRates_(nOptionletDates_), optionletStrikes_(nOptionletDates_, strikes),
-      nStrikes_(strikes.size()), optionletVolQuotes_(std::move(v)),
-      optionletVolatilities_(nOptionletDates_, vector<Volatility>(nStrikes_))
-
-    {
+      optionletAtmRates_(atmOptionletRates), optionletStrikes_(strikes),
+      optionletVolQuotes_(std::move(v)) {
         checkInputs();
+
+        for (Size i = 0; i < nOptionletDates_; ++i)
+            optionletVolatilities_.push_back(vector<Volatility>(strikes[i].size()));
+
         registerWith(Settings::instance().evaluationDate());
         registerWithMarketData();
 
@@ -57,6 +82,8 @@ namespace QuantLib {
 
         for (Size i=0; i<nOptionletDates_; ++i)
             optionletTimes_[i] = dc_.yearFraction(refDate, optionletDates_[i]);
+
+        externalAtmRatesGiven_ = !optionletAtmRates_.empty();
     }
 
     void StrippedOptionlet::checkInputs() const {
@@ -73,28 +100,46 @@ namespace QuantLib {
                        "non increasing option dates: " << io::ordinal(i) <<
                        " is " << optionletDates_[i-1] << ", " <<
                        io::ordinal(i+1) << " is " << optionletDates_[i]);
-
-        QL_REQUIRE(nStrikes_==optionletVolQuotes_[0].size(),
-                   "mismatch between strikes(" << optionletStrikes_[0].size() <<
-                   ") and vol columns (" << optionletVolQuotes_[0].size() << ")");
-        for (Size j=1; j<nStrikes_; ++j)
-            QL_REQUIRE(optionletStrikes_[0][j-1]<optionletStrikes_[0][j],
-                       "non increasing strikes: " << io::ordinal(j) <<
-                       " is " << io::rate(optionletStrikes_[0][j-1]) << ", " <<
-                       io::ordinal(j+1) << " is " << io::rate(optionletStrikes_[0][j]));
+        QL_REQUIRE(nOptionletDates_ == optionletStrikes_.size(),
+                   "mismatch between number of option tenors (" << nOptionletDates_
+                                                                << ") and number of strikes ("
+                                                                << optionletStrikes_.size() << ")");
+        for (Size i = 0; i < nOptionletDates_; ++i) {
+            QL_REQUIRE(optionletStrikes_[i].size() == optionletVolQuotes_[i].size(),
+                       "mismatch between number of option tenors ("
+                           << nOptionletDates_ << ") and number of vol columns at date " << i
+                           << " (" << optionletVolQuotes_[i].size());
+            for (Size j = 1; j < optionletStrikes_[i].size(); ++j)
+                QL_REQUIRE(optionletStrikes_[i][j - 1] < optionletStrikes_[i][j],
+                           "non increasing strikes at date "
+                               << i << ": " << io::ordinal(j) << " is "
+                               << io::rate(optionletStrikes_[0][j - 1]) << ", "
+                               << io::ordinal(j + 1) << " is "
+                               << io::rate(optionletStrikes_[0][j]));
+        }
     }
 
-    void StrippedOptionlet::registerWithMarketData()
-    {
-        for (Size i=0; i<nOptionletDates_; ++i)
-            for (Size j=0; j<nStrikes_; ++j)
-                registerWith(optionletVolQuotes_[i][j]);
+    void StrippedOptionlet::registerWithMarketData() {
+        for (Size i = 0; i < nOptionletDates_; ++i)
+            for (auto& j : optionletVolQuotes_[i])
+                registerWith(j);
     }
 
     void StrippedOptionlet::performCalculations() const {
-        for (Size i=0; i<nOptionletDates_; ++i)
-          for (Size j=0; j<nStrikes_; ++j)
-            optionletVolatilities_[i][j] = optionletVolQuotes_[i][j]->value();
+        for (Size i = 0; i < nOptionletDates_; ++i)
+            for (Size j = 0; j < optionletVolQuotes_[i].size(); ++j)
+                optionletVolatilities_[i][j] = optionletVolQuotes_[i][j]->value();
+        if (!externalAtmRatesGiven_) {
+            optionletAtmRates_ = std::vector<Real>(nOptionletDates_, Null<Real>());
+            if (iborIndex_ != nullptr) {
+                for (Size i = 0; i < nOptionletDates_; ++i) {
+                    try {
+                        optionletAtmRates_[i] = iborIndex_->fixing(optionletDates_[i], true);
+                    } catch (...) {
+                    }
+                }
+            }
+        }
     }
 
     const vector<Rate>& StrippedOptionlet::optionletStrikes(Size i) const{
@@ -131,8 +176,6 @@ namespace QuantLib {
 
     const vector<Time>& StrippedOptionlet::atmOptionletRates() const {
         calculate();
-        for (Size i=0; i<nOptionletDates_; ++i)
-            optionletAtmRates_[i] = iborIndex_->fixing(optionletDates_[i], true);
         return optionletAtmRates_;
     }
 

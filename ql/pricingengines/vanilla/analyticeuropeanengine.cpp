@@ -17,10 +17,10 @@
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
-
 #include <ql/exercise.hpp>
 #include <ql/pricingengines/blackcalculator.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/time/calendars/nullcalendar.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -31,10 +31,11 @@ namespace QuantLib {
         registerWith(process_);
     }
 
-    AnalyticEuropeanEngine::AnalyticEuropeanEngine(
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process,
-        Handle<YieldTermStructure> discountCurve)
-    : process_(std::move(process)), discountCurve_(std::move(discountCurve)) {
+    AnalyticEuropeanEngine::AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
+                                                   Handle<YieldTermStructure> discountCurve,
+                                                   ext::optional<unsigned int> spotDays,
+                                                   ext::optional<Calendar> spotCalendar)
+        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar) {
         registerWith(process_);
         registerWith(discountCurve_);
     }
@@ -59,18 +60,31 @@ namespace QuantLib {
             process_->blackVolatility()->blackVariance(
                                               arguments_.exercise->lastDate(),
                                               payoff->strike());
-        DiscountFactor dividendDiscount =
-            process_->dividendYield()->discount(
-                                             arguments_.exercise->lastDate());
+        const unsigned int spotDays = spotDays_.get_value_or(0);
+        const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
+        Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
+                                           : arguments_.exercise->lastDate();
+
+        DiscountFactor dividendDiscount = process_->dividendYield()->discount(expirySpotDate);
         DiscountFactor df = discountPtr->discount(arguments_.exercise->lastDate());
-        DiscountFactor riskFreeDiscountForFwdEstimation =
-            process_->riskFreeRate()->discount(arguments_.exercise->lastDate());
+        DiscountFactor riskFreeDiscountForFwdEstimation = process_->riskFreeRate()->discount(expirySpotDate);
+
+        Date refDate = process_->dividendYield()->referenceDate();
+
+        const Date spotDate = spotDays > 0 ? spotCalendar.advance(refDate, spotDays * Days) : refDate;
+        DiscountFactor dividendDiscountSpotDate = spotDate <= process_->dividendYield()->referenceDate()
+                                                      ? 1.0
+                                                      : process_->dividendYield()->discount(spotDate);
+        DiscountFactor riskFreeDiscountSpotDate =
+            spotDate <= process_->riskFreeRate()->referenceDate() ? 1.0 : process_->riskFreeRate()->discount(spotDate);
+
         Real spot = process_->stateVariable()->value();
+        // In case spot is not today, compute underlying price as today
+        Real s0 = spot * riskFreeDiscountSpotDate / dividendDiscountSpotDate;
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
-        Real forwardPrice = spot * dividendDiscount / riskFreeDiscountForFwdEstimation;
+        Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance),df);
-
+        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance), df);
 
         results_.value = black.value();
         results_.delta = black.delta(spot);
@@ -110,7 +124,7 @@ namespace QuantLib {
         results_.additionalResults["riskFreeDiscount"] = riskFreeDiscountForFwdEstimation;
         results_.additionalResults["forward"] = forwardPrice;
         results_.additionalResults["strike"] = payoff->strike();
-        results_.additionalResults["volatility"] = std::sqrt(variance / tte);
+        results_.additionalResults["volatility"] = Real(std::sqrt(variance / tte));
         results_.additionalResults["timeToExpiry"] = tte;
         results_.additionalResults["discountFactor"] = df;
     }

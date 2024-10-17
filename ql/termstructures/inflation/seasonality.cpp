@@ -35,6 +35,7 @@ namespace QuantLib {
 
     void MultiplicativePriceSeasonality::validate() const
     {
+        // NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
         switch (this->frequency()) {
             case Semiannual:        //2
             case EveryFourthMonth:  //3
@@ -56,6 +57,7 @@ namespace QuantLib {
                         << ", only semi-annual through daily permitted.");
             break;
         }
+        // NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
     }
 
 
@@ -89,7 +91,7 @@ namespace QuantLib {
     MultiplicativePriceSeasonality::MultiplicativePriceSeasonality(const Date& seasonalityBaseDate, const Frequency frequency,
                                                                    const std::vector<Rate>& seasonalityFactors)
     {
-        set(seasonalityBaseDate, frequency, seasonalityFactors);
+        MultiplicativePriceSeasonality::set(seasonalityBaseDate, frequency, seasonalityFactors);
     }
 
     void MultiplicativePriceSeasonality::set(const Date& seasonalityBaseDate, const Frequency frequency,
@@ -101,6 +103,7 @@ namespace QuantLib {
             seasonalityFactors_[i] = seasonalityFactors[i];
         }
         seasonalityBaseDate_ = seasonalityBaseDate;
+        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
         validate();
     }
 
@@ -127,6 +130,23 @@ namespace QuantLib {
         Date effectiveFixingDate = inflationPeriod(d, iTS.frequency()).first;
         
         return seasonalityCorrection(r, effectiveFixingDate, iTS.dayCounter(), curveBaseDate, true);
+    }
+
+    Rate MultiplicativePriceSeasonality::deseasonalisedZeroRate(
+        const Date& d, Rate r, const InflationTermStructure& iTS) const {
+        Date curveBaseDate = iTS.baseDate();
+        Date effectiveFixingDate = inflationPeriod(d, iTS.frequency()).first;
+
+        return removeSeasonalityAdjustment(r, effectiveFixingDate, iTS.dayCounter(), curveBaseDate, true);
+    }
+
+    Rate MultiplicativePriceSeasonality::deseasonalisedYoYRate(
+        const Date& d, Rate r, const InflationTermStructure& iTS) const {
+        Date curveBaseDate = iTS.baseDate();
+        Date effectiveFixingDate = inflationPeriod(d, iTS.frequency()).first;
+
+        return removeSeasonalityAdjustment(r, effectiveFixingDate, iTS.dayCounter(), curveBaseDate,
+                                           false);
     }
 
 
@@ -214,6 +234,28 @@ namespace QuantLib {
     }
 
 
+    Rate MultiplicativePriceSeasonality::removeSeasonalityAdjustment(Rate rate,
+                                                               const Date& atDate,
+                                                               const DayCounter& dc,
+                                                               const Date& curveBaseDate,
+                                                               const bool isZeroRate) const {
+        Real factorAt = this->seasonalityFactor(atDate);
+        Rate f;
+        if (isZeroRate) {
+            Rate factorBase = this->seasonalityFactor(curveBaseDate);
+            Real seasonalityAt = factorAt / factorBase;
+            std::pair<Date, Date> p = inflationPeriod(atDate, frequency());
+            Time timeFromCurveBase = dc.yearFraction(curveBaseDate, p.first);
+            f = std::pow(seasonalityAt, 1 / timeFromCurveBase);
+        } else {
+            Rate factor1Ybefore = this->seasonalityFactor(atDate - Period(1, Years));
+            f = factorAt / factor1Ybefore;
+        }
+
+        return (rate + 1) / f - 1;
+    }
+
+
     Real KerkhofSeasonality::seasonalityFactor(const Date &to) const {
 
         Integer dir = 1;
@@ -271,6 +313,27 @@ namespace QuantLib {
         }
 
         return (rate + 1)*f - 1;
+    }
+
+    Rate KerkhofSeasonality::removeSeasonalityAdjustment(Rate rate,
+                                                   const Date& atDate,
+                                                   const DayCounter& dc,
+                                                   const Date& curveBaseDate,
+                                                   const bool isZeroRate) const {
+
+        Real indexFactor = this->seasonalityFactor(atDate);
+
+        // Getting seasonality correction
+        Rate f;
+        if (isZeroRate) {
+            std::pair<Date, Date> lim = inflationPeriod(curveBaseDate, Monthly);
+            Time timeFromCurveBase = dc.yearFraction(lim.first, atDate);
+            f = std::pow(indexFactor, 1 / timeFromCurveBase);
+        } else {
+            QL_FAIL("Seasonal Kerkhof model is not defined on YoY rates");
+        }
+
+        return (rate + 1) / f - 1;
     }
 
 }

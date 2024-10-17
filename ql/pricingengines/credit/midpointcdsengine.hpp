@@ -27,16 +27,16 @@
 #define quantlib_mid_point_cds_engine_hpp
 
 #include <ql/instruments/creditdefaultswap.hpp>
+#include <ql/optional.hpp>
 
 namespace QuantLib {
-
 
     //! Mid point CDS engine base
     //! \ingroup engines
     class MidPointCdsEngineBase {
     public:
         MidPointCdsEngineBase(const Handle<YieldTermStructure>& discountCurve,
-                              boost::optional<bool> includeSettlementDateFlows)
+                              ext::optional<bool> includeSettlementDateFlows)
             : discountCurve_(discountCurve), includeSettlementDateFlows_(includeSettlementDateFlows) {}
         virtual ~MidPointCdsEngineBase() {}
         
@@ -48,7 +48,7 @@ namespace QuantLib {
                        CreditDefaultSwap::results& results) const;
 
         Handle<YieldTermStructure> discountCurve_;
-        boost::optional<bool> includeSettlementDateFlows_;
+        ext::optional<bool> includeSettlementDateFlows_;
     };
 
     //! Mid point CDS engine
@@ -58,7 +58,7 @@ namespace QuantLib {
         MidPointCdsEngine(const Handle<DefaultProbabilityTermStructure>& probability,
                           Real recoveryRate,
                           const Handle<YieldTermStructure>& discountCurve,
-                          const boost::optional<bool> includeSettlementDateFlows = boost::none);
+                          const ext::optional<bool> includeSettlementDateFlows = ext::nullopt);
         void calculate() const override;
 
     protected:
@@ -66,8 +66,8 @@ namespace QuantLib {
         virtual Real defaultProbability(const Date& d1, const Date& d2) const override;
         virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const override;
 
-        Handle<DefaultProbabilityTermStructure> probability_;
-        Real recoveryRate_;
+        mutable Handle<DefaultProbabilityTermStructure> probability_;
+        mutable Real recoveryRate_;
     };
 
 }

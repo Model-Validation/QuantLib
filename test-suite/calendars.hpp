@@ -30,23 +30,24 @@ class CalendarTest {
   public:
     static void testRussia();
     static void testBrazil();
-//    static void testItalySettlement();
     static void testItalyExchange();
 
     static void testUKSettlement();
     static void testUKExchange();
     static void testUKMetals();
 
-//    static void testGermanySettlement();
     static void testGermanyFrankfurt();
     static void testGermanyXetra();
     static void testGermanyEurex();
 
     static void testTARGET();
 
+    static void testDenmark();
+
     static void testUSSettlement();
     static void testUSGovernmentBondMarket();
     static void testUSNewYorkStockExchange();
+    static void testSOFR();
 
     static void testSouthKoreanSettlement();
     static void testKoreaStockExchange();

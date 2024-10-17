@@ -511,8 +511,6 @@ void DigitalOptionTest::testCashAtHitOrNothingAmericanGreeks() {
     BOOST_TEST_MESSAGE("Testing American cash-(at-hit)-or-nothing "
                        "digital option greeks...");
 
-    SavedSettings backup;
-
     std::map<std::string,Real> calculated, expected, tolerance;
     tolerance["delta"]  = 5.0e-5;
     tolerance["gamma"]  = 5.0e-5;
@@ -669,8 +667,6 @@ void DigitalOptionTest::testMCCashAtHit() {
     BOOST_TEST_MESSAGE("Testing Monte Carlo cash-(at-hit)-or-nothing "
                        "American engine...");
 
-    SavedSettings backup;
-
     DigitalOptionData values[] = {
         //        type, strike,   spot,    q,    r,   t,  vol,   value, tol
         { Option::Put,  100.00, 105.00, 0.20, 0.10, 0.5, 0.20, 12.2715, 1e-2, true },
@@ -750,7 +746,6 @@ test_suite* DigitalOptionTest::suite() {
                &DigitalOptionTest::testCashAtExpiryOrNothingAmericanValues));
     suite->add(QUANTLIB_TEST_CASE(
                &DigitalOptionTest::testAssetAtExpiryOrNothingAmericanValues));
-    //FLOATING_POINT_EXCEPTION
     suite->add(QUANTLIB_TEST_CASE(&DigitalOptionTest::testMCCashAtHit));
     return suite;
 }
