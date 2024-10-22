@@ -258,8 +258,7 @@ namespace QuantLib {
         // CDS Big Bang in 2009
         if (rebatesAccrual_ && postBigBang_) {
             accrualRebate_ = boost::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, leg_.back()->date() == tradeDate_ + 1,
-                                         tradeDate_ + 1),
+                CashFlows::accruedAmount(leg_, leg_.back()->date() == protectionStart_, protectionStart_),
                 effectiveUpfrontDate_);
             Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_);
             accrualRebateCurrent_ = boost::make_shared<SimpleCashFlow>(

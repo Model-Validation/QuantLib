@@ -444,12 +444,8 @@ namespace QuantLib {
     }
 
     void UpfrontCdsHelper::initializeDates() {
-// <<<<<<< HEAD
+        CdsHelper::initializeDates();
         upfrontDate_ = calendar_.advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
-// =======
-//         CdsHelper::initializeDates();
-//         upfrontDate_ = upfrontDate();
-// >>>>>>> v1.31.1
     }
 
     void UpfrontCdsHelper::resetEngine() {
