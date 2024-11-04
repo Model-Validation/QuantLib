@@ -302,9 +302,7 @@ namespace QuantLib {
 
         // If BaseFixing is null, use the observed index fixing
         if (I0 == Null<Rate>()) {
-            I0 = IndexedCashFlow::baseFixing();
-            // previously:
-            // I0 = CPI::laggedFixing(cpiIndex(), baseDate() + observationLag(), observationLag(), interpolation());
+            I0 = CPI::laggedFixing(cpiIndex(), baseDate() + observationLag(), observationLag(), interpolation());
         }
 
         Rate I1 = indexFixing();
