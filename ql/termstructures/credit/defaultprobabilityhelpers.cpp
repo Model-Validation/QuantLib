@@ -181,9 +181,12 @@ namespace QuantLib {
 
         protectionStart_ = evaluationDate_ + settlementDays_;
 
-        Date startDate = startDate_ == Date() ? protectionStart_ : startDate_;
-        // Only adjust start date if rule is not CDS or CDS2015. Unsure about OldCDS.
-        if (rule_ != DateGeneration::CDS && rule_ != DateGeneration::CDS2015) {
+        Date startDate;
+        if(rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015){
+            //The first coupon payment date is the first IMM date after T + 1
+            startDate = startDate_ == Date() ? evaluationDate_ + 1 : startDate_;
+        } else{
+            startDate = startDate_ == Date() ? protectionStart_ : startDate_;
             startDate = calendar_.adjust(startDate, paymentConvention_);
         }
 
@@ -444,12 +447,8 @@ namespace QuantLib {
     }
 
     void UpfrontCdsHelper::initializeDates() {
-// <<<<<<< HEAD
+        CdsHelper::initializeDates();
         upfrontDate_ = calendar_.advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
-// =======
-//         CdsHelper::initializeDates();
-//         upfrontDate_ = upfrontDate();
-// >>>>>>> v1.31.1
     }
 
     void UpfrontCdsHelper::resetEngine() {
