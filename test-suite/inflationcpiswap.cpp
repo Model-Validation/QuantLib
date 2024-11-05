@@ -232,7 +232,7 @@ struct CommonVars {
         Date baseDate = ii->lastFixingDate();
         auto pCPIts =
             ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-                                    evaluationDate, baseDate, ii->frequency(), dcZCIIS, helpers);
+                                    evaluationDate, baseDate, observationLag, ii->frequency(), dcZCIIS, helpers);
         pCPIts->recalculate();
         cpiTS = ext::dynamic_pointer_cast<ZeroInflationTermStructure>(pCPIts);
 

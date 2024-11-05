@@ -183,7 +183,7 @@ void setup() {
 
     auto pYTSEU =
         ext::make_shared<InterpolatedYoYInflationCurve<Linear>>(
-                    eval, d, r, Monthly, indexIsInterpolated, Actual365Fixed());
+                    eval, d, r, 2 * Months, Monthly, indexIsInterpolated, Actual365Fixed());
     yoyEU.linkTo(pYTSEU);
 
     // price data

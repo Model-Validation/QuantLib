@@ -38,13 +38,20 @@ namespace QuantLib {
         //! \name Constructors
         //@{
         InflationTermStructure(Date baseDate,
+                               // TODO: remove this internal extension, but at the moment we need the observation Lag
+                               // in the parSensiAnalysis, ScenarioSimMarket, CAM model
+                               const Period& observationLag,
                                Frequency frequency,
                                const DayCounter& dayCounter = DayCounter(),
                                ext::shared_ptr<Seasonality> seasonality = {},
                                Rate baseRate = Null<Rate>());
+                               
 
         InflationTermStructure(const Date& referenceDate,
                                Date baseDate,
+                               // TODO: remove this internal extension, but at the moment we need the observation Lag
+                               // in the parSensiAnalysis, ScenarioSimMarket, CAM model
+                               const Period& observationLag,
                                Frequency frequency,
                                const DayCounter& dayCounter = DayCounter(),
                                ext::shared_ptr<Seasonality> seasonality = {},
@@ -53,6 +60,9 @@ namespace QuantLib {
         InflationTermStructure(Natural settlementDays,
                                const Calendar& calendar,
                                Date baseDate,
+                               // TODO: remove this internal extension, but at the moment we need the observation Lag
+                               // in the parSensiAnalysis, ScenarioSimMarket, CAM model
+                               const Period& observationLag,
                                Frequency frequency,
                                const DayCounter& dayCounter = DayCounter(),
                                ext::shared_ptr<Seasonality> seasonality = {},
@@ -160,12 +170,14 @@ namespace QuantLib {
         //! \name Constructors
         //@{
         ZeroInflationTermStructure(Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality = {});
 
         ZeroInflationTermStructure(const Date& referenceDate,
                                    Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality = {});
@@ -173,6 +185,7 @@ namespace QuantLib {
         ZeroInflationTermStructure(Natural settlementDays,
                                    const Calendar& calendar,
                                    Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality = {});
@@ -253,6 +266,7 @@ namespace QuantLib {
         //@{
         YoYInflationTermStructure(Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   bool indexIsInterpolated,
                                   const DayCounter& dayCounter,
@@ -261,6 +275,7 @@ namespace QuantLib {
         YoYInflationTermStructure(const Date& referenceDate,
                                   Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   bool indexIsInterpolated,
                                   const DayCounter& dayCounter,
@@ -270,6 +285,7 @@ namespace QuantLib {
                                   const Calendar& calendar,
                                   Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   bool indexIsInterpolated,
                                   const DayCounter& dayCounter,

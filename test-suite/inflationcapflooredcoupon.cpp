@@ -187,7 +187,7 @@ struct CommonVars {
         Rate baseYYRate = yyData[0].rate/100.0;
         auto pYYTS =
             ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
-                        evaluationDate, baseDate, baseYYRate, iir->frequency(),
+                        evaluationDate, baseDate, baseYYRate, observationLag, iir->frequency(),
                         iir->interpolated(), dc, helpers);
         yoyTS = ext::dynamic_pointer_cast<YoYInflationTermStructure>(pYYTS);
 

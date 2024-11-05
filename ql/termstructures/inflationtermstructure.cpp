@@ -25,12 +25,13 @@ namespace QuantLib {
 
     InflationTermStructure::InflationTermStructure(
                                         Date baseDate,
+                                        const Period& observationLag,
                                         Frequency frequency,
                                         const DayCounter& dayCounter,
                                         ext::shared_ptr<Seasonality> seasonality,
                                         Rate baseRate)
     : TermStructure(dayCounter), seasonality_(std::move(seasonality)),
-      frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
+      observationLag_(observationLag), frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
       hasExplicitBaseDate_(true) {
         if (seasonality_ != nullptr) {
             QL_REQUIRE(seasonality_->isConsistent(*this),
@@ -41,12 +42,13 @@ namespace QuantLib {
     InflationTermStructure::InflationTermStructure(
                                         const Date& referenceDate,
                                         Date baseDate,
+                                        const Period& observationLag,
                                         Frequency frequency,
                                         const DayCounter& dayCounter,
                                         ext::shared_ptr<Seasonality> seasonality,
                                         Rate baseRate)
     : TermStructure(referenceDate, Calendar(), dayCounter), seasonality_(std::move(seasonality)),
-      frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
+      observationLag_(observationLag),frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
       hasExplicitBaseDate_(true) {
         if (seasonality_ != nullptr) {
             QL_REQUIRE(seasonality_->isConsistent(*this),
@@ -58,12 +60,13 @@ namespace QuantLib {
                                         Natural settlementDays,
                                         const Calendar& calendar,
                                         Date baseDate,
+                                        const Period& observationLag,
                                         Frequency frequency,
                                         const DayCounter& dayCounter,
                                         ext::shared_ptr<Seasonality> seasonality,
                                         Rate baseRate)
     : TermStructure(settlementDays, calendar, dayCounter), seasonality_(std::move(seasonality)),
-      frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
+      observationLag_(observationLag), frequency_(frequency), baseRate_(baseRate), baseDate_(baseDate),
       hasExplicitBaseDate_(true) {
         if (seasonality_ != nullptr) {
             QL_REQUIRE(seasonality_->isConsistent(*this),
@@ -163,27 +166,30 @@ namespace QuantLib {
 
     ZeroInflationTermStructure::ZeroInflationTermStructure(
                                    Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality)
-    : InflationTermStructure(baseDate, frequency, dayCounter, seasonality) {}
+    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality) {}
 
     ZeroInflationTermStructure::ZeroInflationTermStructure(
                                    const Date& referenceDate,
                                    Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality)
-    : InflationTermStructure(referenceDate, baseDate, frequency, dayCounter, seasonality) {}
+    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency, dayCounter, seasonality) {}
 
     ZeroInflationTermStructure::ZeroInflationTermStructure(
                                    Natural settlementDays,
                                    const Calendar& calendar,
                                    Date baseDate,
+                                   const Period& observationLag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality)
-    : InflationTermStructure(settlementDays, calendar, baseDate, frequency, dayCounter, seasonality) {}
+    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency, dayCounter, seasonality) {}
 
     QL_DEPRECATED_DISABLE_WARNING
 
@@ -266,22 +272,24 @@ namespace QuantLib {
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(baseDate, frequency, dayCounter, seasonality, baseYoYRate),
+    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate),
       indexIsInterpolated_(indexIsInterpolated) {}
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     const Date& referenceDate,
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(referenceDate, baseDate, frequency,
+    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency,
                              dayCounter, seasonality, baseYoYRate),
       indexIsInterpolated_(indexIsInterpolated) {}
 
@@ -290,11 +298,12 @@ namespace QuantLib {
                                     const Calendar& calendar,
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(settlementDays, calendar, baseDate, frequency,
+    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency,
                              dayCounter, seasonality, baseYoYRate),
       indexIsInterpolated_(indexIsInterpolated) {}
 

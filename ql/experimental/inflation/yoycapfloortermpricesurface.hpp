@@ -555,7 +555,7 @@ namespace QuantLib {
         auto pYITS =
             ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
                       nominalTS_->referenceDate(), baseDate, baseYoYRate,
-                      yoyIndex()->frequency(), yoyIndex()->interpolated(),
+                      observationLag(), yoyIndex()->frequency(), yoyIndex()->interpolated(),
                       dayCounter(), YYhelpers);
         pYITS->recalculate();
         yoy_ = pYITS;   // store

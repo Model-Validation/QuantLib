@@ -43,6 +43,7 @@ namespace QuantLib {
         InterpolatedZeroInflationCurve(const Date& referenceDate,
                                        std::vector<Date> dates,
                                        const std::vector<Rate>& rates,
+                                       const Period& lag,
                                        Frequency frequency,
                                        const DayCounter& dayCounter,
                                        const ext::shared_ptr<Seasonality>& seasonality = {},
@@ -90,6 +91,7 @@ namespace QuantLib {
         */
         InterpolatedZeroInflationCurve(const Date& referenceDate,
                                        Date baseDate,
+                                       const Period& lag,
                                        Frequency frequency,
                                        const DayCounter& dayCounter,
                                        const ext::shared_ptr<Seasonality>& seasonality = {},
@@ -120,11 +122,12 @@ namespace QuantLib {
         const Date& referenceDate,
         std::vector<Date> dates,
         const std::vector<Rate>& rates,
+        const Period& lag,
         Frequency frequency,
         const DayCounter& dayCounter,
         const ext::shared_ptr<Seasonality>& seasonality,
         const Interpolator& interpolator)
-    : ZeroInflationTermStructure(referenceDate, dates.at(0), frequency, dayCounter, seasonality),
+    : ZeroInflationTermStructure(referenceDate, dates.at(0), lag, frequency, dayCounter, seasonality),
       InterpolatedCurve<Interpolator>(std::vector<Time>(), rates, interpolator),
       dates_(std::move(dates)) {
 
@@ -147,11 +150,12 @@ namespace QuantLib {
     InterpolatedZeroInflationCurve<Interpolator>::
     InterpolatedZeroInflationCurve(const Date& referenceDate,
                                    Date baseDate,
+                                   const Period& lag,
                                    Frequency frequency,
                                    const DayCounter& dayCounter,
                                    const ext::shared_ptr<Seasonality>& seasonality,
                                    const Interpolator& interpolator)
-    :  ZeroInflationTermStructure(referenceDate, baseDate, frequency, dayCounter, seasonality),
+    :  ZeroInflationTermStructure(referenceDate, baseDate, lag, frequency, dayCounter, seasonality),
        InterpolatedCurve<Interpolator>(interpolator) {
     }
 
