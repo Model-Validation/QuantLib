@@ -297,7 +297,8 @@ namespace QuantLib {
         }
     }
 
-    Real CPICashFlow::amount() const {
+    void CPICashFlow::performCalculations() const {
+
         Rate I0 = baseFixing();
 
         // If BaseFixing is null, use the observed index fixing
@@ -308,9 +309,9 @@ namespace QuantLib {
         Rate I1 = indexFixing();
 
         if (growthOnly())
-            return notional() * (I1 / I0 - 1.0);
+            amount_ = notional() * (I1 / I0 - 1.0);
         else
-            return notional() * (I1 / I0);
+            amount_ = notional() * (I1 / I0);
     }
 
     CPILeg::CPILeg(Schedule schedule,
