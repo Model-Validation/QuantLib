@@ -163,7 +163,7 @@ namespace QuantLib {
             // iterates through the array
             for (Size i = 0; i < n_; ++i)
                 // serialise each value
-                ar& data_[i]
+                ar& data_[i];
         }
     };
 
