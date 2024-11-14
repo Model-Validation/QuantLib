@@ -252,6 +252,8 @@ namespace QuantLib {
         */
         Rate zeroRate(Time t,
                       bool extrapolate = false) const;
+
+        Rate baseRate() const override { return baseRate_; }
         //@}
       protected:
         //! to be defined in derived classes
@@ -386,6 +388,8 @@ namespace QuantLib {
     }
 
     inline Rate InflationTermStructure::baseRate() const {
+        // base rate not required anymore for zero curves, this cause 
+        // problems if accessing baseRate for zero inf curves.
         QL_REQUIRE(baseRate_ != Null<Real>(), "base rate not available");
         return baseRate_;
     }
