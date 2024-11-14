@@ -32,6 +32,7 @@
 #include <iterator>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unique_ptr.hpp>
+#include <boost/serialization/array.hpp>
 
 namespace QuantLib {
 
@@ -161,12 +162,9 @@ namespace QuantLib {
 
             // checks if deserialising
             if (Archive::is_loading::value)
-                // resets data and resizes it to match the size
-                data_.reset(new Real[matrix_size]);
+                data_ = std::make_unique<Real[]>(matrix_size);
 
-            // if serialising, iterate through the entire Matrix and serialise each value
-            for (Size i = 0; i < matrix_size; ++i)
-                ar& data_[i];
+            ar& boost::serialization::make_array(data_.get(), matrix_size);
         }
     };
 

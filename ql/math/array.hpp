@@ -41,6 +41,7 @@
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/array.hpp>
 #include <boost/serialization/unique_ptr.hpp>
 
 namespace QuantLib {
@@ -157,13 +158,9 @@ namespace QuantLib {
 
             // if deserialising
             if (Archive::is_loading::value)
-                // resets the pointer to match the saved size
-                data_.reset(new Real[n_]);
+                data_ = std::make_unique<Real[]>(n_);
 
-            // iterates through the array
-            for (Size i = 0; i < n_; ++i)
-                // serialise each value
-                ar& data_[i];
+            ar& boost::serialization::make_array(data_.get(), n_);
         }
     };
 
