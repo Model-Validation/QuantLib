@@ -30,6 +30,9 @@
 #include <ql/utilities/steppingiterator.hpp>
 #include <initializer_list>
 #include <iterator>
+
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/library_version_type.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unique_ptr.hpp>
 #include <boost/serialization/array.hpp>
