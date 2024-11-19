@@ -224,8 +224,6 @@ namespace QuantLib {
                 xBegin2_ = this->xBegin_ + n_;
                 yBegin2_ = this->yBegin_ + n_;
 
-                QL_REQUIRE(this->xBegin2_ <= this->xEnd_, "error");
-
                 switch (behavior) {
                   case MixedInterpolation::ShareRanges:
                     interpolation1_ = factory1.interpolate(this->xBegin_,
