@@ -219,14 +219,12 @@ namespace QuantLib {
                                xBegin, xEnd, yBegin,
                                std::max(Size(Interpolator1::requiredPoints),
                                         Size(Interpolator2::requiredPoints))),
-              n_(n) {
+              n_(std::min<Size>(n, xEnd - xBegin)) {
 
                 xBegin2_ = this->xBegin_ + n_;
                 yBegin2_ = this->yBegin_ + n_;
 
-                QL_REQUIRE(xBegin2_<this->xEnd_,
-                           "too large n (" << n << ") for " <<
-                           this->xEnd_-this->xBegin_ << "-element x sequence");
+                QL_REQUIRE(this->xBegin2_ <= this->xEnd_, "error");
 
                 switch (behavior) {
                   case MixedInterpolation::ShareRanges:
@@ -241,9 +239,10 @@ namespace QuantLib {
                     interpolation1_ = factory1.interpolate(this->xBegin_,
                                                            this->xBegin2_+1,
                                                            this->yBegin_);
-                    interpolation2_ = factory2.interpolate(this->xBegin2_,
-                                                           this->xEnd_,
-                                                           this->yBegin2_);
+                    if(this->xBegin2_ < this->xEnd_)
+                        interpolation2_ = factory2.interpolate(this->xBegin2_,
+                                                               this->xEnd_,
+                                                               this->yBegin2_);
                     break;
                   default:
                     QL_FAIL("unknown mixed-interpolation behavior: " << behavior);
@@ -252,27 +251,28 @@ namespace QuantLib {
 
             void update() {
                 interpolation1_.update();
-                interpolation2_.update();
+                if(this->xBegin2_ < this->xEnd_)
+                    interpolation2_.update();
             }
             Real value(Real x) const {
-                if (x<*(this->xBegin2_))
+                if (this->xBegin2_ == this->xEnd_ || x<*(this->xBegin2_))
                     return interpolation1_(x, true);
                 return interpolation2_(x, true);
             }
             Real primitive(Real x) const {
-                if (x<*(this->xBegin2_))
+                if (this->xBegin2_ == this->xEnd_ || x<*(this->xBegin2_))
                     return interpolation1_.primitive(x, true);
                 return interpolation2_.primitive(x, true) -
                     interpolation2_.primitive(*xBegin2_, true) +
                     interpolation1_.primitive(*xBegin2_, true);
             }
             Real derivative(Real x) const {
-                if (x<*(this->xBegin2_))
+                if (this->xBegin2_ == this->xEnd_ || x<*(this->xBegin2_))
                     return interpolation1_.derivative(x, true);
                 return interpolation2_.derivative(x, true);
             }
             Real secondDerivative(Real x) const {
-                if (x<*(this->xBegin2_))
+                if (this->xBegin2_ == this->xEnd_|| x<*(this->xBegin2_))
                     return interpolation1_.secondDerivative(x, true);
                 return interpolation2_.secondDerivative(x, true);
             }
