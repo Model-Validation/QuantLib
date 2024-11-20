@@ -38,6 +38,12 @@
 #include <iomanip>
 #include <memory>
 #include <type_traits>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/library_version_type.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/unique_ptr.hpp>
 
 namespace QuantLib {
 
@@ -144,6 +150,19 @@ namespace QuantLib {
       private:
         std::unique_ptr<Real[]> data_;
         Size n_;
+
+        friend class boost::serialization::access;
+
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& n_;
+
+            // if deserialising
+            if (Archive::is_loading::value)
+                data_ = std::make_unique<Real[]>(n_);
+
+            ar& boost::serialization::make_array(data_.get(), n_);
+        }
     };
 
     #ifdef QL_NULL_AS_FUNCTIONS

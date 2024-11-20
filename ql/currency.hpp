@@ -25,8 +25,15 @@
 #ifndef quantlib_currency_hpp
 #define quantlib_currency_hpp
 
-#include <ql/math/rounding.hpp>
 #include <ql/errors.hpp>
+#include <ql/math/rounding.hpp>
+
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/library_version_type.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/string.hpp>
 #include <iosfwd>
 #include <set>
 
@@ -86,10 +93,15 @@ namespace QuantLib {
         //! minor unit codes, e.g. GBp, GBX for GBP
         const std::set<std::string>& minorUnitCodes() const;
         //@}
+        friend class boost::serialization::access;
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& data_;
+        }
       protected:
         struct Data;
         ext::shared_ptr<Data> data_;
-     private:
+      private:
         void checkNonEmpty() const;
     };
 
@@ -103,6 +115,8 @@ namespace QuantLib {
         std::string formatString;
         std::set<std::string> minorUnitCodes;
 
+        Data() = default;
+
         Data(std::string name,
              std::string code,
              Integer numericCode,
@@ -113,7 +127,22 @@ namespace QuantLib {
              std::string formatString,
              Currency triangulationCurrency = Currency(),
              std::set<std::string> minorUnitCodes = {});
+
+        friend class boost::serialization::access;
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& name;
+            ar& code;
+            ar& numeric;
+            ar& symbol;
+            ar& fractionSymbol;
+            ar& fractionsPerUnit;
+            ar& rounding;
+            ar& formatString;
+            ar& minorUnitCodes;
+        }
     };
+
 
     /*! \relates Currency */
     bool operator==(const Currency&,
