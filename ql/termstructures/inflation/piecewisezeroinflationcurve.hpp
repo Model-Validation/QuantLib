@@ -118,6 +118,8 @@ namespace QuantLib {
         //@{
         void update() override;
         //@}
+      protected:
+        Rate zeroRateImpl(Time t) const override;
       private:
         // methods
         void performCalculations() const override;
@@ -182,6 +184,11 @@ namespace QuantLib {
         LazyObject::update();
     }
 
+    template <class I, template <class> class B, class T>
+    Rate PiecewiseZeroInflationCurve<I, B, T>::zeroRateImpl(Time t) const {
+        calculate();
+        return base_curve::zeroRateImpl(t);
+    }
 }
 
 #endif

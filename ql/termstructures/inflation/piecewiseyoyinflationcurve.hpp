@@ -119,11 +119,15 @@ namespace QuantLib {
         const std::vector<Date>& dates() const;
         const std::vector<Real>& data() const;
         std::vector<std::pair<Date, Real> > nodes() const;
+
         //@}
         //! \name Observer interface
         //@{
         void update() override;
         //@}
+
+      protected:
+          Rate yoyRateImpl(Time t) const override;
       private:
         // methods
         void performCalculations() const override;
@@ -188,6 +192,11 @@ namespace QuantLib {
         LazyObject::update();
     }
 
+    template <class I, template <class> class B, class T>
+    Rate PiecewiseYoYInflationCurve<I, B, T>::yoyRateImpl(Time t) const {
+        calculate();
+        return base_curve::yoyRateImpl(t);
+    }
 }
 
 #endif
