@@ -31,6 +31,12 @@
 #include <initializer_list>
 #include <iterator>
 
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/library_version_type.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/unique_ptr.hpp>
+#include <boost/serialization/array.hpp>
+
 namespace QuantLib {
 
     //! %Matrix used in linear algebra.
@@ -147,6 +153,22 @@ namespace QuantLib {
       private:
         std::unique_ptr<Real[]> data_;
         Size rows_ = 0, columns_ = 0;
+
+        friend class boost::serialization::access;
+
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& rows_;
+            ar& columns_;
+
+            Size matrix_size = rows_ * columns_;
+
+            // checks if deserialising
+            if (Archive::is_loading::value)
+                data_ = std::make_unique<Real[]>(matrix_size);
+
+            ar& boost::serialization::make_array(data_.get(), matrix_size);
+        }
     };
 
     // algebraic operators
