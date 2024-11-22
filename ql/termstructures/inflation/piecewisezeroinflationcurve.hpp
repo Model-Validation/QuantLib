@@ -109,10 +109,11 @@ namespace QuantLib {
         //@
         //! \name Inspectors
         //@{
-        const std::vector<Time>& times() const;
-        const std::vector<Date>& dates() const;
-        const std::vector<Real>& data() const;
-        std::vector<std::pair<Date, Real> > nodes() const;
+        const std::vector<Time>& times() const override;
+        const std::vector<Date>& dates() const override;
+        const std::vector<Real>& data() const override;
+        const std::vector<Rate>& rates() const override;
+        std::vector<std::pair<Date, Real> > nodes() const override;
         //@}
         //! \name Observer interface
         //@{
@@ -150,26 +151,32 @@ namespace QuantLib {
 
     template <class I, template <class> class B, class T>
     const std::vector<Time>& PiecewiseZeroInflationCurve<I,B,T>::times() const {
-        calculate();
+        this->calculate();
         return base_curve::times();
     }
 
     template <class I, template <class> class B, class T>
     const std::vector<Date>& PiecewiseZeroInflationCurve<I,B,T>::dates() const {
-        calculate();
+        this->calculate();
         return base_curve::dates();
     }
 
     template <class I, template <class> class B, class T>
     const std::vector<Real>& PiecewiseZeroInflationCurve<I,B,T>::data() const {
-        calculate();
+        this->calculate();
+        return base_curve::rates();
+    }
+
+    template <class I, template <class> class B, class T>
+    const std::vector<Real>& PiecewiseZeroInflationCurve<I, B, T>::rates() const {
+        this->calculate();
         return base_curve::rates();
     }
 
     template <class I, template <class> class B, class T>
     std::vector<std::pair<Date, Real> >
     PiecewiseZeroInflationCurve<I,B,T>::nodes() const {
-        calculate();
+        this->calculate();
         return base_curve::nodes();
     }
 
@@ -186,7 +193,7 @@ namespace QuantLib {
 
     template <class I, template <class> class B, class T>
     Rate PiecewiseZeroInflationCurve<I, B, T>::zeroRateImpl(Time t) const {
-        calculate();
+        this->calculate();
         return base_curve::zeroRateImpl(t);
     }
 }

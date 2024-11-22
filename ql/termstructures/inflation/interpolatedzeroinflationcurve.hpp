@@ -71,11 +71,11 @@ namespace QuantLib {
 
         //! \name Inspectors
         //@{
-        const std::vector<Date>& dates() const;
-        const std::vector<Time>& times() const;
-        const std::vector<Real>& data() const;
-        const std::vector<Rate>& rates() const;
-        std::vector<std::pair<Date,Rate> > nodes() const;
+        virtual const std::vector<Date>& dates() const;
+        virtual const std::vector<Time>& times() const;
+        virtual const std::vector<Real>& data() const;
+        virtual const std::vector<Rate>& rates() const;
+        virtual std::vector<std::pair<Date,Rate> > nodes() const;
         //@}
 
       protected:
