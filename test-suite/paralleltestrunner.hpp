@@ -85,9 +85,6 @@ namespace {
         bool visit(test_unit const& tu) override {
             if (tu.p_parent_id == framework::master_test_suite().p_id) {
                 BOOST_TEST_MESSAGE(tu.p_name.get());
-                QL_REQUIRE(!tu.p_name.get().compare("QuantLibTests"),
-                           "could not find QuantLib test suite");
-
                 testSuiteId_ = tu.p_id;
             } else if (tu.p_type == test_unit_type::TUT_SUITE && tu.p_parent_id == testSuiteId_ &&
                        tu.is_enabled()) {
