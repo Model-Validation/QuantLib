@@ -25,10 +25,7 @@
      of worker processes will be equal to the number of CPU cores.
  */
 
-
-#ifndef quantlib_parallel_test_runner_hpp
-#define quantlib_parallel_test_runner_hpp
-
+#pragma once
 
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
@@ -39,8 +36,6 @@
 #    undef VERSION
 #endif
 
-#include <boost/process.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
@@ -50,8 +45,11 @@
 #define BOOST_TEST_NO_MAIN 1
 #include <boost/algorithm/string.hpp>
 #include <boost/test/included/unit_test.hpp>
-
-#include <map>
+#include <chrono>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <limits>
 #include <list>
 #include <map>
 #include <sstream>
@@ -59,6 +57,9 @@
 #include <thread>
 #include <utility>
 
+#ifndef BOOST_TEST_MODULE
+#    define BOOST_TEST_MODULE "TestSuite"
+#endif
 using boost::unit_test::test_results;
 using namespace boost::interprocess;
 using namespace boost::unit_test_framework;
@@ -311,6 +312,7 @@ int main(int argc, char* argv[]) {
             seconds -= hours * 3600;
             int minutes = int(seconds / 60);
             seconds -= minutes * 60;
+            std::cout << std::endl << BOOST_TEST_MODULE << " tests completed in ";
             if (hours > 0)
                 std::cout << hours << " h ";
             if (hours > 0 || minutes > 0)
@@ -449,4 +451,3 @@ int main(int argc, char* argv[]) {
                boost::exit_success :
                results_collector.results(framework::master_test_suite().p_id).result_code();
 }
-#endif
