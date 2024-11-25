@@ -20,7 +20,7 @@
 
 #include <ql/qldefines.hpp>
 
-#define BOOST_TEST_MODULE QuantLibTests
+#define BOOST_TEST_MODULE "QuantLibTests"
 
 // Boost.Test
 #ifdef QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
