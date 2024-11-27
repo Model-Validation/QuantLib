@@ -32,10 +32,13 @@
 #include <iterator>
 
 #include <boost/serialization/version.hpp>
-#include <boost/serialization/library_version_type.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unique_ptr.hpp>
 #include <boost/serialization/array.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
 
 namespace QuantLib {
 

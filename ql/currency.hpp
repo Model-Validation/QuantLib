@@ -29,11 +29,15 @@
 #include <ql/math/rounding.hpp>
 
 #include <boost/serialization/version.hpp>
-#include <boost/serialization/library_version_type.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/string.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
+
 #include <iosfwd>
 #include <set>
 
