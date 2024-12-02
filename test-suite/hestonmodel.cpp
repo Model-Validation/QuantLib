@@ -237,6 +237,9 @@ BOOST_AUTO_TEST_CASE(testBlackCalibration) {
        smile. expected result is a vanishing volatility of the volatility.
        In addition theta and v0 should be equal to the constant variance */
 
+    Date today(26, Nov, 2024);
+    Settings::instance().evaluationDate() = today;
+
     DayCounter dayCounter = Actual360();
     Calendar calendar = NullCalendar();
 
