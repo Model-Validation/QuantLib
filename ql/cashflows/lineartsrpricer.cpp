@@ -28,6 +28,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/overnightindexedswap.hpp>
 #include <ql/instruments/vanillaswap.hpp>
+#include <ql/instruments/overnightindexedswap.hpp>
 #include <ql/math/integrals/kronrodintegral.hpp>
 #include <ql/math/solvers1d/brent.hpp>
 #include <ql/pricingengines/blackformula.hpp>
@@ -146,19 +147,14 @@ namespace QuantLib {
 
             swapTenor_ = swapIndex_->tenor();
 
-            Leg swapFixedLeg;
-            if(auto on = ext::dynamic_pointer_cast<OvernightIndexedSwapIndex>(swapIndex_)) {
-                onSwap_ = on->underlyingSwap(fixingDate_);
-                swapRateValue_ = onSwap_->fairRate();
-                annuity_ = 1.0E4 * std::fabs(onSwap_->fixedLegBPS());
-                swapFixedLeg = onSwap_->fixedLeg();
-            }
-            else {
+            if (auto on = ext::dynamic_pointer_cast<OvernightIndexedSwapIndex>(swapIndex_)) {
+                swap_ = on->underlyingSwap(fixingDate_);
+            } else {
                 swap_ = swapIndex_->underlyingSwap(fixingDate_);
-                swapRateValue_ = swap_->fairRate();
-                annuity_ = 1.0E4 * std::fabs(swap_->fixedLegBPS());
-                swapFixedLeg = swap_->fixedLeg();
             }
+            swapRateValue_ = swap_->fairRate();
+            annuity_ = 1.0E4 * std::fabs(swap_->fixedLegBPS());
+            Leg swapFixedLeg = swap_->fixedLeg();
 
             ext::shared_ptr<SmileSection> sectionTmp =
                 swaptionVolatility()->smileSection(fixingDate_, swapTenor_);

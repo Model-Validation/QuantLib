@@ -18,7 +18,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
  */
 
-/*! \file simplecashflow.hpp
+/*! \file indexedcashflow.hpp
  \brief Cash flow dependent on an index ratio (NOT a coupon, i.e. no accruals)
  */
 
@@ -42,8 +42,7 @@ namespace QuantLib {
         growthOnly = false means i(T)/i(0), which is a bond-type setting.
         growthOnly = true means i(T)/i(0) - 1, which is a swap-type setting.
     */
-    class IndexedCashFlow : public CashFlow,
-                            public Observer {
+    class IndexedCashFlow : public CashFlow {
       public:
         IndexedCashFlow(Real notional,
                         ext::shared_ptr<Index> index,
@@ -70,10 +69,12 @@ namespace QuantLib {
         //@{
         void accept(AcyclicVisitor&) override;
         //@}
-        //! \name Observer interface
+        //! \name LazyObject interface
         //@{
-        void update() override { notifyObservers(); }
+        void performCalculations() const override;
         //@}
+      protected:
+        mutable Real amount_;
       private:
         Real notional_;
         ext::shared_ptr<Index> index_;

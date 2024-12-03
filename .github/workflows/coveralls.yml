@@ -8,16 +8,17 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup
       run: |
+        sudo rm /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt update
         sudo apt install -y lcov libboost-dev
     - name: Compile
       run: |
         ./autogen.sh
         ./configure --disable-shared CXXFLAGS='-O1 -fprofile-arcs -ftest-coverage' LDFLAGS='-lgcov'
-        make -j 2
+        make -j 4
     - name: Capture baseline
       run: |
         mkdir -p coverage tmp

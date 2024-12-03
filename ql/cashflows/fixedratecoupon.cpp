@@ -60,10 +60,14 @@ namespace QuantLib {
       rate_(std::move(interestRate)) {}
 
     Real FixedRateCoupon::amount() const {
-        return nominal()*(rate_.compoundFactor(accrualStartDate_,
-                                               accrualEndDate_,
-                                               refPeriodStart_,
-                                               refPeriodEnd_) - 1.0);
+        calculate();
+        return amount_;
+    }
+
+    void FixedRateCoupon::performCalculations() const {
+        amount_ = nominal() * (rate_.compoundFactor(accrualStartDate_, accrualEndDate_,
+                                                    refPeriodStart_, refPeriodEnd_) -
+                               1.0);
     }
 
     Real FixedRateCoupon::accruedAmount(const Date& d) const {
@@ -85,8 +89,8 @@ namespace QuantLib {
     }
 
 
-    FixedRateLeg::FixedRateLeg(const Schedule& schedule)
-    : schedule_(schedule), paymentCalendar_(schedule.calendar()) {}
+    FixedRateLeg::FixedRateLeg(Schedule schedule)
+    : schedule_(std::move(schedule)), paymentCalendar_(schedule_.calendar()) {}
 
     FixedRateLeg& FixedRateLeg::withNotionals(Real notional) {
         notionals_ = vector<Real>(1,notional);
@@ -152,7 +156,7 @@ namespace QuantLib {
         return *this;
     }
 
-    FixedRateLeg& FixedRateLeg::withPaymentLag(Natural lag) {
+    FixedRateLeg& FixedRateLeg::withPaymentLag(Integer lag) {
         paymentLag_ = lag;
         return *this;
     }

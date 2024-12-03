@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "sampledcurve.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/math/sampledcurve.hpp>
 #include <ql/utilities/dataformatters.hpp>
@@ -26,18 +26,21 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace sampled_curve_test {
-    class FSquared {
-      public:
-        Real operator()(Real x) const { return x*x;};
-    };
-}
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-void SampledCurveTest::testConstruction() {
+BOOST_AUTO_TEST_SUITE(SampledCurveTests)
+
+class FSquared {
+  public:
+    Real operator()(Real x) const { return x*x;};
+};
+
+
+QL_DEPRECATED_DISABLE_WARNING
+
+BOOST_AUTO_TEST_CASE(testConstruction) {
 
     BOOST_TEST_MESSAGE("Testing sampled curve construction...");
-
-    using namespace sampled_curve_test;
 
     SampledCurve curve(BoundedGrid(-10.0,10.0,100));
     FSquared f2;
@@ -82,9 +85,8 @@ void SampledCurveTest::testConstruction() {
     }
 }
 
-test_suite* SampledCurveTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("sampled curve tests");
-    suite->add(QUANTLIB_TEST_CASE(&SampledCurveTest::testConstruction));
-    return suite;
-}
+QL_DEPRECATED_ENABLE_WARNING
 
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

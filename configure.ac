@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT([QuantLib], [1.31.1],
+AC_INIT([QuantLib], [1.35],
         [quantlib-dev@lists.sourceforge.net],
         [QuantLib])
 AC_PREREQ(2.62)
@@ -212,13 +212,12 @@ AC_MSG_RESULT([$ql_belt_and_braces])
 AC_MSG_CHECKING([whether to enable sessions])
 AC_ARG_ENABLE([sessions],
               AS_HELP_STRING([--enable-sessions],
-                             [If enabled, singletons will return different
-                              instances for different sessions. You will
-                              have to provide and link with the library
-                              a sessionId() function in namespace QuantLib,
-                              returning a different session id for each
-                              session. This also implies thread-safe
-                              Singleton initialization.]),
+                             [If enabled, singletons will return
+                              different instances for different
+                              threads; in particular, this means that
+                              the evaluation date, the stored index
+                              fixings and any other settings will be
+                              per-thread. Undefined by default.]),
               [ql_use_sessions=$enableval],
               [ql_use_sessions=no])
 if test "$ql_use_sessions" = "yes" ; then
@@ -438,12 +437,12 @@ AC_MSG_RESULT([$ql_use_std_pointers])
 AC_MSG_CHECKING([whether to enable std::function])
 AC_ARG_ENABLE([std-function],
               AS_HELP_STRING([--enable-std-function],
-                             [If enabled, std::function and std::bind will be
-                              used instead of boost::function and boost::bind.
-                              If disabled (the default) the Boost facilities
-                              are used.]),
+                             [If enabled (the default), std::function
+                              and std::bind will be used.  If
+                              disabled, the corresponding Boost
+                              classes will be used instead.]),
               [ql_use_std_function=$enableval],
-              [ql_use_std_function=no])
+              [ql_use_std_function=yes])
 if test "$ql_use_std_function" = "yes" ; then
    AC_DEFINE([QL_USE_STD_FUNCTION],[1],
              [Define this if you want to use std::function and std::bind.])
@@ -453,17 +452,17 @@ AC_MSG_RESULT([$ql_use_std_function])
 AC_MSG_CHECKING([whether to enable std::tuple])
 AC_ARG_ENABLE([std-tuple],
               AS_HELP_STRING([--enable-std-tuple],
-                             [If enabled, std::tuple and related functions
-                              will be used instead of boost::tuple.
-                              If disabled (the default) the Boost facilities
-                              are used.]),
+                             [If enabled (the default), std::tuple and
+                              related functions will be used.  If
+                              disabled, the corresponding Boost
+                              facilities will be used instead.]),
               [ql_use_std_tuple=$enableval],
-              [ql_use_std_tuple=no])
+              [ql_use_std_tuple=yes])
 if test "$ql_use_std_tuple" = "yes" ; then
    AC_DEFINE([QL_USE_STD_TUPLE],[1],
              [Define this if you want to use std::tuple.])
 fi
-AC_MSG_RESULT([$ql_use_std_pointers])
+AC_MSG_RESULT([$ql_use_std_tuple])
 
 AC_MSG_CHECKING([whether to enable available std classes])
 AC_ARG_ENABLE([std-classes],
@@ -531,7 +530,6 @@ AC_CONFIG_FILES([
     ql/cashflows/Makefile
     ql/currencies/Makefile
     ql/experimental/Makefile
-    ql/experimental/amortizingbonds/Makefile
     ql/experimental/asian/Makefile
     ql/experimental/averageois/Makefile
     ql/experimental/barrieroption/Makefile
@@ -617,6 +615,7 @@ AC_CONFIG_FILES([
     ql/pricingengines/capfloor/Makefile
     ql/pricingengines/cliquet/Makefile
     ql/pricingengines/credit/Makefile
+    ql/pricingengines/exotic/Makefile
     ql/pricingengines/forward/Makefile
     ql/pricingengines/inflation/Makefile
     ql/pricingengines/lookback/Makefile

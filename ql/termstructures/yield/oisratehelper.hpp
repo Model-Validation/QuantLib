@@ -41,7 +41,7 @@ namespace QuantLib {
                       // exogenous discounting curve
                       Handle<YieldTermStructure> discountingCurve = {},
                       bool telescopicValueDates = false,
-                      Natural paymentLag = 0,
+                      Integer paymentLag = 0,
                       BusinessDayConvention paymentConvention = Following,
                       Frequency paymentFrequency = Annual,
                       Calendar paymentCalendar = Calendar(),
@@ -50,7 +50,12 @@ namespace QuantLib {
                       Pillar::Choice pillar = Pillar::LastRelevantDate,
                       Date customPillarDate = Date(),
                       RateAveraging::Type averagingMethod = RateAveraging::Compound,
-                      ext::optional<bool> endOfMonth = ext::nullopt);
+                      ext::optional<bool> endOfMonth = ext::nullopt,
+                      ext::optional<Frequency> fixedPaymentFrequency = ext::nullopt,
+                      Calendar fixedCalendar = Calendar(),
+                      Natural lookbackDays = Null<Natural>(),
+                      Natural lockoutDays = 0,
+                      bool applyObservationShift = false);
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -58,6 +63,7 @@ namespace QuantLib {
         //@}
         //! \name inspectors
         //@{
+        // NOLINTNEXTLINE(cppcoreguidelines-noexcept-swap,performance-noexcept-swap)
         ext::shared_ptr<OvernightIndexedSwap> swap() const { return swap_; }
         //@}
         //! \name Visitability
@@ -79,7 +85,7 @@ namespace QuantLib {
       bool telescopicValueDates_;
       RelinkableHandle<YieldTermStructure> discountRelinkableHandle_;
 
-      Natural paymentLag_;
+      Integer paymentLag_;
       BusinessDayConvention paymentConvention_;
       Frequency paymentFrequency_;
       Calendar paymentCalendar_;
@@ -87,6 +93,11 @@ namespace QuantLib {
       Spread overnightSpread_;
       RateAveraging::Type averagingMethod_;
       ext::optional<bool> endOfMonth_;
+      ext::optional<Frequency> fixedPaymentFrequency_;
+      Calendar fixedCalendar_;
+      Natural lookbackDays_;
+      Natural lockoutDays_;
+      bool applyObservationShift_;
     };
 
     //! Rate helper for bootstrapping over Overnight Indexed Swap rates
@@ -100,13 +111,40 @@ namespace QuantLib {
                            Handle<YieldTermStructure> discountingCurve = {},
                            bool telescopicValueDates = false,
                            RateAveraging::Type averagingMethod = RateAveraging::Compound,
-                           Natural paymentLag = 0,
+                           Integer paymentLag = 0,
                            BusinessDayConvention paymentConvention = Following,
                            Frequency paymentFrequency = Annual,
                            const Calendar& paymentCalendar = Calendar(),
-                           const Period& forwardStart = 0 * Days,
                            Spread overnightSpread = 0.0,
-                           ext::optional<bool> endOfMonth = ext::nullopt);
+                           ext::optional<bool> endOfMonth = ext::nullopt,
+                           ext::optional<Frequency> fixedPaymentFrequency = ext::nullopt,
+                           const Calendar& fixedCalendar = Calendar(),
+                           Natural lookbackDays = Null<Natural>(),
+                           Natural lockoutDays = 0,
+                           bool applyObservationShift = false);
+        
+        /*! \deprecated Use the overload without forward start.
+                        Deprecated in version 1.35.
+        */
+        QL_DEPRECATED
+        DatedOISRateHelper(const Date& startDate,
+                           const Date& endDate,
+                           const Handle<Quote>& fixedRate,
+                           const ext::shared_ptr<OvernightIndex>& overnightIndex,
+                           // exogenous discounting curve
+                           Handle<YieldTermStructure> discountingCurve,
+                           bool telescopicValueDates,
+                           RateAveraging::Type averagingMethod,
+                           Integer paymentLag,
+                           BusinessDayConvention paymentConvention,
+                           Frequency paymentFrequency,
+                           const Calendar& paymentCalendar,
+                           const Period& forwardStart,
+                           Spread overnightSpread = 0.0,
+                           ext::optional<bool> endOfMonth = ext::nullopt,
+                           ext::optional<Frequency> fixedPaymentFrequency = ext::nullopt,
+                           const Calendar& fixedCalendar = Calendar());
+
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;

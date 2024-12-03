@@ -191,7 +191,7 @@ namespace QuantLib {
 MidPointCdsEngine::MidPointCdsEngine(const Handle<DefaultProbabilityTermStructure>& probability,
                                      Real recoveryRate,
                                      const Handle<YieldTermStructure>& discountCurve,
-                                     boost::optional<bool> includeSettlementDateFlows)
+                                     ext::optional<bool> includeSettlementDateFlows)
     : MidPointCdsEngineBase(discountCurve, includeSettlementDateFlows), probability_(probability),
       recoveryRate_(recoveryRate) {
     registerWith(discountCurve_);
@@ -254,7 +254,7 @@ void MidPointCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSw
         if (arguments.leg[i]->hasOccurred(settlementDate, includeSettlementDateFlows_))
             continue;
 
-        boost::shared_ptr<Coupon> coupon = boost::dynamic_pointer_cast<Coupon>(arguments.leg[i]);
+        ext::shared_ptr<Coupon> coupon = ext::dynamic_pointer_cast<Coupon>(arguments.leg[i]);
         QL_REQUIRE(coupon, "MidPointCdsEngine: expected coupon, simple cashflows are not allowed");
 
         // In order to avoid a few switches, we calculate the NPV

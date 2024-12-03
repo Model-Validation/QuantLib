@@ -22,13 +22,17 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "swaption.hpp"
+#include "preconditions.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/instruments/swaption.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
+#include <ql/instruments/makeois.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
+#include <ql/termstructures/yield/zerospreadedtermstructure.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
+#include <ql/indexes/ibor/eonia.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
 #include <ql/time/daycounters/thirty360.hpp>
 #include <ql/time/schedule.hpp>
@@ -40,88 +44,131 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace swaption_test {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    Period exercises[] = { 1*Years, 2*Years, 3*Years,
-                           5*Years, 7*Years, 10*Years };
-    Period lengths[] = { 1*Years, 2*Years, 3*Years,
-                         5*Years, 7*Years, 10*Years,
-                         15*Years, 20*Years };
-    Swap::Type type[] = { Swap::Receiver, Swap::Payer };
+BOOST_AUTO_TEST_SUITE(SwaptionTests)
 
-    struct CommonVars {
-        // global data
-        Date today, settlement;
-        Real nominal;
-        Calendar calendar;
+Period exercises[] = { 1*Years, 2*Years, 3*Years,
+                       5*Years, 7*Years, 10*Years };
+Period lengths[] = { 1*Years, 2*Years, 3*Years,
+                     5*Years, 7*Years, 10*Years,
+                     15*Years, 20*Years };
+Swap::Type type[] = { Swap::Receiver, Swap::Payer };
 
-        BusinessDayConvention fixedConvention;
-        Frequency fixedFrequency;
-        DayCounter fixedDayCount;
+struct CommonVars {
+    // global data
+    Date today, settlement;
+    Real nominal;
+    Calendar calendar;
 
-        BusinessDayConvention floatingConvention;
-        Period floatingTenor;
-        ext::shared_ptr<IborIndex> index;
+    BusinessDayConvention fixedConvention;
+    Frequency fixedFrequency;
+    DayCounter fixedDayCount;
 
-        Natural settlementDays;
-        RelinkableHandle<YieldTermStructure> termStructure;
+    BusinessDayConvention floatingConvention;
+    Period floatingTenor;
+    ext::shared_ptr<IborIndex> index;
+    ext::shared_ptr<OvernightIndex> oisIndex;
 
-        // utilities
-        ext::shared_ptr<Swaption> makeSwaption(
-            const ext::shared_ptr<VanillaSwap>& swap,
+    Natural settlementDays;
+    RelinkableHandle<YieldTermStructure> termStructure;
+
+    // utilities
+    ext::shared_ptr<Swaption> makeSwaption(
+                                           const ext::shared_ptr<VanillaSwap>& swap,
+                                           const Date& exercise,
+                                           Volatility volatility,
+                                           Settlement::Type settlementType = Settlement::Physical,
+                                           Settlement::Method settlementMethod = Settlement::PhysicalOTC,
+                                           BlackSwaptionEngine::CashAnnuityModel model = BlackSwaptionEngine::SwapRate) const {
+        Handle<Quote> vol(ext::shared_ptr<Quote>(new SimpleQuote(volatility)));
+        ext::shared_ptr<PricingEngine> engine(new BlackSwaptionEngine(
+                termStructure, vol, Actual365Fixed(), 0.0, model));
+
+        ext::shared_ptr<Swaption> result(new
+                Swaption(swap,
+                         ext::shared_ptr<Exercise>(
+                                              new EuropeanExercise(exercise)),
+                         settlementType, settlementMethod));
+        result->setPricingEngine(engine);
+        return result;
+    }
+    ext::shared_ptr<Swaption> makeOISwaption(
+            const ext::shared_ptr<OvernightIndexedSwap>& swap,
             const Date& exercise,
             Volatility volatility,
             Settlement::Type settlementType = Settlement::Physical,
             Settlement::Method settlementMethod = Settlement::PhysicalOTC,
             BlackSwaptionEngine::CashAnnuityModel model = BlackSwaptionEngine::SwapRate) const {
-            Handle<Quote> vol(ext::shared_ptr<Quote>(
-                                                new SimpleQuote(volatility)));
-            ext::shared_ptr<PricingEngine> engine(new BlackSwaptionEngine(
-                termStructure, vol, Actual365Fixed(), 0.0, model));
+        Handle<Quote> vol(ext::make_shared<SimpleQuote>(volatility));
+        auto engine = ext::make_shared<BlackSwaptionEngine>(termStructure, vol, Actual365Fixed(), 0.0, model);
 
-            ext::shared_ptr<Swaption> result(new
-                Swaption(swap,
-                         ext::shared_ptr<Exercise>(
-                                              new EuropeanExercise(exercise)),
-                         settlementType, settlementMethod));
-            result->setPricingEngine(engine);
-            return result;
-        }
+        auto result = ext::make_shared<Swaption>(
+                swap,
+                ext::make_shared<EuropeanExercise>(exercise),
+                settlementType, settlementMethod);
+        result->setPricingEngine(engine);
+        return result;
+    }
 
-        ext::shared_ptr<PricingEngine> makeEngine(
-            Volatility volatility,
-            BlackSwaptionEngine::CashAnnuityModel model = BlackSwaptionEngine::SwapRate) const {
-            Handle<Quote> h(ext::shared_ptr<Quote>(new SimpleQuote(volatility)));
-            return ext::shared_ptr<PricingEngine>(
-                new BlackSwaptionEngine(termStructure, h, Actual365Fixed(), 0.0, model));
-        }
+    ext::shared_ptr<PricingEngine> makeEngine(
+                                              Volatility volatility,
+                                              BlackSwaptionEngine::CashAnnuityModel model = BlackSwaptionEngine::SwapRate) const {
+        Handle<Quote> h(ext::make_shared<SimpleQuote>(volatility));
+        return ext::make_shared<BlackSwaptionEngine>(termStructure, h, Actual365Fixed(), 0.0, model);
+    }
 
-        CommonVars() {
-            settlementDays = 2;
-            nominal = 1000000.0;
-            fixedConvention = Unadjusted;
-            fixedFrequency = Annual;
-            fixedDayCount = Thirty360(Thirty360::BondBasis);
+    CommonVars() {
+        settlementDays = 2;
+        nominal = 1000000.0;
+        fixedConvention = Unadjusted;
+        fixedFrequency = Annual;
+        fixedDayCount = Thirty360(Thirty360::BondBasis);
 
-            index = ext::shared_ptr<IborIndex>(new Euribor6M(termStructure));
-            floatingConvention = index->businessDayConvention();
-            floatingTenor = index->tenor();
-            calendar = index->fixingCalendar();
-            today = calendar.adjust(Date::todaysDate());
-            Settings::instance().evaluationDate() = today;
-            settlement = calendar.advance(today,settlementDays,Days);
-            termStructure.linkTo(flatRate(settlement,0.05,Actual365Fixed()));
-        }
-    };
+        index = ext::shared_ptr<IborIndex>(new Euribor6M(termStructure));
+        oisIndex = ext::make_shared<Eonia>(
+                Handle<YieldTermStructure>(
+                    ext::make_shared<ZeroSpreadedTermStructure>(
+                        termStructure,
+                        Handle<Quote>(ext::make_shared<SimpleQuote>(-0.01)))));
+        floatingConvention = index->businessDayConvention();
+        floatingTenor = index->tenor();
+        calendar = index->fixingCalendar();
+        today = calendar.adjust(Date::todaysDate());
+        Settings::instance().evaluationDate() = today;
+        settlement = calendar.advance(today,settlementDays,Days);
+        termStructure.linkTo(flatRate(settlement,0.05,Actual365Fixed()));
+    }
+};
 
+
+BOOST_AUTO_TEST_CASE(testBlackEngineCaching) {
+
+    BOOST_TEST_MESSAGE("Testing swaption result caching in Black engine...");
+
+    CommonVars vars;
+
+    Date exerciseDate = vars.calendar.advance(vars.today, 1 * Years);
+    Date startDate = vars.calendar.advance(exerciseDate, vars.settlementDays, Days);
+
+    ext::shared_ptr<VanillaSwap> swap = MakeVanillaSwap(1 * Years, vars.index, 0.03)
+                                            .withEffectiveDate(startDate)
+                                            .withFixedLegTenor(1 * Years)
+                                            .withFixedLegDayCount(vars.fixedDayCount)
+                                            .withFloatingLegSpread(0.0)
+                                            .withType(Swap::Payer);
+    ext::shared_ptr<Swaption> swaption = vars.makeSwaption(swap, exerciseDate, 0.12);
+
+    BOOST_CHECK(!swaption->isCalculated());
+
+    swaption->NPV();
+
+    BOOST_CHECK(swaption->isCalculated());
 }
 
-
-void SwaptionTest::testStrikeDependency() {
+BOOST_AUTO_TEST_CASE(testStrikeDependency) {
 
     BOOST_TEST_MESSAGE("Testing swaption dependency on strike...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -212,11 +259,9 @@ void SwaptionTest::testStrikeDependency() {
     }
 }
 
-void SwaptionTest::testSpreadDependency() {
+BOOST_AUTO_TEST_CASE(testSpreadDependency) {
 
     BOOST_TEST_MESSAGE("Testing swaption dependency on spread...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -300,11 +345,9 @@ void SwaptionTest::testSpreadDependency() {
     }
 }
 
-void SwaptionTest::testSpreadTreatment() {
+BOOST_AUTO_TEST_CASE(testSpreadTreatment) {
 
     BOOST_TEST_MESSAGE("Testing swaption treatment of spread...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -363,11 +406,9 @@ void SwaptionTest::testSpreadTreatment() {
     }
 }
 
-void SwaptionTest::testCachedValue() {
+BOOST_AUTO_TEST_CASE(testCachedValue) {
 
-    BOOST_TEST_MESSAGE("Testing swaption value against cached value...");
-
-    using namespace swaption_test;
+    BOOST_TEST_MESSAGE("Testing swaption values against cached values...");
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -396,13 +437,29 @@ void SwaptionTest::testCachedValue() {
                     std::fixed << std::setprecision(12) <<
                     "\ncalculated: " << swaption->NPV() <<
                     "\nexpected:   " << cachedNPV);
+
+    ext::shared_ptr<OvernightIndexedSwap> oiswap =
+        MakeOIS(10*Years, vars.oisIndex, 0.06)
+        .withEffectiveDate(startDate)
+        .withPaymentFrequency(Annual)
+        .withFixedLegDayCount(vars.fixedDayCount);
+
+    ext::shared_ptr<Swaption> oiswaption =
+        vars.makeOISwaption(oiswap, exerciseDate, 0.20);
+
+    cachedNPV = 0.014101075767;
+
+    if (std::fabs(oiswaption->NPV()-cachedNPV) > 1.0e-12)
+        BOOST_ERROR("failed to reproduce cached overnight-indexed swaption value:\n" <<
+                    std::fixed << std::setprecision(12) <<
+                    "\ncalculated: " << oiswaption->NPV() <<
+                    "\nexpected:   " << cachedNPV);
+
 }
 
-void SwaptionTest::testVega() {
+BOOST_AUTO_TEST_CASE(testVega) {
 
     BOOST_TEST_MESSAGE("Testing swaption vega...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -453,7 +510,7 @@ void SwaptionTest::testVega() {
                                            << "\n  strike:          " << io::rate(strike)
                                            << "\n  settlement:      " << types[h]
                                            << "\n  nominal:         "
-                                           << swaption->underlyingSwap()->nominal()
+                                           << swaption->underlying()->nominal()
                                            << "\n  npv:             " << swaptionNPV
                                            << "\n  calculated vega: " << analyticalVegaPerPoint
                                            << "\n  expected vega:   " << numericalVegaPerPoint
@@ -467,13 +524,9 @@ void SwaptionTest::testVega() {
     }
 }
 
-
-
-void SwaptionTest::testCashSettledSwaptions() {
+BOOST_AUTO_TEST_CASE(testCashSettledSwaptions) {
 
     BOOST_TEST_MESSAGE("Testing cash settled swaptions modified annuity...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -767,13 +820,9 @@ void SwaptionTest::testCashSettledSwaptions() {
     }
 }
 
-
-
-void SwaptionTest::testImpliedVolatility() {
+BOOST_AUTO_TEST_CASE(testImpliedVolatility, *precondition(if_speed(Faster))) {
 
     BOOST_TEST_MESSAGE("Testing implied volatility for swaptions...");
-
-    using namespace swaption_test;
 
     CommonVars vars;
 
@@ -782,6 +831,7 @@ void SwaptionTest::testImpliedVolatility() {
 
     Settlement::Type types[] = { Settlement::Physical, Settlement::Cash };
     Settlement::Method methods[] = { Settlement::PhysicalOTC, Settlement::ParYieldCurve };
+    Swaption::PriceType priceTypes[] = { Swaption::Spot, Swaption::Forward };
     // test data
     Rate strikes[] = { 0.02, 0.03, 0.04, 0.05, 0.06, 0.07 };
     Volatility vols[] = { 0.01, 0.05, 0.10, 0.20, 0.30, 0.70, 0.90 };
@@ -802,12 +852,13 @@ void SwaptionTest::testImpliedVolatility() {
                             .withFloatingLegSpread(0.0)
                             .withType(k);
                     for (Size h=0; h<LENGTH(types); h++) {
+                      for (auto priceType : priceTypes) {
                         for (Real vol : vols) {
                             ext::shared_ptr<Swaption> swaption =
                                 vars.makeSwaption(swap, exerciseDate, vol, types[h], methods[h],
                                                   BlackSwaptionEngine::DiscountCurve);
                             // Black price
-                            Real value = swaption->NPV();
+                            Real value = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
                             Volatility implVol = 0.0;
                             try {
                                 implVol =
@@ -819,11 +870,12 @@ void SwaptionTest::testImpliedVolatility() {
                                                               1.0e-7,
                                                               4.0,
                                                               ShiftedLognormal,
-                                                              0.0);
+                                                              0.0,
+                                                              priceType);
                             } catch (std::exception& e) {
                                 // couldn't bracket?
                                 swaption->setPricingEngine(vars.makeEngine(0.0, BlackSwaptionEngine::DiscountCurve));
-                                Real value2 = swaption->NPV();
+                                Real value2 = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
                                 if (std::fabs(value-value2) < tolerance) {
                                     // ok, just skip:
                                     continue;
@@ -836,12 +888,13 @@ void SwaptionTest::testImpliedVolatility() {
                                             << "\natm level:  " << io::rate(swap->fairRate())
                                             << "\nvol:        " << io::volatility(vol)
                                             << "\nprice:      " << value << "\n"
+                                            << "\ntype:       " << (priceType == Swaption::Spot? "spot" : "forward") << "\n"
                                             << e.what());
                             }
                             if (std::fabs(implVol - vol) > tolerance) {
                                 // the difference might not matter
                                 swaption->setPricingEngine(vars.makeEngine(implVol, BlackSwaptionEngine::DiscountCurve));
-                                Real value2 = swaption->NPV();
+                                Real value2 = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
                                 if (std::fabs(value-value2) > tolerance) {
                                     BOOST_ERROR("implied vol failure: "
                                                 << exercise << "x" << length << " " << k
@@ -850,11 +903,110 @@ void SwaptionTest::testImpliedVolatility() {
                                                 << "\natm level:     " << io::rate(swap->fairRate())
                                                 << "\nvol:           " << io::volatility(vol)
                                                 << "\nprice:         " << value
+                                                << "\ntype:          " << (priceType == Swaption::Spot? "spot" : "forward") << "\n"
                                                 << "\nimplied vol:   " << io::volatility(implVol)
                                                 << "\nimplied price: " << value2);
                                 }
                             }
                         }
+                      }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+BOOST_AUTO_TEST_CASE(testImpliedVolatilityOis, *precondition(if_speed(Fast))) {
+
+    BOOST_TEST_MESSAGE("Testing implied volatility for overnight-indexed swaptions...");
+
+    CommonVars vars;
+
+    Size maxEvaluations = 100;
+    Real tolerance = 1.0e-08;
+
+    Settlement::Type types[] = { Settlement::Physical, Settlement::Cash };
+    Settlement::Method methods[] = { Settlement::PhysicalOTC, Settlement::ParYieldCurve };
+    Swaption::PriceType priceTypes[] = { Swaption::Spot, Swaption::Forward };
+    // test data
+    Rate strikes[] = { 0.02, 0.03, 0.04, 0.05, 0.06, 0.07 };
+    Volatility vols[] = { 0.01, 0.05, 0.10, 0.20, 0.30, 0.70, 0.90 };
+
+    for (auto& exercise : exercises) {
+        for (auto& length : lengths) {
+            Date exerciseDate = vars.calendar.advance(vars.today, exercise);
+            Date startDate = vars.calendar.advance(exerciseDate,
+                                                   vars.settlementDays, Days);
+
+            for (Real& strike : strikes) {
+                for (auto& k : type) {
+                    ext::shared_ptr<OvernightIndexedSwap> swap =
+                        MakeOIS(length, vars.oisIndex, strike)
+                            .withEffectiveDate(startDate)
+                            .withPaymentFrequency(Annual)
+                            .withFixedLegDayCount(vars.fixedDayCount)
+                            .withType(k);
+                    for (Size h=0; h<LENGTH(types); h++) {
+                      for (auto priceType : priceTypes) {
+                        for (Real vol : vols) {
+                            ext::shared_ptr<Swaption> swaption =
+                                vars.makeOISwaption(swap, exerciseDate, vol, types[h], methods[h],
+                                                    BlackSwaptionEngine::DiscountCurve);
+                            // Black price
+                            Real value = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
+                            Volatility implVol = 0.0;
+                            try {
+                                implVol =
+                                  swaption->impliedVolatility(value,
+                                                              vars.termStructure,
+                                                              0.10,
+                                                              tolerance,
+                                                              maxEvaluations,
+                                                              1.0e-7,
+                                                              4.0,
+                                                              ShiftedLognormal,
+                                                              0.0,
+                                                              priceType);
+                            } catch (std::exception& e) {
+                                // couldn't bracket?
+                                swaption->setPricingEngine(vars.makeEngine(0.0, BlackSwaptionEngine::DiscountCurve));
+                                Real value2 = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
+                                if (std::fabs(value-value2) < tolerance) {
+                                    // ok, just skip:
+                                    continue;
+                                }
+                                // otherwise, report error
+                                BOOST_ERROR("implied vol failure: "
+                                            << exercise << "x" << length << " " << k
+                                            << "\nsettlement: " << types[h] << "\nstrike      "
+                                            << strike
+                                            << "\natm level:  " << io::rate(swap->fairRate())
+                                            << "\nvol:        " << io::volatility(vol)
+                                            << "\nprice:      " << value << "\n"
+                                            << "\ntype:       " << (priceType == Swaption::Spot? "spot" : "forward") << "\n"
+                                            << e.what());
+                            }
+                            if (std::fabs(implVol - vol) > tolerance) {
+                                // the difference might not matter
+                                swaption->setPricingEngine(vars.makeEngine(implVol, BlackSwaptionEngine::DiscountCurve));
+                                Real value2 = priceType == Swaption::Spot? swaption->NPV() : swaption->result<Real>("forwardPrice");
+                                if (std::fabs(value-value2) > tolerance) {
+                                    BOOST_ERROR("implied vol failure: "
+                                                << exercise << "x" << length << " " << k
+                                                << "\nsettlement:    " << types[h]
+                                                << "\nstrike         " << strike
+                                                << "\natm level:     " << io::rate(swap->fairRate())
+                                                << "\nvol:           " << io::volatility(vol)
+                                                << "\nprice:         " << value
+                                                << "\ntype:          " << (priceType == Swaption::Spot? "spot" : "forward") << "\n"
+                                                << "\nimplied vol:   " << io::volatility(implVol)
+                                                << "\nimplied price: " << value2);
+                                }
+                            }
+                        }
+                      }
                     }
                 }
             }
@@ -874,8 +1026,6 @@ ext::shared_ptr<Engine> makeConstVolEngine(
 template <typename Engine>
 void checkSwaptionDelta(bool useBachelierVol)
 {
-    using namespace swaption_test;
-
     CommonVars vars;
     Date today = vars.today;
     Calendar calendar = vars.calendar;
@@ -969,7 +1119,7 @@ void checkSwaptionDelta(bool useBachelierVol)
                                 << "\n  swap tenor:       " << length << "\n  strike:           "
                                 << strike << "\n  settlement:       " << types[h]
                                 << "\n  method:           " << methods[h]
-                                << "\n  nominal:          " << swaption->underlyingSwap()->nominal()
+                                << "\n  nominal:          " << swaption->underlying()->nominal()
                                 << "\n  npv:              " << value << "\n  calculated delta: "
                                 << delta << "\n  expected delta:   " << approxDelta);
                     }
@@ -979,35 +1129,20 @@ void checkSwaptionDelta(bool useBachelierVol)
     }
 }
 
-void SwaptionTest::testSwaptionDeltaInBlackModel() {
+BOOST_AUTO_TEST_CASE(testSwaptionDeltaInBlackModel) {
 
     BOOST_TEST_MESSAGE("Testing swaption delta in Black model...");
 
     checkSwaptionDelta<BlackSwaptionEngine>(false);
 }
 
-void SwaptionTest::testSwaptionDeltaInBachelierModel() {
+BOOST_AUTO_TEST_CASE(testSwaptionDeltaInBachelierModel) {
 
     BOOST_TEST_MESSAGE("Testing swaption delta in Bachelier model...");
 
     checkSwaptionDelta<BachelierSwaptionEngine>(true);
 }
 
-test_suite* SwaptionTest::suite(SpeedLevel speed) {
-    auto* suite = BOOST_TEST_SUITE("Swaption tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testCashSettledSwaptions));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testStrikeDependency));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testSpreadDependency));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testSpreadTreatment));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testCachedValue));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testVega));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testSwaptionDeltaInBlackModel));
-    suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testSwaptionDeltaInBachelierModel));   
-
-    if (speed <= Fast) {
-        suite->add(QUANTLIB_TEST_CASE(&SwaptionTest::testImpliedVolatility));
-    };
-
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

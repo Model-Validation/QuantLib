@@ -378,7 +378,7 @@ namespace QuantLib {
         bool rebatesAccrual() const { return accrualRebate_ != NULL; }
         const ext::shared_ptr<SimpleCashFlow>& upfrontPayment() const;
         const ext::shared_ptr<SimpleCashFlow>& accrualRebate() const;
-        const boost::shared_ptr<SimpleCashFlow>& accrualRebateCurrent() const;
+        const ext::shared_ptr<SimpleCashFlow>& accrualRebateCurrent() const;
         const Date& tradeDate() const;
         Natural cashSettlementDays() const;
         Date maturity() const { return maturity_; }

@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "creditdefaultswap.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/instruments/creditdefaultswap.hpp>
@@ -53,7 +53,11 @@ using namespace boost::unit_test_framework;
 using boost::assign::map_list_of;
 using std::map;
 
-void CreditDefaultSwapTest::testCachedValue() {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(CreditDefaultSwapTests)
+
+BOOST_AUTO_TEST_CASE(testCachedValue) {
 
     BOOST_TEST_MESSAGE("Testing credit-default swap against cached values...");
 
@@ -164,8 +168,7 @@ void CreditDefaultSwapTest::testCachedValue() {
             << "    expected fair rate:   " << fairRate);
 }
 
-
-void CreditDefaultSwapTest::testCachedMarketValue() {
+BOOST_AUTO_TEST_CASE(testCachedMarketValue) {
 
     BOOST_TEST_MESSAGE(
         "Testing credit-default swap against cached market values...");
@@ -310,8 +313,7 @@ void CreditDefaultSwapTest::testCachedMarketValue() {
             << "    Given fair rate:     " << fairRate);
 }
 
-
-void CreditDefaultSwapTest::testImpliedHazardRate() {
+BOOST_AUTO_TEST_CASE(testImpliedHazardRate) {
 
     BOOST_TEST_MESSAGE("Testing implied hazard-rate for credit-default swaps...");
 
@@ -415,8 +417,7 @@ void CreditDefaultSwapTest::testImpliedHazardRate() {
     }
 }
 
-
-void CreditDefaultSwapTest::testFairSpread() {
+BOOST_AUTO_TEST_CASE(testFairSpread) {
 
     BOOST_TEST_MESSAGE(
         "Testing fair-spread calculation for credit-default swaps...");
@@ -479,7 +480,7 @@ void CreditDefaultSwapTest::testFairSpread() {
             << "    calculated NPV:    " << fairNPV);
 }
 
-void CreditDefaultSwapTest::testFairUpfront() {
+BOOST_AUTO_TEST_CASE(testFairUpfront) {
 
     BOOST_TEST_MESSAGE(
         "Testing fair-upfront calculation for credit-default swaps...");
@@ -566,7 +567,7 @@ void CreditDefaultSwapTest::testFairUpfront() {
             << "    calculated NPV:     " << fairNPV);
 }
 
-void CreditDefaultSwapTest::testIsdaEngine() {
+BOOST_AUTO_TEST_CASE(testIsdaEngine) {
 
     BOOST_TEST_MESSAGE(
         "Testing ISDA engine calculations for credit-default swaps...");
@@ -677,11 +678,11 @@ void CreditDefaultSwapTest::testIsdaEngine() {
 
                 ext::shared_ptr<CreditDefaultSwap> quotedTrade =
                     MakeCreditDefaultSwap(termDate, spread).withNominal(10000000.);
-                quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
-                    Handle<DefaultProbabilityTermStructure>(boost::make_shared<FlatHazardRate>(
+                quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
+                    Handle<DefaultProbabilityTermStructure>(ext::make_shared<FlatHazardRate>(
                         0, NullCalendar(), 0.0, Actual365Fixed())),
                     0.0,
-                    Handle<YieldTermStructure>(boost::make_shared<FlatForward>(
+                    Handle<YieldTermStructure>(ext::make_shared<FlatForward>(
                         0, NullCalendar(), 0.0, Actual365Fixed()))));
 
                 Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
@@ -728,7 +729,7 @@ void CreditDefaultSwapTest::testIsdaEngine() {
     }
 }
 
-void CreditDefaultSwapTest::testAccrualRebateAmounts() {
+BOOST_AUTO_TEST_CASE(testAccrualRebateAmounts) {
 
     BOOST_TEST_MESSAGE("Testing accrual rebate amounts on credit default swaps...");
 
@@ -759,12 +760,12 @@ void CreditDefaultSwapTest::testAccrualRebateAmounts() {
         Settings::instance().evaluationDate() = input.first;
         CreditDefaultSwap cds = MakeCreditDefaultSwap(maturity, spread)
             .withNominal(notional);
-        cds.setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+        cds.setPricingEngine(ext::make_shared<MidPointCdsEngine>(
             Handle<DefaultProbabilityTermStructure>(
-                boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+                ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
             0.0,
             Handle<YieldTermStructure>(
-                boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+                ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
         BOOST_TEST_MESSAGE("asof " << io::iso_date(input.first)
                            << " expected " << std::fixed << std::setprecision(4) << input.second
                            << " calculated " << cds.accrualRebate()->amount());
@@ -772,8 +773,7 @@ void CreditDefaultSwapTest::testAccrualRebateAmounts() {
     }
 }
 
-void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleQuote ()
-{
+BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleQuote) {
     BOOST_TEST_MESSAGE(
         "Testing ISDA engine calculations for a single credit-default swap record (reconciliation)...");
 
@@ -835,12 +835,12 @@ void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleQuote ()
 
     ext::shared_ptr<CreditDefaultSwap> quotedTrade =
         MakeCreditDefaultSwap(instrumentMaturity, conventionalSpread).withNominal(nominal);
-    quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+    quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
         Handle<DefaultProbabilityTermStructure>(
-            boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+            ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
         0.0,
         Handle<YieldTermStructure>(
-            boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+            ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
 
     Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
                                             recovery, 1e-10, CreditDefaultSwap::ISDA);
@@ -882,8 +882,7 @@ void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleQuote ()
 
 }
 
-void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleWithIssueDateInThePast ()
-{
+BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleWithIssueDateInThePast) {
     BOOST_TEST_MESSAGE(
         "Testing ISDA engine calculations for a single credit-default swap with issue date in the past...");
 
@@ -953,12 +952,12 @@ void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleWithIssueDateInTheP
     ext::shared_ptr<CreditDefaultSwap> quotedTrade =
         MakeCreditDefaultSwap(instrumentMaturity, conventionalSpread)
         .withNominal(nominal);
-    quotedTrade->setPricingEngine(boost::make_shared<MidPointCdsEngine>(
+    quotedTrade->setPricingEngine(ext::make_shared<MidPointCdsEngine>(
         Handle<DefaultProbabilityTermStructure>(
-            boost::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
+            ext::make_shared<FlatHazardRate>(0, NullCalendar(), 0.0, Actual365Fixed())),
         0.0,
         Handle<YieldTermStructure>(
-            boost::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+            ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
 
     Rate h = quotedTrade->impliedHazardRate(0., discountCurve, Actual365Fixed(),
                                             recovery, 1e-10, CreditDefaultSwap::ISDA);
@@ -987,16 +986,6 @@ void CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleWithIssueDateInTheP
     QL_CHECK_CLOSE(calculated_accrual, expected_accrual, tolerance);
 }
 
-test_suite* CreditDefaultSwapTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Credit-default swap tests");
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testCachedValue));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testCachedMarketValue));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testImpliedHazardRate));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testFairSpread));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testFairUpfront));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testIsdaEngine));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testAccrualRebateAmounts));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleQuote));
-    suite->add(QUANTLIB_TEST_CASE(&CreditDefaultSwapTest::testIsdaCalculatorReconcileSingleWithIssueDateInThePast));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -37,7 +37,7 @@ namespace QuantLib {
         AmortizingCmsRateBond(
                     Natural settlementDays,
                     const std::vector<Real>& notionals,
-                    const Schedule& schedule,
+                    Schedule schedule,
                     const ext::shared_ptr<SwapIndex>& index,
                     const DayCounter& paymentDayCounter,
                     BusinessDayConvention paymentConvention = Following,
@@ -47,7 +47,8 @@ namespace QuantLib {
                     const std::vector<Rate>& caps = {},
                     const std::vector<Rate>& floors = {},
                     bool inArrears = false,
-                    const Date& issueDate = Date());
+                    const Date& issueDate = Date(),
+                    const std::vector<Real>& redemptions = { 100.0 });
     };
 
 }

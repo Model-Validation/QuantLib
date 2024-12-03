@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "fittedbonddiscountcurve.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/termstructures/yield/fittedbonddiscountcurve.hpp>
 #include <ql/termstructures/yield/nonlinearfittingmethods.hpp>
@@ -33,7 +33,11 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-void FittedBondDiscountCurveTest::testEvaluation() {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(FittedBondDiscountCurveTests)
+
+BOOST_AUTO_TEST_CASE(testEvaluation) {
 
     BOOST_TEST_MESSAGE("Testing that fitted bond curves work as evaluators...");
 
@@ -65,7 +69,7 @@ void FittedBondDiscountCurveTest::testEvaluation() {
     BOOST_CHECK_NO_THROW(curve.discount(3.0));
 }
 
-void FittedBondDiscountCurveTest::testFlatExtrapolation() {
+BOOST_AUTO_TEST_CASE(testFlatExtrapolation) {
 
     BOOST_TEST_MESSAGE("Testing fitted bond curve with flat extrapolation...");
 
@@ -140,7 +144,7 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
 
     // extract the model prices using the two curves
 
-    std::vector<Real> modelPrices1, modelPrices2;
+    std::vector<Bond::Price> modelPrices1, modelPrices2;
 
     ext::shared_ptr<PricingEngine> engine1 =
         ext::make_shared<DiscountingBondEngine>(Handle<YieldTermStructure>(curve1));
@@ -149,9 +153,9 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
 
     for (auto& bond : bonds) {
         bond->setPricingEngine(engine1);
-        modelPrices1.push_back(bond->cleanPrice());
+        modelPrices1.emplace_back(bond->cleanPrice(), Bond::Price::Clean);
         bond->setPricingEngine(engine2);
-        modelPrices2.push_back(bond->cleanPrice());
+        modelPrices2.emplace_back(bond->cleanPrice(), Bond::Price::Clean);
     }
     BOOST_CHECK_EQUAL(curve1->fitResults().errorCode(), EndCriteria::MaxIterations);
     BOOST_CHECK_EQUAL(curve2->fitResults().errorCode(), EndCriteria::MaxIterations);
@@ -185,18 +189,89 @@ void FittedBondDiscountCurveTest::testFlatExtrapolation() {
         // Real modelYield1 = bonds[i]->yield(modelPrices1[i], Actual365Fixed(), Continuous, NoFrequency);
         Real modelYield2 =
             bonds[i]->yield(modelPrices2[i], Actual365Fixed(), Continuous, NoFrequency);
-        // Real curveYield1 = curve1->zeroRate(t, Continuous).rate();
+        Real curveYield1 = curve1->zeroRate(t, Continuous).rate();
         Real curveYield2 = curve2->zeroRate(t, Continuous).rate();
 
+        if (curveYield1 < 1.0) {
+            BOOST_ERROR("Expecting huge yield; the test premise might be outdated");
+        }
         QL_CHECK_CLOSE(modelYield2, curveYield2, 1.0); // 1.0 percent relative tolerance
     }
-    
+
+    // resetting the guess changes the calibration
+
+    curve1->resetGuess({ 0.02, 0.0, 0.0, 0.0 });
+
+    BOOST_CHECK_EQUAL(curve1->fitResults().errorCode(), EndCriteria::StationaryPoint);
+
+    for (Size i = 0; i < helpers.size(); ++i) {
+        Real t = curve1->timeFromReference(helpers[i]->bond()->maturityDate());
+        Real modelYield1 = bonds[i]->yield(modelPrices1[i], Actual365Fixed(), Continuous, NoFrequency);
+        Real curveYield1 = curve1->zeroRate(t, Continuous).rate();
+
+        QL_CHECK_CLOSE(modelYield1, curveYield1, 6); // somewhat better, within a dozen bps
+    }
+
 }
 
+BOOST_AUTO_TEST_CASE(testRequiredGuess) {
 
-test_suite* FittedBondDiscountCurveTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Fitted bond discount curve tests");
-    suite->add(QUANTLIB_TEST_CASE(&FittedBondDiscountCurveTest::testEvaluation));
-    suite->add(QUANTLIB_TEST_CASE(&FittedBondDiscountCurveTest::testFlatExtrapolation));
-    return suite;
+    BOOST_TEST_MESSAGE("Testing that fitted bond curves require a guess when given an L2 penalty...");
+
+    Date today = Settings::instance().evaluationDate();
+    auto bond1 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(1, Years));
+    auto bond2 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(2, Years));
+    auto bond3 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(5, Years));
+    auto bond4 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(10, Years));
+
+    std::vector<ext::shared_ptr<BondHelper> > helpers(4);
+    helpers[0] = ext::make_shared<BondHelper>(makeQuoteHandle(99.0), bond1);
+    helpers[1] = ext::make_shared<BondHelper>(makeQuoteHandle(98.0), bond2);
+    helpers[2] = ext::make_shared<BondHelper>(makeQuoteHandle(95.0), bond3);
+    helpers[3] = ext::make_shared<BondHelper>(makeQuoteHandle(90.0), bond4);
+
+    Array weights = {};
+    ext::shared_ptr<OptimizationMethod> optimizer = {};
+    Array l2 = { 0.25, 0.25, 0.25, 0.25 };
+    NelsonSiegelFitting fittingMethod(weights, optimizer, l2);
+
+    Real accuracy = 1e-10;
+    Size maxIterations = 10000;
+    FittedBondDiscountCurve curve(0, TARGET(), helpers, Actual365Fixed(),
+                                  fittingMethod, accuracy, maxIterations);
+
+    BOOST_CHECK_EXCEPTION(curve.discount(3.0), Error,
+                          ExpectedErrorMessage("L2 penalty requires a guess"));
 }
+
+BOOST_AUTO_TEST_CASE(testGuessSize) {
+
+    BOOST_TEST_MESSAGE("Testing that fitted bond curves check the guess size when given...");
+
+    Date today = Settings::instance().evaluationDate();
+    auto bond1 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(1, Years));
+    auto bond2 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(2, Years));
+    auto bond3 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(5, Years));
+    auto bond4 = ext::make_shared<ZeroCouponBond>(3, TARGET(), 100.0, today + Period(10, Years));
+
+    std::vector<ext::shared_ptr<BondHelper> > helpers(4);
+    helpers[0] = ext::make_shared<BondHelper>(makeQuoteHandle(99.0), bond1);
+    helpers[1] = ext::make_shared<BondHelper>(makeQuoteHandle(98.0), bond2);
+    helpers[2] = ext::make_shared<BondHelper>(makeQuoteHandle(95.0), bond3);
+    helpers[3] = ext::make_shared<BondHelper>(makeQuoteHandle(90.0), bond4);
+
+    NelsonSiegelFitting fittingMethod;
+
+    Real accuracy = 1e-10;
+    Size maxIterations = 10000;
+    Array guess = { 0.01, 0.0, 0.0 };  // too few
+    FittedBondDiscountCurve curve(0, TARGET(), helpers, Actual365Fixed(),
+                                  fittingMethod, accuracy, maxIterations, guess);
+
+    BOOST_CHECK_EXCEPTION(curve.discount(3.0), Error,
+                          ExpectedErrorMessage("wrong size for guess"));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

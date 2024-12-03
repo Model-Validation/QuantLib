@@ -78,7 +78,7 @@ namespace QuantLib {
 
     // shifted lognormal type engine
     struct Black76Spec {
-        static const VolatilityType type = ShiftedLognormal;
+        static constexpr VolatilityType type = ShiftedLognormal;
         Real value(const Option::Type type, const Real strike,
                    const Real atmForward, const Real stdDev, const Real annuity,
                    const Real displacement) {
@@ -105,7 +105,7 @@ namespace QuantLib {
 
     // normal type engine
     struct BachelierSpec {
-        static const VolatilityType type = Normal;
+        static constexpr VolatilityType type = Normal;
         Real value(const Option::Type type, const Real strike,
                    const Real atmForward, const Real stdDev, const Real annuity,
                    const Real) {
@@ -224,45 +224,42 @@ namespace QuantLib {
     void BlackStyleSwaptionEngine<Spec>::calculate() const {
         static const Spread basisPoint = 1.0e-4;
 
+        QL_REQUIRE(arguments_.exercise->type() == Exercise::European,
+                   "not a European option");
+
         Date exerciseDate = arguments_.exercise->date(0);
 
-        // the part of the swap preceding exerciseDate should be truncated
-        // to avoid taking into account unwanted cashflows
-        // for the moment we add a check avoiding this situation
+        // The part of the swap preceding exerciseDate should be truncated to avoid taking into
+        // account unwanted cashflows. For the moment we add a check avoiding this situation.
         // Furthermore, we take a copy of the underlying swap. This avoids notifying the swaption
         // when we set a pricing engine on the swap below.
-        auto swap = arguments_.swap ? boost::make_shared<VanillaSwap>(*arguments_.swap) : nullptr;
-        auto swapOis = arguments_.swapOis ?
-                           boost::make_shared<OvernightIndexedSwap>(*arguments_.swapOis) :
-                           nullptr;
-        QL_REQUIRE(swap || swapOis,
-                   "BlackStyleSwaptionEngine: internal error, expected swap or swapOis to be set");
-        const Leg& fixedLeg = swap ? swap->fixedLeg() : swapOis->fixedLeg();
+        auto swap = arguments_.swap;
+
+        const Leg& fixedLeg = swap->fixedLeg();
         ext::shared_ptr<FixedRateCoupon> firstCoupon =
             ext::dynamic_pointer_cast<FixedRateCoupon>(fixedLeg[0]);
         QL_REQUIRE(firstCoupon->accrualStartDate() >= exerciseDate,
                    "swap start (" << firstCoupon->accrualStartDate() << ") before exercise date ("
                                   << exerciseDate << ") not supported in Black swaption engine");
 
-        Rate strike = swap ? swap->fixedRate() : swapOis->fixedRate();
+        Rate strike = swap->fixedRate();
 
         // using the discounting curve
         // swap.iborIndex() might be using a different forwarding curve
         auto engine = ext::make_shared<DiscountingSwapEngine>(discountCurve_, false);
-        if (swap)
-            swap->setPricingEngine(engine);
-        if (swapOis)
-            swapOis->setPricingEngine(engine);
-        Rate atmForward = swap ? swap->fairRate() : swapOis->fairRate();
+        ObservableSettings::instance().disableUpdates();
+        swap->setPricingEngine(engine);
+        ObservableSettings::instance().enableUpdates();
+        Date valuation_date = results_.valuationDate  = swap->valuationDate();
+        Rate atmForward = swap->fairRate();
 
         // Volatilities are quoted for zero-spreaded swaps.
         // Therefore, any spread on the floating leg must be removed
         // with a corresponding correction on the fixed leg.
-        Real spread = swap ? swap->spread() : swapOis->spread();
+        Real spread = swap->spread();
         if (spread!=0.0) {
             Spread correction =
-                spread * std::fabs(swap ? swap->floatingLegBPS() / swap->fixedLegBPS() :
-                                          swapOis->overnightLegBPS() / swapOis->fixedLegBPS());
+                spread * std::fabs(swap->floatingLegBPS() / swap->fixedLegBPS());
             strike -= correction;
             atmForward -= correction;
             results_.additionalResults["spreadCorrection"] = correction;
@@ -271,14 +268,14 @@ namespace QuantLib {
         }
         results_.additionalResults["strike"] = strike;
         results_.additionalResults["atmForward"] = atmForward;
-        results_.additionalResults["underlyingNPV"] = swap ? swap->NPV() : swapOis->NPV();
+        results_.additionalResults["underlyingNPV"] = swap->NPV();
 
         Real annuity;
         if (arguments_.settlementType == Settlement::Physical ||
             (arguments_.settlementType == Settlement::Cash &&
              arguments_.settlementMethod ==
                  Settlement::CollateralizedCashPrice)) {
-            annuity = std::fabs(swap ? swap->fixedLegBPS() : swapOis->fixedLegBPS()) / basisPoint;
+            annuity = std::fabs(swap->fixedLegBPS()) / basisPoint;
         } else if (arguments_.settlementType == Settlement::Cash &&
                    arguments_.settlementMethod == Settlement::ParYieldCurve) {
             DayCounter dayCount = firstCoupon->dayCounter();
@@ -286,11 +283,16 @@ namespace QuantLib {
             // to the swap start date
             Date discountDate = model_ == DiscountCurve
                                     ? firstCoupon->accrualStartDate()
-                                    : discountCurve_->referenceDate();
-            Real fixedLegCashBPS = CashFlows::bps(
-                fixedLeg,
-                InterestRate(atmForward, dayCount, Compounded, Annual), false,
-                discountDate);
+                                    : valuation_date;
+            Frequency freq = Annual;
+            const Schedule& fixedSchedule = swap->fixedSchedule();
+            if (fixedSchedule.hasTenor()) {
+                freq = fixedSchedule.tenor().frequency();
+            }
+            Real fixedLegCashBPS =
+                CashFlows::bps(fixedLeg,
+                        InterestRate(atmForward, dayCount, Compounded, freq),
+                        false, discountDate);
             annuity = std::fabs(fixedLegCashBPS / basisPoint) *
                       discountCurve_->discount(discountDate);
         } else {
@@ -298,7 +300,7 @@ namespace QuantLib {
         }
         results_.additionalResults["annuity"] = annuity;
 
-        const Schedule floatingSchedule = swap ? swap->floatingSchedule() : swapOis->schedule();
+        const Schedule& floatingSchedule = swap->floatingSchedule();
         Time swapLength =  vol_->swapLength(floatingSchedule.dates().front(),
                                             floatingSchedule.dates().back());
 
@@ -317,8 +319,8 @@ namespace QuantLib {
 
         Real stdDev = std::sqrt(variance);
         results_.additionalResults["stdDev"] = stdDev;
-
-        Option::Type w = (arguments_.type==Swap::Payer) ? Option::Call : Option::Put;
+        Option::Type w = (swap->type() == Swap::Payer) ? Option::Call : Option::Put;
+        results_.value = Spec().value(w, strike, atmForward, stdDev, annuity, displacement);
 
         Time exerciseTime = vol_->timeFromReference(exerciseDate);
 
@@ -336,6 +338,7 @@ namespace QuantLib {
 
         results_.additionalResults["timeToExpiry"] = exerciseTime;
         results_.additionalResults["impliedVolatility"] = Real(stdDev / std::sqrt(exerciseTime));
+        results_.additionalResults["forwardPrice"] = Real(results_.value / discountCurve_->discount(exerciseDate));
     }
 
     }  // namespace detail

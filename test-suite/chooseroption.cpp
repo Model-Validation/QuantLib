@@ -17,18 +17,22 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "chooseroption.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/time/daycounters/actual360.hpp>
-#include <ql/experimental/exoticoptions/simplechooseroption.hpp>
-#include <ql/experimental/exoticoptions/complexchooseroption.hpp>
-#include <ql/experimental/exoticoptions/analyticsimplechooserengine.hpp>
-#include <ql/experimental/exoticoptions/analyticcomplexchooserengine.hpp>
+#include <ql/instruments/simplechooseroption.hpp>
+#include <ql/instruments/complexchooseroption.hpp>
+#include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
+#include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/utilities/dataformatters.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(ChooserOptionTests)
 
 #undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, choosingDate, \
@@ -49,8 +53,7 @@ using namespace boost::unit_test_framework;
         << "\n" \
         << "    tolerance:        " << tolerance);
 
-
-void ChooserOptionTest::testAnalyticSimpleChooserEngine(){
+BOOST_AUTO_TEST_CASE(testAnalyticSimpleChooserEngine){
 
     BOOST_TEST_MESSAGE("Testing analytic simple chooser option...");
 
@@ -101,8 +104,7 @@ void ChooserOptionTest::testAnalyticSimpleChooserEngine(){
 
 }
 
-
-void ChooserOptionTest::testAnalyticComplexChooserEngine(){
+BOOST_AUTO_TEST_CASE(testAnalyticComplexChooserEngine){
     BOOST_TEST_MESSAGE("Testing analytic complex chooser option...");
 
     /* The example below is from
@@ -156,13 +158,6 @@ void ChooserOptionTest::testAnalyticComplexChooserEngine(){
     }
 }
 
-test_suite* ChooserOptionTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Chooser option tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(
-        &ChooserOptionTest::testAnalyticSimpleChooserEngine));
-    suite->add(QUANTLIB_TEST_CASE(
-        &ChooserOptionTest::testAnalyticComplexChooserEngine));
-
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

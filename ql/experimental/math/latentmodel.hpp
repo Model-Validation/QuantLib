@@ -42,12 +42,6 @@ namespace QuantLib {
     namespace detail {
         // havent figured out how to do this in-place
         struct multiplyV {
-            /*! \deprecated Use `auto` or `decltype` instead.
-                            Deprecated in version 1.29.
-            */
-            QL_DEPRECATED
-            typedef std::vector<Real> result_type;
-
             std::vector<Real> operator()(Real d, std::vector<Real> v) 
             {
                 std::transform(v.begin(), v.end(), v.begin(), 
@@ -518,7 +512,7 @@ namespace QuantLib {
         explicit LatentModel(
             const std::vector<std::vector<Real> >& factorsWeights, 
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor but contributing to each latent
           variable through different weights.
@@ -530,7 +524,7 @@ namespace QuantLib {
         */
         explicit LatentModel(const std::vector<Real>& factorsWeight,
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables.
@@ -544,7 +538,7 @@ namespace QuantLib {
         */
         explicit LatentModel(Real correlSqr,
                              Size nVariables,
-                             const typename copulaType::initTraits& ini = copulaType::initTraits());
+                             const typename copulaType::initTraits& ini = typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables. The weight is observed and this constructor is
@@ -560,7 +554,7 @@ namespace QuantLib {
         explicit LatentModel(const Handle<Quote>& singleFactorCorrel,
             Size nVariables,
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
 
         //! Provides values of the factors \f$ a_{i,k} \f$ 
         const std::vector<std::vector<Real> >& factorWeights() const {

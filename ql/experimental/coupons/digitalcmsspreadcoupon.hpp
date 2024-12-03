@@ -43,8 +43,7 @@ namespace QuantLib {
             Position::Type putPosition = Position::Long,
             bool isPutATMIncluded = false,
             Rate putDigitalPayoff = Null<Rate>(),
-            const ext::shared_ptr<DigitalReplication> &replication =
-                ext::shared_ptr<DigitalReplication>(new DigitalReplication),
+            const ext::shared_ptr<DigitalReplication> &replication = {},
             bool nakedOption = false);
 
         //! \name Visitability
@@ -82,9 +81,12 @@ namespace QuantLib {
         DigitalCmsSpreadLeg& withPutATM(bool flag = true);
         DigitalCmsSpreadLeg& withPutPayoffs(Rate payoff);
         DigitalCmsSpreadLeg& withPutPayoffs(const std::vector<Rate>& payoffs);
-        DigitalCmsSpreadLeg& withReplication(
-            const ext::shared_ptr<DigitalReplication> &replication =
-                ext::shared_ptr<DigitalReplication>(new DigitalReplication));
+        DigitalCmsSpreadLeg& withReplication(const ext::shared_ptr<DigitalReplication>&);
+        /*! \deprecated Use the overload that passes a replication instead.
+                        Deprecated in version 1.32.
+        */
+        [[deprecated("Use the overload that passes a replication instead")]]
+        DigitalCmsSpreadLeg& withReplication();
         DigitalCmsSpreadLeg& withNakedOption(bool nakedOption = true);
 
         operator Leg() const;

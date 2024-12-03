@@ -28,11 +28,17 @@
 #include <ql/models/calibrationhelper.hpp>
 #include <ql/instruments/swaption.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
+#include <ql/cashflows/rateaveraging.hpp>
 
 namespace QuantLib {
 
-    //! calibration helper for ATM swaption
-
+    //! calibration helper for interest-rate swaptions
+    /*! \warning passing an overnight index to the constructor will
+                 result in an overnight-indexed swap being built, but
+                 model-based engines will treat it as a vanilla swap.
+                 This is at best a decent proxy, at worst simply wrong.
+                 Use with caution.
+    */
     class SwaptionHelper : public BlackCalibrationHelper {
       public:
         SwaptionHelper(const Period& maturity,
@@ -43,8 +49,7 @@ namespace QuantLib {
                        DayCounter fixedLegDayCounter,
                        DayCounter floatingLegDayCounter,
                        Handle<YieldTermStructure> termStructure,
-                       BlackCalibrationHelper::CalibrationErrorType errorType =
-                           BlackCalibrationHelper::RelativePriceError,
+                       CalibrationErrorType errorType = RelativePriceError,
                        Real strike = Null<Real>(),
                        Real nominal = 1.0,
                        VolatilityType type = ShiftedLognormal,
@@ -60,8 +65,7 @@ namespace QuantLib {
                        DayCounter fixedLegDayCounter,
                        DayCounter floatingLegDayCounter,
                        Handle<YieldTermStructure> termStructure,
-                       BlackCalibrationHelper::CalibrationErrorType errorType =
-                           BlackCalibrationHelper::RelativePriceError,
+                       CalibrationErrorType errorType = RelativePriceError,
                        Real strike = Null<Real>(),
                        Real nominal = 1.0,
                        VolatilityType type = ShiftedLognormal,
@@ -77,8 +81,7 @@ namespace QuantLib {
                        DayCounter fixedLegDayCounter,
                        DayCounter floatingLegDayCounter,
                        Handle<YieldTermStructure> termStructure,
-                       BlackCalibrationHelper::CalibrationErrorType errorType =
-                           BlackCalibrationHelper::RelativePriceError,
+                       CalibrationErrorType errorType = RelativePriceError,
                        Real strike = Null<Real>(),
                        Real nominal = 1.0,
                        VolatilityType type = ShiftedLognormal,
@@ -90,17 +93,28 @@ namespace QuantLib {
         Real modelValue() const override;
         Real blackPrice(Volatility volatility) const override;
 
-        ext::shared_ptr<VanillaSwap> underlyingSwap() const {
+        const ext::shared_ptr<FixedVsFloatingSwap>& underlying() const {
             calculate();
             return swap_;
         }
-        ext::shared_ptr<OvernightIndexedSwap> underlyingOvernightIndexedSwap() const { calculate();
-            return swapOis_;
+        /*! \deprecated Use the SwaptionHelper::underlying method instead.
+                        Deprecated in version 1.34.
+        */
+        [[deprecated("Use the SwaptionHelper::underlying method instead")]]
+        ext::shared_ptr<VanillaSwap> underlyingSwap() const {
+            calculate();
+            auto vanilla = ext::dynamic_pointer_cast<VanillaSwap>(swap_);
+            QL_REQUIRE(vanilla, "underlying is not a vanilla swap");
+            return vanilla;
         }
         ext::shared_ptr<Swaption> swaption() const { calculate(); return swaption_; }
 
       private:
         void performCalculations() const override;
+        ext::shared_ptr<FixedVsFloatingSwap> makeSwap(Schedule fixedSchedule,
+                                                      Schedule floatSchedule,
+                                                      Rate exerciseRate,
+                                                      Swap::Type type) const;
         mutable Date exerciseDate_, endDate_;
         const Period maturity_, length_, fixedLegTenor_;
         const ext::shared_ptr<IborIndex> index_;
@@ -110,8 +124,7 @@ namespace QuantLib {
         const Natural settlementDays_;
         const RateAveraging::Type averagingMethod_;
         mutable Rate exerciseRate_;
-        mutable ext::shared_ptr<VanillaSwap> swap_;
-        mutable ext::shared_ptr<OvernightIndexedSwap> swapOis_;
+        mutable ext::shared_ptr<FixedVsFloatingSwap> swap_;
         mutable ext::shared_ptr<Swaption> swaption_;
     };
 

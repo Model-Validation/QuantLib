@@ -296,7 +296,7 @@ namespace QuantLib {
         ext::shared_ptr<ZeroInflationIndex> cpiIndex() const;
 
         //! redefined to use baseFixing() and interpolation
-        Real amount() const override;
+        void performCalculations() const override;
         Real indexFixing() const override;
 
       protected:
@@ -316,7 +316,7 @@ namespace QuantLib {
     */
     class CPILeg {
       public:
-        CPILeg(const Schedule& schedule,
+        CPILeg(Schedule schedule,
                ext::shared_ptr<ZeroInflationIndex> index,
                Real baseCPI,
                const Period& observationLag);
