@@ -41,6 +41,9 @@ class PiecewiseIntegral : public Integrator {
                       std::vector<Real> criticalPoints,
                       bool avoidCriticalPoints = true);
 
+    ext::shared_ptr<Integrator> integrator() const { return integrator_; }
+    const std::vector<Real> criticalPoints() const { return criticalPoints_; }
+
   protected:
     Real integrate(const ext::function<Real(Real)>& f, Real a, Real b) const override;
 
@@ -51,6 +54,8 @@ class PiecewiseIntegral : public Integrator {
     std::vector<Real> criticalPoints_;
     const Real eps_;
 };
+
+ext::shared_ptr<Integrator> unwrapPiecewiseIntegrator(ext::shared_ptr<Integrator> integrator);
 
 // inline
 

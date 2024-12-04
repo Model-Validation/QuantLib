@@ -35,10 +35,11 @@ namespace QuantLib {
     */
     class SimpsonIntegral : public TrapezoidIntegral<Default> {
       public:
-        SimpsonIntegral(Real accuracy,
-                        Size maxIterations)
-        : TrapezoidIntegral<Default>(accuracy, maxIterations) {}
+        SimpsonIntegral(Real accuracy, Size maxIterations, Size minIterations = 6)
+        : TrapezoidIntegral<Default>(accuracy, maxIterations), minIterations_(minIterations) {}
+
       protected:
+        Size minIterations_ = 6;
         Real integrate(const ext::function<Real(Real)>& f, Real a, Real b) const override {
 
             // start from the coarsest trapezoid...
@@ -55,7 +56,7 @@ namespace QuantLib {
                 N *= 2;
                 newAdjI = (4.0*newI-I)/3.0;
                 // good enough? Also, don't run away immediately
-                if (std::fabs(adjI-newAdjI) <= absoluteAccuracy() && i > 5)
+                if (std::fabs(adjI - newAdjI) <= absoluteAccuracy() && i >= minIterations_)
                     // ok, exit
                     return newAdjI;
                 // oh well. Another step.
