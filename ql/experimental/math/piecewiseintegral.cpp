@@ -37,4 +37,11 @@ namespace QuantLib {
         criticalPoints_.resize(end - criticalPoints_.begin());
     }
 
+    ext::shared_ptr<Integrator> unwrapPiecewiseIntegrator(ext::shared_ptr<Integrator> integrator) {
+        while (auto p = ext::dynamic_pointer_cast<PiecewiseIntegral>(integrator)) {
+            integrator = p->integrator();
+        }
+        return integrator;
+    }
+
 } // namespace QuantLib
