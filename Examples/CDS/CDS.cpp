@@ -101,7 +101,7 @@ void example01() {
                                 makeQuoteHandle(quoted_spreads[i]),
                                 tenors[i], settlementDays, calendar, Quarterly, Following,
                                 DateGeneration::TwentiethIMM, Actual365Fixed(),
-                                recovery_rate, tsCurve, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault)));
+                                recovery_rate, tsCurve, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault));
     }
 
     // Bootstrap hazard rates
@@ -345,7 +345,7 @@ std::copy(cdsSchedule.begin(), cdsSchedule.end(),
             new CreditDefaultSwap(Protection::Buyer, 100000000.0, 0.01, sched,
                                   Following, Actual360(), true, CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                                   Date(22,October,2014), ext::shared_ptr<Claim>(),
-                                  Actual360(true), true);
+                                  Actual360(true), true));
 
     auto cp = ext::dynamic_pointer_cast<FixedRateCoupon>(trade->coupons()[0]);
     std::cout << "first period = " << cp->accrualStartDate() << " to " << cp->accrualEndDate() <<
@@ -367,7 +367,7 @@ std::copy(cdsSchedule.begin(), cdsSchedule.end(),
     auto cds5y = ext::make_shared<SpreadCdsHelper>(
         0.00672658551, 4 * Years + 6 * Months, 1, WeekendsOnly(), Quarterly,
         Following, DateGeneration::CDS, Actual360(), 0.4, rateTs, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault,
-        Date(), Actual360(true), true, CreditDefaultSwap::ISDA));
+        Date(), Actual360(true), true, CreditDefaultSwap::ISDA);
 
     isdaCdsHelper.push_back(cds5y);
 
@@ -547,7 +547,7 @@ void example03() {
     auto cds6m = ext::make_shared<SpreadCdsHelper>(
         0.007927, 6 * Months, 1, WeekendsOnly(), Quarterly, Following,
         DateGeneration::CDS, Actual360(), 0.4, isdaYts, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault, Date(),
-        Actual360(true), true, model));
+        Actual360(true), true, model);
     ext::shared_ptr<CdsHelper> cds1y(new SpreadCdsHelper(
         0.007927, 1 * Years, 1, WeekendsOnly(), Quarterly, Following,
         DateGeneration::CDS, Actual360(), 0.4, isdaYts, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault, Date(),
