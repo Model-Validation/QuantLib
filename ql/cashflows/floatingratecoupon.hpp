@@ -33,6 +33,7 @@
 #include <ql/patterns/visitor.hpp>
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/time/daycounter.hpp>
+#include <ql/any.hpp>
 #include <ql/handle.hpp>
 
 namespace QuantLib {
@@ -118,7 +119,7 @@ namespace QuantLib {
         virtual void setPricer(const ext::shared_ptr<FloatingRateCouponPricer>&);
         ext::shared_ptr<FloatingRateCouponPricer> pricer() const;
 
-        std::map<std::string, boost::any>& additionalResults() const { return additionalResults_; }
+        std::map<std::string, ext::any>& additionalResults() const { return additionalResults_; }
 
       protected:
         //! convexity adjustment for the given index fixing
@@ -132,7 +133,7 @@ namespace QuantLib {
         Date fixingDate_;
         ext::shared_ptr<FloatingRateCouponPricer> pricer_;
         mutable Real rate_;
-        mutable std::map<std::string, boost::any> additionalResults_;
+        mutable std::map<std::string, ext::any> additionalResults_;
     };
 
     // inline definitions
