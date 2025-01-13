@@ -117,6 +117,9 @@ namespace QuantLib {
 
         virtual void setPricer(const ext::shared_ptr<FloatingRateCouponPricer>&);
         ext::shared_ptr<FloatingRateCouponPricer> pricer() const;
+
+        std::map<std::string, boost::any>& additionalResults() const { return additionalResults_; }
+
       protected:
         //! convexity adjustment for the given index fixing
         Rate convexityAdjustmentImpl(Rate fixing) const;
@@ -129,6 +132,7 @@ namespace QuantLib {
         Date fixingDate_;
         ext::shared_ptr<FloatingRateCouponPricer> pricer_;
         mutable Real rate_;
+        mutable std::map<std::string, boost::any> additionalResults_;
     };
 
     // inline definitions

@@ -61,6 +61,7 @@ namespace QuantLib {
         rate_ = (underlying_->isFloored() && underlying_->isCapped()) ?
                     Real(floorletRate - capletRate) :
                     Real(floorletRate + capletRate);
+        additionalResults_ = underlying_->underlying()->additionalResults();
     }
 
     Rate StrippedCappedFlooredCoupon::rate() const {
