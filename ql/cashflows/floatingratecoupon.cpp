@@ -129,6 +129,7 @@ namespace QuantLib {
 
     void FloatingRateCoupon::performCalculations() const {
         QL_REQUIRE(pricer_, "pricer not set");
+        additionalResults_.clear();
         pricer_->initialize(*this);
         rate_ = pricer_->swapletRate();
     }

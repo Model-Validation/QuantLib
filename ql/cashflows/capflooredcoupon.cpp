@@ -97,6 +97,7 @@ namespace QuantLib {
         if(isCapped_)
             capletRate = underlying_->pricer()->capletRate(effectiveCap());
         rate_ =  swapletRate + floorletRate - capletRate;
+        additionalResults_ = underlying_->additionalResults();
     }
 
     Rate CappedFlooredCoupon::rate() const {
