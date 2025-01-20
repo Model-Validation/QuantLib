@@ -35,6 +35,7 @@
 #include <ql/time/daycounter.hpp>
 #include <ql/any.hpp>
 #include <ql/handle.hpp>
+#include <map>
 
 namespace QuantLib {
 
