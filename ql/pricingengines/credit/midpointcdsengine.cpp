@@ -232,20 +232,36 @@ void MidPointCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSw
     // Accrual rebate.
     results.accrualRebateNPV = 0.;
     results.accrualRebateNPVCurrent = 0.;
-    if (arguments.accrualRebate && !arguments.accrualRebate->hasOccurred(settlementDate, includeSettlementDateFlows_)) {
-        results.accrualRebateNPV =
-            discountCurve_->discount(arguments.accrualRebate->date()) * arguments.accrualRebate->amount();
+
+    if (arguments.accrualRebate &&
+        !arguments.accrualRebate->hasOccurred(settlementDate, includeSettlementDateFlows_)) {
+        results.accrualRebateNPV = discountCurve_->discount(arguments.accrualRebate->date()) *
+                                   arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebateAmount"] = arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebatePaymentDate"] = arguments.accrualRebate->date();
+        results.additionalResults["accrualRebateDiscountFactor"] =
+            discountCurve_->discount(arguments.accrualRebate->date());
     }
     if (arguments.accrualRebateCurrent &&
         !arguments.accrualRebateCurrent->hasOccurred(settlementDate, includeSettlementDateFlows_)) {
         results.accrualRebateNPVCurrent =
-            discountCurve_->discount(arguments.accrualRebateCurrent->date()) * arguments.accrualRebateCurrent->amount();
+            discountCurve_->discount(arguments.accrualRebateCurrent->date()) *
+            arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentAmount"] =
+            arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentPaymentDate"] =
+            arguments.accrualRebateCurrent->date();
+        results.additionalResults["accrualRebateCurrentDiscountFactor"] =
+            discountCurve_->discount(arguments.accrualRebateCurrent->date());
     }
 
     results.couponLegNPV = 0.0;
     results.defaultLegNPV = 0.0;
 
+    std::vector<Date> accrualStartDates, accrualEndDates;
+    std::vector<Date> riskStartDates;
     std::vector<Date> protectionPaymentDates;
+    std::vector<Date> feePaymentDates;
     std::vector<Real> midpointDiscounts;
     std::vector<Real> expectedLosses;
     std::vector<Real> defaultProbabilities;
@@ -262,10 +278,14 @@ void MidPointCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSw
         // the right sign at the end.
 
         Date paymentDate = coupon->date(), startDate = coupon->accrualStartDate(), endDate = coupon->accrualEndDate();
+        accrualStartDates.push_back(startDate);
+        accrualEndDates.push_back(endDate);
+        feePaymentDates.push_back(paymentDate);
         // this is the only point where it might not coincide
         if (i == 0)
             startDate = arguments.protectionStart;
         Date effectiveStartDate = (startDate <= today && today <= endDate) ? today : startDate;
+        riskStartDates.push_back(effectiveStartDate);
         Date defaultDate = // mid-point
             effectiveStartDate + (endDate - effectiveStartDate) / 2;
 
@@ -303,7 +323,10 @@ void MidPointCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSw
         expectedLosses.push_back(expectLoss);
         defaultProbabilities.push_back(P);
     }
-
+    results.additionalResults["accrualStartDates"] = accrualStartDates;
+    results.additionalResults["accrualEndDates"] = accrualEndDates;
+    results.additionalResults["riskStartDates"] = riskStartDates;
+    results.additionalResults["feePaymentDates"] = feePaymentDates;
     results.additionalResults["protectionPaymentDates"] = protectionPaymentDates;
     results.additionalResults["midpointDiscounts"] = midpointDiscounts;
     results.additionalResults["expectedLosses"] = expectedLosses;

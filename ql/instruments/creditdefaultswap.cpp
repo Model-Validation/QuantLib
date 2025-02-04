@@ -245,13 +245,19 @@ namespace QuantLib {
         // Deal with the accrual rebate. We use the standard conventions for accrual calculation introduced with the
         // CDS Big Bang in 2009
         if (rebatesAccrual_ && postBigBang_) {
+            Date accrualDate = tradeDate_ + 1;
+            if (accrualDate == leg_.back()->date()) {
+                accrualDate -= 1;
+            }
             accrualRebate_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, leg_.back()->date() == tradeDate_ + 1,
-                                         tradeDate_ + 1),
+                CashFlows::accruedAmount(leg_, true, tradeDate_),
                 effectiveUpfrontDate_);
-            Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_);
+            Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_) + 1;
+            if (current == leg_.back()->date()) {
+                current -= 1;
+            }
             accrualRebateCurrent_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, true, current + 1),
+                CashFlows::accruedAmount(leg_, true, current),
                 schedule_.calendar().advance(current, cashSettlementDays_, Days,
                                              paymentConvention_));
         }
