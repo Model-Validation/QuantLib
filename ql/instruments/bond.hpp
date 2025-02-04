@@ -61,7 +61,7 @@ namespace QuantLib {
         //! Bond price information
         class Price {
           public:
-            enum Type { Dirty, Clean };
+            enum Type { Dirty, Clean, None };
             Price() : amount_(Null<Real>()), type_(Bond::Price::Clean) {}
             Price(Real amount, Type type) : amount_(amount), type_(type) {}
             Real amount() const {
