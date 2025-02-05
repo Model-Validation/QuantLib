@@ -183,7 +183,9 @@ namespace QuantLib {
 
         Date startDate;
         if(rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015){
-            startDate = startDate_ == Date() ? evaluationDate_ : startDate_;
+            Date previousIMM = previousTwentieth(evaluationDate_ + 1, rule_);
+            Date nextIMM = previousIMM == evaluationDate_ + 1 ? previousIMM : previousIMM + 3 * Months;
+            startDate = startDate_ == Date() ? nextIMM : startDate_;
         } else{
             startDate = startDate_ == Date() ? protectionStart_ : startDate_;
             startDate = calendar_.adjust(startDate, paymentConvention_);

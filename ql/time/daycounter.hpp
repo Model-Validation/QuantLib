@@ -57,6 +57,9 @@ namespace QuantLib {
                                       const Date& d2,
                                       const Date& refPeriodStart,
                                       const Date& refPeriodEnd) const = 0;
+
+            virtual bool includeLastDay() { return false;};
+
         };
         ext::shared_ptr<Impl> impl_;
         /*! This constructor can be invoked by derived classes which
@@ -87,6 +90,8 @@ namespace QuantLib {
         Time yearFraction(const Date&, const Date&,
                           const Date& refPeriodStart = Date(),
                           const Date& refPeriodEnd = Date()) const;
+
+        bool includeLastDay() const;
         //@}
     };
 
@@ -131,6 +136,10 @@ namespace QuantLib {
             return impl_->yearFraction(d1,d2,refPeriodStart,refPeriodEnd);
     }
 
+    inline bool DayCounter::includeLastDay() const {
+        QL_REQUIRE(impl_, "no day counter implementation provided");
+        return impl_->includeLastDay();
+    }
 
     inline bool operator==(const DayCounter& d1, const DayCounter& d2) {
         return (d1.empty() && d2.empty())

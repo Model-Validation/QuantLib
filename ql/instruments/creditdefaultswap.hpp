@@ -500,6 +500,9 @@ namespace QuantLib {
         Date tradeDate_;
         Natural cashSettlementDays_;
         bool rebatesAccrual_;
+        DayCounter dayCounter_;
+        DayCounter lastPeriodDayCounter_;
+
         bool postBigBang_;
         Date effectiveUpfrontDate_;
         Date maturity_;
@@ -516,9 +519,7 @@ namespace QuantLib {
 
       private:
         //! Shared initialisation.
-        void init(const DayCounter& dayCounter,
-                  const DayCounter& lastPeriodDayCounter,
-                  const Date& upfrontDate = Date());
+        void init(const Date& upfrontDate = Date());
     };
 
 

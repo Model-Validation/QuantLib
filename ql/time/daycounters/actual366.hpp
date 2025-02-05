@@ -54,6 +54,10 @@ namespace QuantLib {
             	return (daysBetween(d1,d2)
             			+ (includeLastDay_ ? 1.0 : 0.0))/366.0;
             }
+
+            bool includeLastDay() override {
+                return includeLastDay_;
+            }
         };
       public:
         explicit Actual366(const bool includeLastDay = false)
