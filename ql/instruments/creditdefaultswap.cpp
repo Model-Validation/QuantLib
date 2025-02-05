@@ -26,6 +26,7 @@
 #include <ql/cashflows/simplecashflow.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/termstructures/credit/flathazardrate.hpp>
+#include <ql/time/daycounters/actual360.hpp>
 #include <ql/pricingengines/credit/midpointcdsengine.hpp>
 #include <ql/pricingengines/credit/isdacdsengine.hpp>
 #include <ql/quotes/simplequote.hpp>

@@ -25,7 +25,6 @@
 #include <ql/pricingengines/credit/isdacdsengine.hpp>
 #include <ql/pricingengines/credit/midpointcdsengine.hpp>
 #include <ql/termstructures/credit/defaultprobabilityhelpers.hpp>
-#include <ql/time/daycounters/actual360.hpp>
 #include <ql/utilities/null_deleter.hpp>
 #include <utility>
 #include <iostream>
