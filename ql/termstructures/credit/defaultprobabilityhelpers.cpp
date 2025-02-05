@@ -172,13 +172,6 @@ namespace QuantLib {
 
     void CdsHelper::initializeDates() {
 
-        // For CDS, the standard day counter is Actual/360 and the final period coupon accrual includes the maturity date.
-        // If the main day counter is Act/360 and no lastPeriodDayCounter_ is given, default to Act/360 including last.
-        Actual360 standardDayCounter;
-        if (lastPeriodDC_.empty()) {
-            lastPeriodDC_ = dayCounter_ == standardDayCounter ? Actual360(true) : dayCounter_;
-        }
-
         protectionStart_ = evaluationDate_ + settlementDays_;
 
         Date startDate;
