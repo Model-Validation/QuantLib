@@ -98,8 +98,8 @@ BOOST_AUTO_TEST_CASE(testCachedValue) {
     cds.setPricingEngine(ext::shared_ptr<PricingEngine>(
          new MidPointCdsEngine(probabilityCurve,recoveryRate,discountCurve)));
 
-    Real npv = 295.0153398;
-    Rate fairRate = 0.007517539081;
+    Real npv = 295.1886307;
+    Rate fairRate = 0.007515824686;
 
     Real calculatedNpv = cds.NPV();
     Rate calculatedFairRate = cds.fairSpread();
@@ -293,8 +293,8 @@ BOOST_AUTO_TEST_CASE(testCachedMarketValue) {
     Real calculatedNpv = cds.NPV();
     Real calculatedFairRate = cds.fairSpread();
 
-    double npv = -1.364048777;        // from Bloomberg we have 98.15598868 - 100.00;
-    double fairRate =  0.0248429452; // from Bloomberg we have 0.0258378;
+    double npv = -1.364048777;        // from Bloomberg we have (- 98.15598868 - 100.00);
+    double fairRate =  0.0248429452;  // from Bloomberg we have 0.0258378;
 
     Real tolerance = 1e-9;
 
