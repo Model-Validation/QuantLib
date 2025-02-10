@@ -210,7 +210,7 @@ namespace QuantLib {
         // If the main day counter is Act/360 and no lastPeriodDayCounter_ is given, default to Act/360 including last.
         effectiveLastPeriodDayCounter_ =
             lastPeriodDayCounter_.empty() ?
-                (dayCounter == Actual360() ? Actual360(true) : dayCounter) :
+                (dayCounter_ == Actual360() ? Actual360(true) : dayCounter_) :
                 lastPeriodDayCounter_;
 
         // If the leg_ has not already been populated via amortised leg ctor, populate it.
@@ -219,7 +219,7 @@ namespace QuantLib {
                 .withNotionals(notional_)
                 .withCouponRates(runningSpread_, dayCounter_)
                 .withPaymentAdjustment(paymentConvention_)
-                .withLastPeriodDayCounter(effectiveLastPeriodDayCounter);
+                .withLastPeriodDayCounter(effectiveLastPeriodDayCounter_);
         }
         
         // Deduce the trade date if not given.
