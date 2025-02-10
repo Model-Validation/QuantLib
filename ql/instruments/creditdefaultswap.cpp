@@ -208,10 +208,10 @@ namespace QuantLib {
 
         // For CDS, the standard day counter is Actual/360 and the final period coupon accrual includes the maturity date.
         // If the main day counter is Act/360 and no lastPeriodDayCounter_ is given, default to Act/360 including last.
-        DayCounter effectiveLastPeriodDayCounter =
-            lastPeriodDayCounter.empty() ?
+        effectiveLastPeriodDayCounter_ =
+            lastPeriodDayCounter_.empty() ?
                 (dayCounter == Actual360() ? Actual360(true) : dayCounter) :
-                lastPeriodDayCounter;
+                lastPeriodDayCounter_;
 
         // If the leg_ has not already been populated via amortised leg ctor, populate it.
         if (leg_.empty()) {
@@ -266,12 +266,13 @@ namespace QuantLib {
             return accrualDate;
         };
         if (rebatesAccrual_ && postBigBang_) {
-            Date accrualDate = calculateAccrualDate(tradeDate_, leg_, dayCounter_, lastPeriodDayCounter_);
+            Date accrualDate =
+                calculateAccrualDate(tradeDate_, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebate_ = ext::make_shared<SimpleCashFlow>(
                 CashFlows::accruedAmount(leg_, true, accrualDate),
                 effectiveUpfrontDate_);
             Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_) + 1;
-            Date currentAccrualDate = calculateAccrualDate(current, leg_, dayCounter_, lastPeriodDayCounter_);
+            Date currentAccrualDate = calculateAccrualDate(current, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebateCurrent_ = ext::make_shared<SimpleCashFlow>(
                 CashFlows::accruedAmount(leg_, true, currentAccrualDate),
                 schedule_.calendar().advance(current, cashSettlementDays_, Days,

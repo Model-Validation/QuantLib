@@ -502,6 +502,7 @@ namespace QuantLib {
         bool rebatesAccrual_;
         DayCounter dayCounter_;
         DayCounter lastPeriodDayCounter_;
+        DayCounter effectiveLastPeriodDayCounter_;
 
         bool postBigBang_;
         Date effectiveUpfrontDate_;
