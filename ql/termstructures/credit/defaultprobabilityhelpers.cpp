@@ -170,7 +170,7 @@ namespace QuantLib {
     }
 
     Date CdsHelper::firstAccrualPeriodStartDate() const {
-        if (rule_ == DateGeneration::CDS || rule_ != DateGeneration::CDS2015) {
+        if (rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015) {
             // The first payment is the accrual period paying on the next IMM payment date after T+1
             Date previousIMM = previousTwentieth(evaluationDate_, rule_);
             Date nextIMM = nextTwentieth(evaluationDate_ + 1, rule_);
