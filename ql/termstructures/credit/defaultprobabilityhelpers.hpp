@@ -184,6 +184,7 @@ namespace QuantLib {
       protected:
         void initializeDates() override;
         virtual void resetEngine() = 0;
+        Date firstAccrualPeriodStartDate() const;
         Period tenor_;
         Integer settlementDays_;
         Calendar calendar_;

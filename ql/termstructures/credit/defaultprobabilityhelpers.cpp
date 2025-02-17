@@ -170,6 +170,20 @@ namespace QuantLib {
         resetEngine();
     }
 
+    Date CdsHelper::firstAccrualPeriodStartDate() const {
+        if (rule_ == DateGeneration::CDS || rule_ != DateGeneration::CDS2015) {
+            // The first payment is the accrual period paying on the next IMM payment date after T+1
+            Date previousIMM = previousTwentieth(evaluationDate_, rule_);
+            Date nextIMM = nextTwentieth(evaluationDate_ + 1, rule_);
+            Date paymentAdjustedNextIMM = calendar_.adjust(nextIMM, paymentConvention_);
+            if (paymentAdjustedNextIMM > evaluationDate_ + 1) {
+                return previousIMM;
+            }
+            return nextIMM;
+        }
+        return protectionStart_;
+    }
+
     void CdsHelper::initializeDates() {
 
         // For CDS, the standard day counter is Actual/360 and the final period coupon accrual includes the maturity date.
@@ -181,13 +195,8 @@ namespace QuantLib {
 
         protectionStart_ = evaluationDate_ + settlementDays_;
 
-        Date startDate;
-        if(rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015){
-            Date previousIMM = previousTwentieth(evaluationDate_ + 1, rule_);
-            Date nextIMM = previousIMM == evaluationDate_ + 1 ? previousIMM : previousIMM + 3 * Months;
-            startDate = startDate_ == Date() ? nextIMM : startDate_;
-        } else{
-            startDate = startDate_ == Date() ? protectionStart_ : startDate_;
+        Date startDate = startDate_ == Date() ? firstAccrualPeriodStartDate() : startDate_;
+        if (rule_ != DateGeneration::CDS2015 && rule_ != DateGeneration::CDS) {
             startDate = calendar_.adjust(startDate, paymentConvention_);
         }
 

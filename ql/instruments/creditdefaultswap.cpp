@@ -251,7 +251,7 @@ namespace QuantLib {
         auto calculateAccrualDate =[](const Date& d, const Leg& leg, const DayCounter& dayCounter, const DayCounter& lastPeriodDayCounter)->Date {
             Date nextPaymentDate = CashFlows::nextCashFlowDate(leg, true, d);
             Date accrualDate = d + (dayCounter.includeLastDay() ? 0 : 1);
-            if (nextPaymentDate < leg.back()->date()) {
+            if (nextPaymentDate == leg.back()->date()) {
                 accrualDate = d + (lastPeriodDayCounter.includeLastDay() ? 0 : 1);
             }
             return accrualDate;

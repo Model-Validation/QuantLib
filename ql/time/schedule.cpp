@@ -30,23 +30,6 @@ namespace QuantLib {
 
     namespace {
 
-        Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
-            Date result = Date(20, d.month(), d.year());
-            if (result < d)
-                result += 1*Months;
-            if (rule == DateGeneration::TwentiethIMM ||
-                rule == DateGeneration::OldCDS ||
-                rule == DateGeneration::CDS ||
-                rule == DateGeneration::CDS2015) {
-                Month m = result.month();
-                if (m % 3 != 0) { // not a main IMM nmonth
-                    Integer skip = 3 - m%3;
-                    result += skip*Months;
-                }
-            }
-            return result;
-        }
-
         bool allowsEndOfMonth(const Period& tenor) {
             return (tenor.units() == Months || tenor.units() == Years)
                 && tenor >= 1*Months;
@@ -564,7 +547,7 @@ namespace QuantLib {
         Date d = (refDate==Date() ?
                   Settings::instance().evaluationDate() :
                   refDate);
-        return std::lower_bound(dates_.begin(), dates_.end(), d);
+        return std::upper_bound(dates_.begin(), dates_.end(), d);
     }
 
     Date Schedule::nextDate(const Date& refDate) const {
@@ -740,7 +723,7 @@ namespace QuantLib {
 
         return maturity;
     }
-    
+
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule) {
         Date result = Date(20, d.month(), d.year());
         if (result > d)
@@ -758,4 +741,18 @@ namespace QuantLib {
         return result;
     }
 
+    Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
+        Date result = Date(20, d.month(), d.year());
+        if (result < d)
+            result += 1 * Months;
+        if (rule == DateGeneration::TwentiethIMM || rule == DateGeneration::OldCDS || rule == DateGeneration::CDS ||
+            rule == DateGeneration::CDS2015) {
+            Month m = result.month();
+            if (m % 3 != 0) { // not a main IMM nmonth
+                Integer skip = 3 - m % 3;
+                result += skip * Months;
+            }
+        }
+        return result;
+    }
 }
