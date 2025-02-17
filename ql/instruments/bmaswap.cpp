@@ -18,70 +18,110 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/instruments/bmaswap.hpp>
-#include <ql/cashflows/iborcoupon.hpp>
 #include <ql/cashflows/averagebmacoupon.hpp>
+#include <ql/cashflows/iborcoupon.hpp>
+#include <ql/cashflows/overnightindexedcoupon.hpp>
+#include <ql/instruments/bmaswap.hpp>
 
 namespace QuantLib {
 
     BMASwap::BMASwap(Type type,
                      Real nominal,
-                     // Libor leg
-                     Schedule liborSchedule,
-                     Real liborFraction,
-                     Spread liborSpread,
-                     const ext::shared_ptr<IborIndex>& liborIndex,
-                     const DayCounter& liborDayCount,
+                     // Index leg
+                     Schedule indexSchedule,
+                     Real indexFraction,
+                     Spread indexSpread,
+                     const ext::shared_ptr<IborIndex>& index,
+                     const DayCounter& indexDayCount,
                      // BMA leg
                      Schedule bmaSchedule,
                      const ext::shared_ptr<BMAIndex>& bmaIndex,
-                     const DayCounter& bmaDayCount)
-    : Swap(2), type_(type), nominal_(nominal),
-      liborFraction_(liborFraction), liborSpread_(liborSpread)  {
+                     const DayCounter& bmaDayCount,
+                     // Payment adjustments
+                     Calendar indexPaymentCalendar,
+                     BusinessDayConvention indexPaymentConvention,
+                     Natural indexPaymentLag,
+                     Calendar bmaPaymentCalendar,
+                     BusinessDayConvention bmaPaymentConvention,
+                     Natural bmaPaymentLag,
+                     // overnight conventions
+                     Natural overnightLockoutDays,
+                     bool telescopicValueDates)
+    : Swap(2), type_(type), nominal_(nominal), indexFraction_(indexFraction),
+      indexSpread_(indexSpread), indexPaymentCalendar_(indexPaymentCalendar),
+      indexPaymentConvention_(indexPaymentConvention), indexPaymentLag_(indexPaymentLag),
+      bmaPaymentCalendar_(bmaPaymentCalendar), bmaPaymentConvention_(bmaPaymentConvention),
+      bmaPaymentLag_(bmaPaymentLag), overnightLockoutDays_(overnightLockoutDays) {
 
-        BusinessDayConvention convention =
-            liborSchedule.businessDayConvention();
+        auto ois = QuantLib::ext::dynamic_pointer_cast<OvernightIndex>(index);
 
-        legs_[0] = IborLeg(std::move(liborSchedule), liborIndex)
-            .withNotionals(nominal)
-            .withPaymentDayCounter(liborDayCount)
-            .withPaymentAdjustment(convention)
-            .withFixingDays(liborIndex->fixingDays())
-            .withGearings(liborFraction)
-            .withSpreads(liborSpread);
+        Calendar effectiveIndexPaymentCalendar =
+            indexPaymentCalendar_.empty() ?
+                (indexSchedule.calendar().empty() ? NullCalendar() : indexSchedule.calendar()) :
+                indexPaymentCalendar_;
+        Calendar effectiveBmaPaymentCalendar =
+            bmaPaymentCalendar_.empty() ?
+                (bmaSchedule.calendar().empty() ? NullCalendar() : bmaSchedule.calendar()) :
+                bmaPaymentCalendar_;
 
-        auto bmaConvention = bmaSchedule.businessDayConvention();
+        if (ois) {
+            legs_[0] = OvernightLeg(std::move(indexSchedule), ois)
+                           .withNotionals(nominal)
+                           .withPaymentDayCounter(indexDayCount)
+                           .withPaymentAdjustment(indexPaymentConvention_)
+                           .withPaymentLag(indexPaymentLag_)
+                           .withPaymentCalendar(effectiveIndexPaymentCalendar)
+                           .withTelescopicValueDates(telescopicValueDates)
+                           .withGearings(indexFraction)
+                           .withSpreads(indexSpread)
+                           .withLockoutDays(overnightLockoutDays);
+
+        } else {
+            legs_[0] = IborLeg(std::move(indexSchedule), index)
+                           .withNotionals(nominal)
+                           .withPaymentDayCounter(indexDayCount)
+                           .withPaymentAdjustment(indexPaymentConvention_)
+                           .withPaymentLag(indexPaymentLag_)
+                           .withPaymentCalendar(effectiveIndexPaymentCalendar)
+                           .withFixingDays(index->fixingDays())
+                           .withGearings(indexFraction)
+                           .withSpreads(indexSpread);
+        }
+
 
         legs_[1] = AverageBMALeg(std::move(bmaSchedule), bmaIndex)
-            .withNotionals(nominal)
-            .withPaymentDayCounter(bmaDayCount)
-            .withPaymentAdjustment(bmaConvention);
+                       .withNotionals(nominal)
+                       .withPaymentDayCounter(bmaDayCount)
+                       .withPaymentAdjustment(bmaPaymentConvention_)
+                       .withPaymentLag(bmaPaymentLag_)
+                       .withPaymentCalendar(effectiveIndexPaymentCalendar);
 
-        for (Size j=0; j<2; ++j) {
+
+        for (Size j = 0; j < 2; ++j) {
             for (auto& i : legs_[j])
                 registerWith(i);
         }
 
         switch (type_) {
-          case Payer:
-            payer_[0] = +1.0;
-            payer_[1] = -1.0;
-            break;
-          case Receiver:
-            payer_[0] = -1.0;
-            payer_[1] = +1.0;
-            break;
-          default:
-            QL_FAIL("Unknown BMA-swap type");
+            case Payer:
+                payer_[0] = +1.0;
+                payer_[1] = -1.0;
+                break;
+            case Receiver:
+                payer_[0] = -1.0;
+                payer_[1] = +1.0;
+                break;
+            default:
+                QL_FAIL("Unknown BMA-swap type");
         }
     }
 
-    Real BMASwap::liborFraction() const {
-        return liborFraction_;
+    Real BMASwap::indexFraction() const {
+        return indexFraction_;
     }
 
-    Spread BMASwap::liborSpread() const {
-        return liborSpread_;
+    Spread BMASwap::indexSpread() const {
+        return indexSpread_;
     }
 
     Real BMASwap::nominal() const {
@@ -92,7 +132,7 @@ namespace QuantLib {
         return type_;
     }
 
-    const Leg& BMASwap::liborLeg() const {
+    const Leg& BMASwap::indexLeg() const {
         return legs_[0];
     }
 
@@ -101,32 +141,31 @@ namespace QuantLib {
     }
 
 
-    Real BMASwap::liborLegBPS() const {
+    Real BMASwap::indexLegBPS() const {
         calculate();
         QL_REQUIRE(legBPS_[0] != Null<Real>(), "result not available");
         return legBPS_[0];
     }
 
-    Real BMASwap::liborLegNPV() const {
+    Real BMASwap::indexLegNPV() const {
         calculate();
         QL_REQUIRE(legNPV_[0] != Null<Real>(), "result not available");
         return legNPV_[0];
     }
 
-    Real BMASwap::fairLiborFraction() const {
+    Real BMASwap::fairIndexFraction() const {
         static Spread basisPoint = 1.0e-4;
 
-        Real spreadNPV = (liborSpread_/basisPoint)*liborLegBPS();
-        Real pureLiborNPV = liborLegNPV() - spreadNPV;
-        QL_REQUIRE(pureLiborNPV != 0.0,
-                   "result not available (null libor NPV)");
-        return -liborFraction_ * (bmaLegNPV() + spreadNPV) / pureLiborNPV;
+        Real spreadNPV = (indexSpread_ / basisPoint) * indexLegBPS();
+        Real pureIndexNPV = indexLegNPV() - spreadNPV;
+        QL_REQUIRE(pureIndexNPV != 0.0, "result not available (null index NPV)");
+        return -indexFraction_ * (bmaLegNPV() + spreadNPV) / pureIndexNPV;
     }
 
-    Spread BMASwap::fairLiborSpread() const {
+    Spread BMASwap::fairIndexSpread() const {
         static Spread basisPoint = 1.0e-4;
 
-        return liborSpread_ - NPV()/(liborLegBPS()/basisPoint);
+        return indexSpread_ - NPV() / (indexLegBPS() / basisPoint);
     }
 
     Real BMASwap::bmaLegBPS() const {

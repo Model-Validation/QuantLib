@@ -39,34 +39,44 @@ namespace QuantLib {
         */
         BMASwap(Type type,
                 Real nominal,
-                // Libor leg
-                Schedule liborSchedule,
-                Rate liborFraction,
-                Rate liborSpread,
-                const ext::shared_ptr<IborIndex>& liborIndex,
-                const DayCounter& liborDayCount,
+                // index leg
+                Schedule indexSchedule,
+                Rate indexFraction,
+                Rate indexSpread,
+                const ext::shared_ptr<IborIndex>& index,
+                const DayCounter& indexDayCount,
                 // BMA leg
                 Schedule bmaSchedule,
                 const ext::shared_ptr<BMAIndex>& bmaIndex,
-                const DayCounter& bmaDayCount);
+                const DayCounter& bmaDayCount,
+                // Payment adjustments
+                Calendar indexPaymentCalendar = Calendar(),
+                BusinessDayConvention indexPaymentConvention = Following,
+                Natural indexPaymentLag = 0,
+                Calendar bmaPaymentCalendar = Calendar(),
+                BusinessDayConvention bmaPaymentConvention = Following,
+                Natural bmaPaymentLag = 0,
+                // overnight conventions
+                Natural overnightLoackoutDays = 0,
+                bool telescopicValueDates = false);
 
         //! \name Inspectors
         //@{
-        Real liborFraction() const;
-        Spread liborSpread() const;
+        Real indexFraction() const;
+        Spread indexSpread() const;
         Real nominal() const;
         //! "Payer" or "Receiver" refers to the BMA leg
         Type type() const;
         const Leg& bmaLeg() const;
-        const Leg& liborLeg() const;
+        const Leg& indexLeg() const;
         //@}
 
         //! \name Results
         //@{
-        Real liborLegBPS() const;
-        Real liborLegNPV() const;
-        Rate fairLiborFraction() const;
-        Spread fairLiborSpread() const;
+        Real indexLegBPS() const;
+        Real indexLegNPV() const;
+        Rate fairIndexFraction() const;
+        Spread fairIndexSpread() const;
 
         Real bmaLegBPS() const;
         Real bmaLegNPV() const;
@@ -75,8 +85,16 @@ namespace QuantLib {
       private:
         Type type_;
         Real nominal_;
-        Rate liborFraction_;
-        Rate liborSpread_;
+        Rate indexFraction_;
+        Rate indexSpread_;
+        Calendar indexPaymentCalendar_;
+        BusinessDayConvention indexPaymentConvention_;
+        Natural indexPaymentLag_;
+        Calendar bmaPaymentCalendar_;
+        BusinessDayConvention bmaPaymentConvention_;
+        Natural bmaPaymentLag_;
+        Natural overnightLockoutDays_;
+        bool telescopicValueDays_;
     };
 
 }

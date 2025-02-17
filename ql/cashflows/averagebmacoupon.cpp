@@ -195,6 +195,11 @@ namespace QuantLib {
         return *this;
     }
 
+    AverageBMALeg& AverageBMALeg::withPaymentLag(Integer lag) {
+        paymentLag_ = lag;
+        return *this;
+    }
+
     AverageBMALeg& AverageBMALeg::withGearings(Real gearing) {
         gearings_ = std::vector<Real>(1,gearing);
         return *this;
@@ -235,7 +240,7 @@ namespace QuantLib {
         for (Size i=0; i<n; ++i) {
             refStart = start = schedule_.date(i);
             refEnd   =   end = schedule_.date(i+1);
-            paymentDate = paymentcalendar.adjust(end, paymentAdjustment_);
+            paymentDate = paymentcalendar.advance(end, paymentLag_ * Days, paymentAdjustment_);
             if (i == 0 && schedule_.hasIsRegular() && !schedule_.isRegular(i+1)
                 && schedule_.hasTenor())
                 refStart = calendar.adjust(end - schedule_.tenor(),
