@@ -51,7 +51,8 @@ namespace QuantLib {
       indexSpread_(indexSpread), indexPaymentCalendar_(indexPaymentCalendar),
       indexPaymentConvention_(indexPaymentConvention), indexPaymentLag_(indexPaymentLag),
       bmaPaymentCalendar_(bmaPaymentCalendar), bmaPaymentConvention_(bmaPaymentConvention),
-      bmaPaymentLag_(bmaPaymentLag), overnightLockoutDays_(overnightLockoutDays) {
+      bmaPaymentLag_(bmaPaymentLag), overnightLockoutDays_(overnightLockoutDays),
+      telescopicValueDates_(telescopicValueDates) {
 
         auto ois = QuantLib::ext::dynamic_pointer_cast<OvernightIndex>(index);
 
@@ -71,10 +72,10 @@ namespace QuantLib {
                            .withPaymentAdjustment(indexPaymentConvention_)
                            .withPaymentLag(indexPaymentLag_)
                            .withPaymentCalendar(effectiveIndexPaymentCalendar)
-                           .withTelescopicValueDates(telescopicValueDates)
+                           .withTelescopicValueDates(telescopicValueDates_)
                            .withGearings(indexFraction)
                            .withSpreads(indexSpread)
-                           .withLockoutDays(overnightLockoutDays);
+                           .withLockoutDays(overnightLockoutDays_);
 
         } else {
             legs_[0] = IborLeg(std::move(indexSchedule), index)
@@ -94,8 +95,7 @@ namespace QuantLib {
                        .withPaymentDayCounter(bmaDayCount)
                        .withPaymentAdjustment(bmaPaymentConvention_)
                        .withPaymentLag(bmaPaymentLag_)
-                       .withPaymentCalendar(effectiveIndexPaymentCalendar);
-
+                       .withPaymentCalendar(effectiveBmaPaymentCalendar);
 
         for (Size j = 0; j < 2; ++j) {
             for (auto& i : legs_[j])

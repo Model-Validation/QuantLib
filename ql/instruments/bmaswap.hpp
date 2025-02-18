@@ -94,7 +94,7 @@ namespace QuantLib {
         BusinessDayConvention bmaPaymentConvention_;
         Natural bmaPaymentLag_;
         Natural overnightLockoutDays_;
-        bool telescopicValueDays_;
+        bool telescopicValueDates_;
     };
 
 }
