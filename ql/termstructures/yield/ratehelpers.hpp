@@ -57,6 +57,8 @@ namespace QuantLib {
                           BusinessDayConvention convention,
                           bool endOfMonth,
                           const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           Handle<Quote> convexityAdjustment = {},
                           Futures::Type type = Futures::IMM);
         FuturesRateHelper(Real price,
@@ -66,28 +68,38 @@ namespace QuantLib {
                           BusinessDayConvention convention,
                           bool endOfMonth,
                           const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           Rate convexityAdjustment = 0.0,
                           Futures::Type type = Futures::IMM);
         FuturesRateHelper(const Handle<Quote>& price,
                           const Date& iborStartDate,
                           const Date& iborEndDate,
                           const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           Handle<Quote> convexityAdjustment = {},
                           Futures::Type type = Futures::IMM);
         FuturesRateHelper(Real price,
                           const Date& iborStartDate,
                           const Date& endDate,
                           const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           Rate convexityAdjustment = 0.0,
                           Futures::Type type = Futures::IMM);
         FuturesRateHelper(const Handle<Quote>& price,
                           const Date& iborStartDate,
                           const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           const Handle<Quote>& convexityAdjustment = {},
                           Futures::Type type = Futures::IMM);
         FuturesRateHelper(Real price,
                           const Date& iborStartDate,
                           const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date(),
                           Rate convexityAdjustment = 0.0,
                           Futures::Type type = Futures::IMM);
         //! \name RateHelper interface
@@ -105,6 +117,7 @@ namespace QuantLib {
       private:
         Time yearFraction_;
         Handle<Quote> convAdj_;
+        Pillar::Choice pillarChoice_;
     };
 
 
@@ -117,18 +130,26 @@ namespace QuantLib {
                           const Calendar& calendar,
                           BusinessDayConvention convention,
                           bool endOfMonth,
-                          const DayCounter& dayCounter);
+                          const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date());
         DepositRateHelper(Rate rate,
                           const Period& tenor,
                           Natural fixingDays,
                           const Calendar& calendar,
                           BusinessDayConvention convention,
                           bool endOfMonth,
-                          const DayCounter& dayCounter);
+                          const DayCounter& dayCounter,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date());
         DepositRateHelper(const Handle<Quote>& rate,
-                          const ext::shared_ptr<IborIndex>& iborIndex);
+                          const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date());
         DepositRateHelper(Rate rate,
-                          const ext::shared_ptr<IborIndex>& iborIndex);
+                          const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillar = Pillar::LastRelevantDate,
+                          Date customPillarDate = Date());
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -143,6 +164,7 @@ namespace QuantLib {
         Date fixingDate_;
         ext::shared_ptr<IborIndex> iborIndex_;
         RelinkableHandle<YieldTermStructure> termStructureHandle_;
+        Pillar::Choice pillarChoice_;
     };
 
 
