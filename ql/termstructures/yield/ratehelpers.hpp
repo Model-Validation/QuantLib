@@ -356,39 +356,39 @@ namespace QuantLib {
         BMASwapRateHelper(const Handle<Quote>& indexFraction,
                           const Period& tenor, // swap maturity
                           Natural settlementDays,
-                          Calendar calendar,
+                          const Calendar& calendar,
                           // bma leg
                           const Period& bmaPeriod,
                           BusinessDayConvention bmaConvention,
-                          DayCounter bmaDayCount,
-                          ext::shared_ptr<BMAIndex> bmaIndex,
+                          const DayCounter& bmaDayCount,
+                          const ext::shared_ptr<BMAIndex>& bmaIndex,
                           // ibor leg
-                          ext::shared_ptr<IborIndex> index,
+                          const ext::shared_ptr<IborIndex>& index,
                           // external discount,
-                          Handle<YieldTermStructure> discountingCurve = {});
+                          const Handle<YieldTermStructure>& discountingCurve = {});
         BMASwapRateHelper(const Handle<Quote>& indexFraction,
                           const Period& tenor,
                           // bma leg
                           Natural bmaSettlementDays,
-                          Calendar bmaCalendar,
+                          const Calendar& bmaCalendar,
                           const Period& bmaPeriod,
                           BusinessDayConvention bmaConvention,
-                          DayCounter bmaDayCount,
-                          ext::shared_ptr<BMAIndex> bmaIndex,
-                          Calendar bmaPaymentCalendar,
+                          const DayCounter& bmaDayCount,
+                          const ext::shared_ptr<BMAIndex>& bmaIndex,
+                          const Calendar& bmaPaymentCalendar,
                           BusinessDayConvention bmaPaymentConvention,
                           Natural bmaPaymentLag,
                           // ibor / ois leg
                           Natural indexSettlementDays,
                           const Period& indexPaymentPeriod,
                           BusinessDayConvention indexConvention,
-                          ext::shared_ptr<IborIndex> index,
-                          Calendar indexPaymentCalendar,
+                          const ext::shared_ptr<IborIndex>& index,
+                          const Calendar& indexPaymentCalendar,
                           BusinessDayConvention indexPaymentConvention,
                           Natural indexPaymentLag,
                           Natural overnightLockoutDays,
                           // external discount
-                          Handle<YieldTermStructure> discountingCurve);
+                          const Handle<YieldTermStructure>& discountingCurve);
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
