@@ -724,6 +724,21 @@ namespace QuantLib {
         return maturity;
     }
 
+
+    Schedule removeCDSPeriodsBeforeStartDate(const Schedule& cdsSchedule, const Date& protectionStartDate){
+        
+        // Schedule should be build from protection start date, if not provided use TradeDate + 1, otherwise assume
+        // first schedule date is correct
+        if (!cdsSchedule.empty() && protectionStartDate != Date() &&
+            protectionStartDate > cdsSchedule.dates().front()) {
+            auto it = std::upper_bound(cdsSchedule.dates().begin(), cdsSchedule.dates().end(), protectionStartDate);
+            if (it != cdsSchedule.dates().end() && it != cdsSchedule.dates().begin()) {
+                return cdsSchedule.after(*std::prev(it));
+            }
+        }
+        return cdsSchedule;
+    }
+
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule) {
         Date result = Date(20, d.month(), d.year());
         if (result > d)

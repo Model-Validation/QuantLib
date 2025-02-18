@@ -752,8 +752,8 @@ BOOST_AUTO_TEST_CASE(testAccrualRebateAmounts) {
         {Date(20, Jun, 2009), 25833.33},
         {Date(21, Jun, 2009), 0.00},
         {Date(22, Jun, 2009), 277.78},
-        {Date(18, Jun, 2014), 25277.78},
-        {Date(19, Jun, 2014), 25555.56}
+        {Date(18, Jun, 2014), 25000.0000},
+        {Date(19, Jun, 2014), 25277.7778}
     };
 
     for (auto& input: inputs) {
@@ -766,6 +766,7 @@ BOOST_AUTO_TEST_CASE(testAccrualRebateAmounts) {
             0.0,
             Handle<YieldTermStructure>(
                 ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, Actual365Fixed()))));
+        
         BOOST_TEST_MESSAGE("asof " << io::iso_date(input.first)
                            << " expected " << std::fixed << std::setprecision(4) << input.second
                            << " calculated " << cds.accrualRebate()->amount());

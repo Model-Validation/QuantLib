@@ -169,25 +169,11 @@ namespace QuantLib {
         resetEngine();
     }
 
-    Date CdsHelper::firstAccrualPeriodStartDate() const {
-        if (rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015) {
-            // The first payment is the accrual period paying on the next IMM payment date after T+1
-            Date previousIMM = previousTwentieth(evaluationDate_, rule_);
-            Date nextIMM = nextTwentieth(evaluationDate_ + 1, rule_);
-            Date paymentAdjustedNextIMM = calendar_.adjust(nextIMM, paymentConvention_);
-            if (paymentAdjustedNextIMM > evaluationDate_ + 1) {
-                return previousIMM;
-            }
-            return nextIMM;
-        }
-        return protectionStart_;
-    }
-
     void CdsHelper::initializeDates() {
 
         protectionStart_ = evaluationDate_ + settlementDays_;
 
-        Date startDate = startDate_ == Date() ? firstAccrualPeriodStartDate() : startDate_;
+        Date startDate = startDate_ == Date() ? protectionStart_ : startDate_;
         if (rule_ != DateGeneration::CDS2015 && rule_ != DateGeneration::CDS) {
             startDate = calendar_.adjust(startDate, paymentConvention_);
         }
@@ -210,6 +196,9 @@ namespace QuantLib {
                           .withConvention(paymentConvention_)
                           .withTerminationDateConvention(Unadjusted)
                           .withRule(rule_);
+
+        schedule_ = removeCDSPeriodsBeforeStartDate(schedule_, evaluationDate_ + 1);
+
         earliestDate_ = schedule_.dates().front();
         latestDate_   = calendar_.adjust(schedule_.dates().back(),
                                          paymentConvention_);

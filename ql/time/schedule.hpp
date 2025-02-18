@@ -188,6 +188,8 @@ namespace QuantLib {
     */
     Date nextTwentieth(const Date& d, DateGeneration::Rule rule);
 
+    Schedule removeCDSPeriodsBeforeStartDate(const Schedule& cdsSchedule, const Date& protectionStartDate);
+
     // inline definitions
 
     inline const Date& Schedule::date(Size i) const {

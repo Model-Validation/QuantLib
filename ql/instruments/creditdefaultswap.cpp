@@ -269,7 +269,7 @@ namespace QuantLib {
             Date accrualDate =
                 calculateAccrualDate(tradeDate_, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebate_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, true, accrualDate),
+                CashFlows::accruedAmount(leg_, tradeDate_ + 1 == leg_.back()->date(), accrualDate),
                 effectiveUpfrontDate_);
             Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_);
             Date currentAccrualDate = calculateAccrualDate(current, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
