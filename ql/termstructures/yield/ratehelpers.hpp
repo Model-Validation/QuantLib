@@ -398,31 +398,37 @@ namespace QuantLib {
         //@{
         void accept(AcyclicVisitor&) override;
         //@}
-    protected:
-      void initializeDates() override;
+        //! \name Inspectors
+        //@{
+        ext::shared_ptr<BMASwap> swap() const { return swap_; }
+        RelinkableHandle<YieldTermStructure> termStructureHandle() const;
+        //@}
 
-      Period tenor_;
-      Natural bmaSettlementDays_;
-      Calendar bmaCalendar_;
-      Period bmaPeriod_;
-      BusinessDayConvention bmaConvention_;
-      DayCounter bmaDayCount_;
-      ext::shared_ptr<BMAIndex> bmaIndex_;
-      Calendar bmaPaymentCalendar_;
-      BusinessDayConvention bmaPaymentConvention_;
-      Natural bmaPaymentLag_;
-      Natural indexSettlementDays_;
-      Period indexPaymentPeriod_;
-      BusinessDayConvention indexConvention_;
-      ext::shared_ptr<IborIndex> index_;
-      Calendar indexPaymentCalendar_;
-      BusinessDayConvention indexPaymentConvention_;
-      Natural indexPaymentLag_;
-      Natural overnightLockoutDays_;
-      Handle<YieldTermStructure> discountingCurve_;
+      protected:
+        void initializeDates() override;
 
-      ext::shared_ptr<BMASwap> swap_;
-      RelinkableHandle<YieldTermStructure> termStructureHandle_;
+        Period tenor_;
+        Natural bmaSettlementDays_;
+        Calendar bmaCalendar_;
+        Period bmaPeriod_;
+        BusinessDayConvention bmaConvention_;
+        DayCounter bmaDayCount_;
+        ext::shared_ptr<BMAIndex> bmaIndex_;
+        Calendar bmaPaymentCalendar_;
+        BusinessDayConvention bmaPaymentConvention_;
+        Natural bmaPaymentLag_;
+        Natural indexSettlementDays_;
+        Period indexPaymentPeriod_;
+        BusinessDayConvention indexConvention_;
+        ext::shared_ptr<IborIndex> index_;
+        Calendar indexPaymentCalendar_;
+        BusinessDayConvention indexPaymentConvention_;
+        Natural indexPaymentLag_;
+        Natural overnightLockoutDays_;
+        Handle<YieldTermStructure> discountingCurve_;
+
+        ext::shared_ptr<BMASwap> swap_;
+        RelinkableHandle<YieldTermStructure> termStructureHandle_;
     };
 
 

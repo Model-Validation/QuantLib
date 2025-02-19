@@ -826,6 +826,10 @@ namespace QuantLib {
 
     }
 
+    RelinkableHandle<YieldTermStructure> BMASwapRateHelper::termStructureHandle() const {
+        return termStructureHandle_;
+    }
+
     void BMASwapRateHelper::setTermStructure(YieldTermStructure* t) {
         // do not set the relinkable handle as an observer -
         // force recalculation when needed
