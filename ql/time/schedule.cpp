@@ -547,7 +547,7 @@ namespace QuantLib {
         Date d = (refDate==Date() ?
                   Settings::instance().evaluationDate() :
                   refDate);
-        return std::upper_bound(dates_.begin(), dates_.end(), d);
+        return std::lower_bound(dates_.begin(), dates_.end(), d);
     }
 
     Date Schedule::nextDate(const Date& refDate) const {
