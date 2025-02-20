@@ -729,8 +729,7 @@ namespace QuantLib {
         
         // Schedule should be build from protection start date, if not provided use TradeDate + 1, otherwise assume
         // first schedule date is correct
-        if (!cdsSchedule.empty() && protectionStartDate != Date() &&
-            protectionStartDate > cdsSchedule.dates().front()) {
+        if (!cdsSchedule.empty() && protectionStartDate != Date()) {
             auto it = std::upper_bound(cdsSchedule.dates().begin(), cdsSchedule.dates().end(), protectionStartDate);
             if (it != cdsSchedule.dates().end() && it != cdsSchedule.dates().begin()) {
                 return cdsSchedule.after(*std::prev(it));
