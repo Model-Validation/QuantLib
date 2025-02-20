@@ -628,8 +628,7 @@ void testBMACurveConsistency(CommonVars& vars,
         swap.setPricingEngine(ext::make_shared<DiscountingSwapEngine>(
                                         libor3m->forwardingTermStructure()));
 
-        Real expectedFraction = bmaData[i].rate/100,
-            estimatedFraction = swap.fairLiborFraction();
+        Real expectedFraction = bmaData[i].rate / 100, estimatedFraction = swap.fairIndexFraction();
         Real error = std::fabs(expectedFraction-estimatedFraction);
         if (error > tolerance) {
             BOOST_ERROR(bmaData[i].n << " year(s) BMA swap:\n"
