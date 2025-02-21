@@ -574,14 +574,9 @@ void testBMACurveConsistency(CommonVars& vars,
     for (Size i=0; i<vars.bmas; ++i) {
         Handle<Quote> f(vars.fractions[i]);
         vars.bmaHelpers[i] = ext::make_shared<BMASwapRateHelper>(
-                                            f, bmaData[i].n*bmaData[i].units,
-                                            vars.settlementDays,
-                                            vars.calendar,
-                                            Period(vars.bmaFrequency),
-                                            vars.bmaConvention,
-                                            vars.bmaDayCounter,
-                                            bmaIndex,
-                                            liborIndex);
+            f, bmaData[i].n * bmaData[i].units, vars.settlementDays, bmaIndex->fixingCalendar(),
+            Period(vars.bmaFrequency), vars.bmaConvention, vars.bmaDayCounter, bmaIndex,
+            liborIndex);
     }
 
     Weekday w = vars.today.weekday();
@@ -604,21 +599,23 @@ void testBMACurveConsistency(CommonVars& vars,
     for (Size i=0; i<vars.bmas; i++) {
         Period tenor = bmaData[i].n*bmaData[i].units;
 
-        Schedule bmaSchedule =
-            MakeSchedule().from(vars.settlement)
-            .to(vars.settlement+tenor)
-            .withFrequency(vars.bmaFrequency)
-            .withCalendar(bma->fixingCalendar())
-            .withConvention(vars.bmaConvention)
-            .backwards();
-        Schedule liborSchedule =
-            MakeSchedule().from(vars.settlement)
-            .to(vars.settlement+tenor)
-            .withTenor(libor3m->tenor())
-            .withCalendar(libor3m->fixingCalendar())
-            .withConvention(libor3m->businessDayConvention())
-            .endOfMonth(libor3m->endOfMonth())
-            .backwards();
+        Schedule bmaSchedule = MakeSchedule()
+                                   .from(bma->fixingCalendar().advance(
+                                       vars.today, vars.settlementDays, Days, Following))
+                                   .to(vars.settlement + tenor)
+                                   .withFrequency(vars.bmaFrequency)
+                                   .withCalendar(bma->fixingCalendar())
+                                   .withConvention(vars.bmaConvention)
+                                   .backwards();
+        Schedule liborSchedule = MakeSchedule()
+                                     .from(libor3m->fixingCalendar().advance(
+                                         vars.today, vars.settlementDays, Days, Following))
+                                     .to(vars.settlement + tenor)
+                                     .withTenor(libor3m->tenor())
+                                     .withCalendar(libor3m->fixingCalendar())
+                                     .withConvention(libor3m->businessDayConvention())
+                                     .endOfMonth(libor3m->endOfMonth())
+                                     .backwards();
 
 
         BMASwap swap(Swap::Payer, 100.0,
@@ -628,8 +625,7 @@ void testBMACurveConsistency(CommonVars& vars,
         swap.setPricingEngine(ext::make_shared<DiscountingSwapEngine>(
                                         libor3m->forwardingTermStructure()));
 
-        Real expectedFraction = bmaData[i].rate/100,
-            estimatedFraction = swap.fairLiborFraction();
+        Real expectedFraction = bmaData[i].rate / 100, estimatedFraction = swap.fairIndexFraction();
         Real error = std::fabs(expectedFraction-estimatedFraction);
         if (error > tolerance) {
             BOOST_ERROR(bmaData[i].n << " year(s) BMA swap:\n"

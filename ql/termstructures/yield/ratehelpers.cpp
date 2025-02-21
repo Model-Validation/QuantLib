@@ -24,6 +24,7 @@
 */
 
 #include <ql/cashflows/iborcoupon.hpp>
+#include <ql/cashflows/cashflows.hpp>
 #include <ql/currency.hpp>
 #include <ql/indexes/swapindex.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
@@ -695,74 +696,138 @@ namespace QuantLib {
             RateHelper::accept(v);
     }
 
-    BMASwapRateHelper::BMASwapRateHelper(const Handle<Quote>& liborFraction,
+    BMASwapRateHelper::BMASwapRateHelper(const Handle<Quote>& indexFraction,
                                          const Period& tenor,
-                                         Natural settlementDays,
-                                         Calendar calendar,
+                                         Natural bmaSettlementDays,
+                                         const Calendar& calendar,
                                          // bma leg
                                          const Period& bmaPeriod,
                                          BusinessDayConvention bmaConvention,
-                                         DayCounter bmaDayCount,
-                                         ext::shared_ptr<BMAIndex> bmaIndex,
-                                         // libor leg
-                                         ext::shared_ptr<IborIndex> iborIndex)
-    : RelativeDateRateHelper(liborFraction), tenor_(tenor), settlementDays_(settlementDays),
-      calendar_(std::move(calendar)), bmaPeriod_(bmaPeriod), bmaConvention_(bmaConvention),
-      bmaDayCount_(std::move(bmaDayCount)), bmaIndex_(std::move(bmaIndex)),
-      iborIndex_(std::move(iborIndex)) {
-        registerWith(iborIndex_);
+                                         const DayCounter& bmaDayCount,
+                                         const ext::shared_ptr<BMAIndex>& bmaIndex,
+                                         // ibor / ois leg
+                                         const ext::shared_ptr<IborIndex>& index,
+                                         // external discount
+                                         const Handle<YieldTermStructure>& discountingCurve)
+    : RelativeDateRateHelper(indexFraction), tenor_(tenor), bmaSettlementDays_(bmaSettlementDays),
+      bmaCalendar_(calendar), bmaPeriod_(bmaPeriod), bmaConvention_(bmaConvention),
+      bmaDayCount_(bmaDayCount), bmaIndex_(bmaIndex), bmaPaymentCalendar_(calendar),
+      bmaPaymentConvention_(Following), bmaPaymentLag_(0), indexSettlementDays_(bmaSettlementDays),
+      indexPaymentPeriod_(bmaPeriod), indexConvention_(index->businessDayConvention()),
+      index_(index), indexPaymentCalendar_(index->fixingCalendar()),
+      indexPaymentConvention_(Following), indexPaymentLag_(0), overnightLockoutDays_(0),
+      discountingCurve_(discountingCurve) {
+        registerWith(index_);
+        registerWith(bmaIndex_);
+        BMASwapRateHelper::initializeDates();
+    }
+
+    BMASwapRateHelper::BMASwapRateHelper(const Handle<Quote>& indexFraction,
+                                         const Period& tenor,
+                                         // bma leg
+                                         Natural bmaSettlementDays,
+                                         const Calendar& bmaCalendar,
+                                         const Period& bmaPeriod,
+                                         BusinessDayConvention bmaConvention,
+                                         const DayCounter& bmaDayCount,
+                                         const ext::shared_ptr<BMAIndex>& bmaIndex,
+                                         const Calendar& bmaPaymentCalendar,
+                                         BusinessDayConvention bmaPaymentConvention,
+                                         Natural bmaPaymentLag,
+                                         // ibor / ois leg
+                                         Natural indexSettlementDays,
+                                         const Period& indexPaymentPeriod,
+                                         BusinessDayConvention indexConvention,
+                                         const ext::shared_ptr<IborIndex>& index,
+                                         const Calendar& indexPaymentCalendar,
+                                         BusinessDayConvention indexPaymentConvention,
+                                         Natural indexPaymentLag,
+                                         Natural overnightLockoutDays,
+                                         // external discount
+                                         const Handle<YieldTermStructure>& discountingCurve)
+    : RelativeDateRateHelper(indexFraction), tenor_(tenor), bmaSettlementDays_(bmaSettlementDays),
+      bmaCalendar_(bmaCalendar), bmaPeriod_(bmaPeriod), bmaConvention_(bmaConvention),
+      bmaDayCount_(bmaDayCount), bmaIndex_(bmaIndex), bmaPaymentCalendar_(bmaPaymentCalendar),
+      bmaPaymentConvention_(Following), bmaPaymentLag_(0),
+      indexSettlementDays_(indexSettlementDays), indexPaymentPeriod_(indexPaymentPeriod),
+      indexConvention_(indexConvention), index_(index), indexPaymentCalendar_(indexPaymentCalendar),
+      indexPaymentConvention_(indexPaymentConvention), indexPaymentLag_(indexPaymentLag),
+      overnightLockoutDays_(overnightLockoutDays), discountingCurve_(discountingCurve) {
+        registerWith(index_);
         registerWith(bmaIndex_);
         BMASwapRateHelper::initializeDates();
     }
 
     void BMASwapRateHelper::initializeDates() {
+
         // if the evaluation date is not a business day
         // then move to the next business day
-        JointCalendar jc(calendar_,
-                         iborIndex_->fixingCalendar());
+        JointCalendar jc(bmaCalendar_, index_->fixingCalendar());
         Date referenceDate = jc.adjust(evaluationDate_);
-        earliestDate_ =
-            calendar_.advance(referenceDate, settlementDays_ * Days, Following);
 
-        Date maturity = earliestDate_ + tenor_;
+        Date bmaStart = bmaCalendar_.advance(referenceDate, bmaSettlementDays_ * Days, Following);
+        Date bmaMaturity = bmaStart + tenor_;
+
+        Date indexStart = index_->fixingCalendar().advance(
+            referenceDate, indexSettlementDays_ * Days, Following);
+        Date indexMaturity = indexStart + tenor_;
+
+        bool isOis = QuantLib::ext::dynamic_pointer_cast<OvernightIndex>(index_) != nullptr;
+
+        bool indexEndOfMonth = isOis && index_->fixingCalendar().isEndOfMonth(indexStart);
+        if (indexEndOfMonth)
+            indexMaturity =
+                index_->fixingCalendar().advance(indexStart, tenor_, ModifiedFollowing, true);
+
+        earliestDate_ = std::min(bmaStart, indexStart);
 
         // dummy BMA index with curve/swap arguments
-        ext::shared_ptr<BMAIndex> clonedIndex(new BMAIndex(termStructureHandle_));
+        ext::shared_ptr<BMAIndex> clonedIndex =
+            QuantLib::ext::make_shared<BMAIndex>(termStructureHandle_);
 
-        Schedule bmaSchedule =
-            MakeSchedule().from(earliestDate_).to(maturity)
-                          .withTenor(bmaPeriod_)
-                          .withCalendar(bmaIndex_->fixingCalendar())
-                          .withConvention(bmaConvention_)
-                          .backwards();
+        Schedule bmaSchedule = MakeSchedule()
+                                   .from(bmaStart)
+                                   .to(bmaMaturity)
+                                   .withTenor(bmaPeriod_)
+                                   .withCalendar(bmaCalendar_)
+                                   .withConvention(bmaConvention_)
+                                   .backwards();
 
-        Schedule liborSchedule =
-            MakeSchedule().from(earliestDate_).to(maturity)
-                          .withTenor(iborIndex_->tenor())
-                          .withCalendar(iborIndex_->fixingCalendar())
-                          .withConvention(iborIndex_->businessDayConvention())
-                          .endOfMonth(iborIndex_->endOfMonth())
-                          .backwards();
+        Schedule indexSchedule = MakeSchedule()
+                                     .from(indexStart)
+                                     .to(indexMaturity)
+                                     .withTenor(indexPaymentPeriod_)
+                                     .withCalendar(index_->fixingCalendar())
+                                     .withConvention(indexConvention_)
+                                     .endOfMonth(indexEndOfMonth)
+                                     .backwards();
 
-        swap_ = ext::make_shared<BMASwap>(Swap::Payer, 100.0,
-                                          liborSchedule,
-                                          0.75, // arbitrary
-                                          0.0,
-                                          iborIndex_,
-                                          iborIndex_->dayCounter(),
-                                          bmaSchedule,
-                                          clonedIndex,
-                                          bmaDayCount_);
-        swap_->setPricingEngine(ext::shared_ptr<PricingEngine>(new
-            DiscountingSwapEngine(iborIndex_->forwardingTermStructure())));
+        swap_ = ext::make_shared<BMASwap>(
+            Swap::Payer, 100.0, indexSchedule,
+            0.75, // arbitrary
+            0.0, index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
+            indexPaymentCalendar_, indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_,
+            bmaPaymentConvention_, bmaPaymentLag_, overnightLockoutDays_, true);
 
-        Date d = calendar_.adjust(swap_->maturityDate(), Following);
+        swap_->setPricingEngine(QuantLib::ext::make_shared<DiscountingSwapEngine>(
+            !discountingCurve_.empty() ? discountingCurve_ : index_->forwardingTermStructure()));
+
+        Date d = bmaCalendar_.adjust(CashFlows::maturityDate(swap_->bmaLeg()), Following);
         Weekday w = d.weekday();
         Date nextWednesday = (w >= 4) ?
             d + (11 - w) * Days :
             d + (4 - w) * Days;
         latestDate_ = clonedIndex->valueDate(
                          clonedIndex->fixingCalendar().adjust(nextWednesday));
+
+        if (auto ibor = ext::dynamic_pointer_cast<IborCoupon>(swap_->indexLeg().back());
+            ibor != nullptr)
+            latestDate_ = std::max(latestDate_, ibor->fixingEndDate());
+
+    }
+
+    RelinkableHandle<YieldTermStructure> BMASwapRateHelper::termStructureHandle() const {
+        return termStructureHandle_;
     }
 
     void BMASwapRateHelper::setTermStructure(YieldTermStructure* t) {
@@ -780,7 +845,7 @@ namespace QuantLib {
         QL_REQUIRE(termStructure_ != nullptr, "term structure not set");
         // we didn't register as observers - force calculation
         swap_->deepUpdate();
-        return swap_->fairLiborFraction();
+        return swap_->fairIndexFraction();
     }
 
     void BMASwapRateHelper::accept(AcyclicVisitor& v) {
