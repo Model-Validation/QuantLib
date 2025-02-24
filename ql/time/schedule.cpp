@@ -30,23 +30,6 @@ namespace QuantLib {
 
     namespace {
 
-        Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
-            Date result = Date(20, d.month(), d.year());
-            if (result < d)
-                result += 1*Months;
-            if (rule == DateGeneration::TwentiethIMM ||
-                rule == DateGeneration::OldCDS ||
-                rule == DateGeneration::CDS ||
-                rule == DateGeneration::CDS2015) {
-                Month m = result.month();
-                if (m % 3 != 0) { // not a main IMM nmonth
-                    Integer skip = 3 - m%3;
-                    result += skip*Months;
-                }
-            }
-            return result;
-        }
-
         bool allowsEndOfMonth(const Period& tenor) {
             return (tenor.units() == Months || tenor.units() == Years)
                 && tenor >= 1*Months;
@@ -740,7 +723,21 @@ namespace QuantLib {
 
         return maturity;
     }
-    
+
+
+    Schedule removeCDSPeriodsBeforeStartDate(const Schedule& cdsSchedule, const Date& protectionStartDate){
+        
+        // Schedule should be build from protection start date, if not provided use TradeDate + 1, otherwise assume
+        // first schedule date is correct
+        if (!cdsSchedule.empty() && protectionStartDate != Date()) {
+            auto it = std::upper_bound(cdsSchedule.dates().begin(), cdsSchedule.dates().end(), protectionStartDate);
+            if (it != cdsSchedule.dates().end() && it != cdsSchedule.dates().begin()) {
+                return cdsSchedule.after(*std::prev(it));
+            }
+        }
+        return cdsSchedule;
+    }
+
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule) {
         Date result = Date(20, d.month(), d.year());
         if (result > d)
@@ -758,4 +755,18 @@ namespace QuantLib {
         return result;
     }
 
+    Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
+        Date result = Date(20, d.month(), d.year());
+        if (result < d)
+            result += 1 * Months;
+        if (rule == DateGeneration::TwentiethIMM || rule == DateGeneration::OldCDS || rule == DateGeneration::CDS ||
+            rule == DateGeneration::CDS2015) {
+            Month m = result.month();
+            if (m % 3 != 0) { // not a main IMM nmonth
+                Integer skip = 3 - m % 3;
+                result += skip * Months;
+            }
+        }
+        return result;
+    }
 }

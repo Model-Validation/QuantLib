@@ -58,9 +58,10 @@ namespace QuantLib {
       protectionPaymentTime_(settlesAccrual ? atDefault : atPeriodEnd), claim_(std::move(claim)),
       protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
-      rebatesAccrual_(rebatesAccrual) {
+      rebatesAccrual_(rebatesAccrual), dayCounter_(dayCounter),
+      lastPeriodDayCounter_(lastPeriodDayCounter){
 
-        init(dayCounter, lastPeriodDayCounter);
+        init();
     }
 
     CreditDefaultSwap::CreditDefaultSwap(Protection::Side side,
@@ -85,9 +86,10 @@ namespace QuantLib {
       protectionPaymentTime_(settlesAccrual ? atDefault : atPeriodEnd), claim_(claim),
       protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
-      rebatesAccrual_(rebatesAccrual) {
+      rebatesAccrual_(rebatesAccrual), dayCounter_(dayCounter),
+      lastPeriodDayCounter_(lastPeriodDayCounter){
 
-        init(dayCounter, lastPeriodDayCounter, upfrontDate);
+        init(upfrontDate);
     }
 
     CreditDefaultSwap::CreditDefaultSwap(Protection::Side side,
@@ -110,9 +112,10 @@ namespace QuantLib {
       protectionPaymentTime_(protectionPaymentTime), claim_(claim),
       protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
-      rebatesAccrual_(rebatesAccrual) {
+      rebatesAccrual_(rebatesAccrual),dayCounter_(dayCounter),
+      lastPeriodDayCounter_(lastPeriodDayCounter) {
 
-        init(dayCounter, lastPeriodDayCounter);
+        init();
     }
 
     CreditDefaultSwap::CreditDefaultSwap(Protection::Side side,
@@ -137,9 +140,10 @@ namespace QuantLib {
       protectionPaymentTime_(protectionPaymentTime), claim_(claim),
       protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
-      rebatesAccrual_(rebatesAccrual) {
+      rebatesAccrual_(rebatesAccrual),dayCounter_(dayCounter),
+      lastPeriodDayCounter_(lastPeriodDayCounter) {
 
-        init(dayCounter, lastPeriodDayCounter, upfrontDate);
+        init(upfrontDate);
     }
 
     CreditDefaultSwap::CreditDefaultSwap(Protection::Side side,
@@ -163,9 +167,10 @@ namespace QuantLib {
       protectionPaymentTime_(protectionPaymentTime), claim_(claim), leg_(amortized_leg),
       protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
-      rebatesAccrual_(rebatesAccrual) {
+      rebatesAccrual_(rebatesAccrual), dayCounter_(dayCounter),
+      lastPeriodDayCounter_(lastPeriodDayCounter) {
 
-        init(dayCounter, lastPeriodDayCounter);
+        init();
     }
 
     CreditDefaultSwap::CreditDefaultSwap(Protection::Side side, Real notional, const Leg& amortized_leg, Rate upfront,
@@ -180,14 +185,13 @@ namespace QuantLib {
           paysAtDefaultTime_(protectionPaymentTime == atDefault ? true : false),
           protectionPaymentTime_(protectionPaymentTime), claim_(claim), leg_(amortized_leg),
           protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart), tradeDate_(tradeDate),
-          cashSettlementDays_(cashSettlementDays), rebatesAccrual_(rebatesAccrual) {
+          cashSettlementDays_(cashSettlementDays), rebatesAccrual_(rebatesAccrual),
+          dayCounter_(dayCounter), lastPeriodDayCounter_(lastPeriodDayCounter){
 
-        init(dayCounter, lastPeriodDayCounter, upfrontDate);
+        init(upfrontDate);
     }
 
-    void CreditDefaultSwap::init(const DayCounter& dayCounter,
-                                 const DayCounter& lastPeriodDayCounter,
-                                 const Date& upfrontDate) {
+    void CreditDefaultSwap::init(const Date& upfrontDate) {
 
         QL_REQUIRE(!schedule_.empty(), "CreditDefaultSwap needs a non-empty schedule.");
 
@@ -204,18 +208,18 @@ namespace QuantLib {
 
         // For CDS, the standard day counter is Actual/360 and the final period coupon accrual includes the maturity date.
         // If the main day counter is Act/360 and no lastPeriodDayCounter_ is given, default to Act/360 including last.
-        DayCounter effectiveLastPeriodDayCounter =
-            lastPeriodDayCounter.empty() ?
-                (dayCounter == Actual360() ? Actual360(true) : dayCounter) :
-                lastPeriodDayCounter;
+        effectiveLastPeriodDayCounter_ =
+            lastPeriodDayCounter_.empty() ?
+                (dayCounter_ == Actual360() ? Actual360(true) : dayCounter_) :
+                lastPeriodDayCounter_;
 
         // If the leg_ has not already been populated via amortised leg ctor, populate it.
         if (leg_.empty()) {
             leg_ = FixedRateLeg(schedule_)
                 .withNotionals(notional_)
-                .withCouponRates(runningSpread_, dayCounter)
+                .withCouponRates(runningSpread_, dayCounter_)
                 .withPaymentAdjustment(paymentConvention_)
-                .withLastPeriodDayCounter(effectiveLastPeriodDayCounter);
+                .withLastPeriodDayCounter(effectiveLastPeriodDayCounter_);
         }
         
         // Deduce the trade date if not given.
@@ -253,14 +257,24 @@ namespace QuantLib {
     void CreditDefaultSwap::performCalculations() const {
         // Deal with the accrual rebate. We use the standard conventions for accrual calculation introduced with the
         // CDS Big Bang in 2009
+        auto calculateAccrualDate =[](const Date& d, const Leg& leg, const DayCounter& dayCounter, const DayCounter& lastPeriodDayCounter)->Date {
+            Date nextPaymentDate = CashFlows::nextCashFlowDate(leg, true, d);
+            Date accrualDate = d + (dayCounter.includeLastDay() ? 0 : 1);
+            if (nextPaymentDate == leg.back()->date()) {
+                accrualDate = d + (lastPeriodDayCounter.includeLastDay() ? 0 : 1);
+            }
+            return accrualDate;
+        };
         if (rebatesAccrual_ && postBigBang_) {
+            Date accrualDate =
+                calculateAccrualDate(tradeDate_, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebate_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, leg_.back()->date() == tradeDate_ + 1,
-                                         tradeDate_ + 1),
+                CashFlows::accruedAmount(leg_, tradeDate_ + 1 == leg_.back()->date(), accrualDate),
                 effectiveUpfrontDate_);
             Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_);
+            Date currentAccrualDate = calculateAccrualDate(current, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebateCurrent_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, true, current + 1),
+                CashFlows::accruedAmount(leg_, true, currentAccrualDate),
                 schedule_.calendar().advance(current, cashSettlementDays_, Days,
                                              paymentConvention_));
         }

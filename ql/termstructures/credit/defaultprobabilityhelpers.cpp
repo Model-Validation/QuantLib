@@ -173,12 +173,8 @@ namespace QuantLib {
 
         protectionStart_ = evaluationDate_ + settlementDays_;
 
-        Date startDate;
-        if(rule_ == DateGeneration::CDS || rule_ == DateGeneration::CDS2015){
-            //The first coupon payment date is the first IMM date after T + 1
-            startDate = startDate_ == Date() ? evaluationDate_ + 1 : startDate_;
-        } else{
-            startDate = startDate_ == Date() ? protectionStart_ : startDate_;
+        Date startDate = startDate_ == Date() ? protectionStart_ : startDate_;
+        if (rule_ != DateGeneration::CDS2015 && rule_ != DateGeneration::CDS) {
             startDate = calendar_.adjust(startDate, paymentConvention_);
         }
 
@@ -200,6 +196,9 @@ namespace QuantLib {
                           .withConvention(paymentConvention_)
                           .withTerminationDateConvention(Unadjusted)
                           .withRule(rule_);
+
+        schedule_ = removeCDSPeriodsBeforeStartDate(schedule_, evaluationDate_ + 1);
+
         earliestDate_ = schedule_.dates().front();
         latestDate_   = calendar_.adjust(schedule_.dates().back(),
                                          paymentConvention_);
