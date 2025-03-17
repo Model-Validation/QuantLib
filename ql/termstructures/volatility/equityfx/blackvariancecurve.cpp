@@ -28,9 +28,10 @@ namespace QuantLib {
                                            const std::vector<Date>& dates,
                                            const std::vector<Volatility>& blackVolCurve,
                                            DayCounter dayCounter,
-                                           bool forceMonotoneVariance)
+                                           bool forceMonotoneVariance, 
+                                           bool flatTimeExtrapolation)
     : BlackVarianceTermStructure(referenceDate), dayCounter_(std::move(dayCounter)),
-      maxDate_(dates.back()) {
+      maxDate_(dates.back()), flatTimeExtrapolation_(flatTimeExtrapolation) {
 
         QL_REQUIRE(dates.size()==blackVolCurve.size(),
                    "mismatch between date vector and black vol vector");
@@ -62,7 +63,7 @@ namespace QuantLib {
     }
 
     Real BlackVarianceCurve::blackVarianceImpl(Time t, Real) const {
-        if (t <= times_.back()) {
+        if (t <= times_.back() || !flatTimeExtrapolation_) {
             return std::max(varianceCurve_(t, true), 0.0);
         } else {
             // extrapolate with flat vol

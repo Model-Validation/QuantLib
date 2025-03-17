@@ -55,7 +55,8 @@ namespace QuantLib {
                              const Matrix& blackVolMatrix,
                              DayCounter dayCounter,
                              Extrapolation lowerExtrapolation = InterpolatorDefaultExtrapolation,
-                             Extrapolation upperExtrapolation = InterpolatorDefaultExtrapolation);
+                             Extrapolation upperExtrapolation = InterpolatorDefaultExtrapolation,
+                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatInVolatility);
         //! \name TermStructure interface
         //@{
         DayCounter dayCounter() const override { return dayCounter_; }
@@ -92,8 +93,8 @@ namespace QuantLib {
         Matrix variances_;
         Interpolation2D varianceSurface_;
         Extrapolation lowerExtrapolation_, upperExtrapolation_;
+        BlackVolTimeExtrapolation timeExtrapolation_;
     };
-
 
     // inline definitions
 
