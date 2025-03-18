@@ -36,72 +36,97 @@ enum class BlackVolTimeExtrapolation {
     LinearInVolatility,
 };
 
-//! Black-volatility term structure
-/*! This abstract class defines the interface of concrete
-    Black-volatility term structures which will be derived from
-    this one.
+    //! Black-volatility term structure
+    /*! This abstract class defines the interface of concrete
+        Black-volatility term structures which will be derived from
+        this one.
 
-    Volatilities are assumed to be expressed on an annual basis.
-*/
-class BlackVolTermStructure : public VolatilityTermStructure {
-public:
-    /*! \name Constructors
-        See the TermStructure documentation for issues regarding
-        constructors.
+        Volatilities are assumed to be expressed on an annual basis.
     */
-    //@{
-    //! default constructor
-    /*! \warning term structures initialized by means of this
-                 constructor must manage their own reference date
-                 by overriding the referenceDate() method.
-    */
-    BlackVolTermStructure(BusinessDayConvention bdc = Following, const DayCounter& dc = DayCounter());
-    //! initialize with a fixed reference date
-    BlackVolTermStructure(const Date& referenceDate, const Calendar& cal = Calendar(),
-                          BusinessDayConvention bdc = Following, const DayCounter& dc = DayCounter());
-    //! calculate the reference date based on the global evaluation date
-    BlackVolTermStructure(Natural settlementDays, const Calendar&, BusinessDayConvention bdc = Following,
-                          const DayCounter& dc = DayCounter());
-    //@}
-    ~BlackVolTermStructure() override = default;
-    //! \name Black Volatility
-    //@{
-    //! spot volatility
-    Volatility blackVol(const Date& maturity, Real strike, bool extrapolate = false) const;
-    //! spot volatility
-    Volatility blackVol(Time maturity, Real strike, bool extrapolate = false) const;
-    //! spot variance
-    Real blackVariance(const Date& maturity, Real strike, bool extrapolate = false) const;
-    //! spot variance
-    Real blackVariance(Time maturity, Real strike, bool extrapolate = false) const;
-    //! forward (at-the-money) volatility
-    Volatility blackForwardVol(const Date& date1, const Date& date2, Real strike, bool extrapolate = false) const;
-    //! forward (at-the-money) volatility
-    Volatility blackForwardVol(Time time1, Time time2, Real strike, bool extrapolate = false) const;
-    //! forward (at-the-money) variance
-    Real blackForwardVariance(const Date& date1, const Date& date2, Real strike, bool extrapolate = false) const;
-    //! forward (at-the-money) variance
-    Real blackForwardVariance(Time time1, Time time2, Real strike, bool extrapolate = false) const;
-    //@}
-    //! \name Visitability
-    //@{
-    virtual void accept(AcyclicVisitor&);
-    //@}
-protected:
-    /*! \name Calculations
+    class BlackVolTermStructure : public VolatilityTermStructure {
+      public:
+        /*! \name Constructors
+            See the TermStructure documentation for issues regarding
+            constructors.
+        */
+        //@{
+        //! default constructor
+        /*! \warning term structures initialized by means of this
+                     constructor must manage their own reference date
+                     by overriding the referenceDate() method.
+        */
+        BlackVolTermStructure(BusinessDayConvention bdc = Following,
+                              const DayCounter& dc = DayCounter());
+        //! initialize with a fixed reference date
+        BlackVolTermStructure(const Date& referenceDate,
+                              const Calendar& cal = Calendar(),
+                              BusinessDayConvention bdc = Following,
+                              const DayCounter& dc = DayCounter());
+        //! calculate the reference date based on the global evaluation date
+        BlackVolTermStructure(Natural settlementDays,
+                              const Calendar&,
+                              BusinessDayConvention bdc = Following,
+                              const DayCounter& dc = DayCounter());
+        //@}
+        ~BlackVolTermStructure() override = default;
+        //! \name Black Volatility
+        //@{
+        //! spot volatility
+        Volatility blackVol(const Date& maturity,
+                            Real strike,
+                            bool extrapolate = false) const;
+        //! spot volatility
+        Volatility blackVol(Time maturity,
+                            Real strike,
+                            bool extrapolate = false) const;
+        //! spot variance
+        Real blackVariance(const Date& maturity,
+                           Real strike,
+                           bool extrapolate = false) const;
+        //! spot variance
+        Real blackVariance(Time maturity,
+                           Real strike,
+                           bool extrapolate = false) const;
+        //! forward (at-the-money) volatility
+        Volatility blackForwardVol(const Date& date1,
+                                   const Date& date2,
+                                   Real strike,
+                                   bool extrapolate = false) const;
+        //! forward (at-the-money) volatility
+        Volatility blackForwardVol(Time time1,
+                                   Time time2,
+                                   Real strike,
+                                   bool extrapolate = false) const;
+        //! forward (at-the-money) variance
+        Real blackForwardVariance(const Date& date1,
+                                  const Date& date2,
+                                  Real strike,
+                                  bool extrapolate = false) const;
+        //! forward (at-the-money) variance
+        Real blackForwardVariance(Time time1,
+                                  Time time2,
+                                  Real strike,
+                                  bool extrapolate = false) const;
+        //@}
+        //! \name Visitability
+        //@{
+        virtual void accept(AcyclicVisitor&);
+        //@}
+      protected:
+        /*! \name Calculations
 
-        These methods must be implemented in derived classes to perform
-        the actual volatility calculations. When they are called,
-        range check has already been performed; therefore, they must
-        assume that extrapolation is required.
-    */
-    //@{
-    //! Black variance calculation
-    virtual Real blackVarianceImpl(Time t, Real strike) const = 0;
-    //! Black volatility calculation
-    virtual Volatility blackVolImpl(Time t, Real strike) const = 0;
-    //@}
-};
+            These methods must be implemented in derived classes to perform
+            the actual volatility calculations. When they are called,
+            range check has already been performed; therefore, they must
+            assume that extrapolation is required.
+        */
+        //@{
+        //! Black variance calculation
+        virtual Real blackVarianceImpl(Time t, Real strike) const = 0;
+        //! Black volatility calculation
+        virtual Volatility blackVolImpl(Time t, Real strike) const = 0;
+        //@}
+    };
 
     //! Black-volatility term structure
     /*! This abstract class acts as an adapter to BlackVolTermStructure
