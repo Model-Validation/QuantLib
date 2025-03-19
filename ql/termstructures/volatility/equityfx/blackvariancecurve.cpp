@@ -20,6 +20,7 @@
 
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvariancetimeextrapolation.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -29,9 +30,9 @@ namespace QuantLib {
                                            const std::vector<Volatility>& blackVolCurve,
                                            DayCounter dayCounter,
                                            bool forceMonotoneVariance, 
-                                           bool flatTimeExtrapolation)
+                                           BlackVolTimeExtrapolation timeExtrapolation)
     : BlackVarianceTermStructure(referenceDate), dayCounter_(std::move(dayCounter)),
-      maxDate_(dates.back()), flatTimeExtrapolation_(flatTimeExtrapolation) {
+      maxDate_(dates.back()), timeExtrapolation_(timeExtrapolation) {
 
         QL_REQUIRE(dates.size()==blackVolCurve.size(),
                    "mismatch between date vector and black vol vector");
@@ -63,12 +64,18 @@ namespace QuantLib {
     }
 
     Real BlackVarianceCurve::blackVarianceImpl(Time t, Real) const {
-        if (t <= times_.back() || !flatTimeExtrapolation_) {
+        if (t <= times_.back() || timeExtrapolation_ == BlackVolTimeExtrapolation::UseInterpolatorVariance) {
             return std::max(varianceCurve_(t, true), 0.0);
-        } else {
+        } else if (timeExtrapolation_ == BlackVolTimeExtrapolation::FlatVolatility) {
             // extrapolate with flat vol
-            return std::max(varianceCurve_(times_.back(), true), 0.0) * t / times_.back();
+            return timeExtrapolatationBlackVarianceFlat(t, times_, varianceCurve_);
+        } else if (timeExtrapolation_ == BlackVolTimeExtrapolation::UseInterpolatorVolatility) {
+            return timeExtrapolatationBlackVarianceInVolatility(t, times_, varianceCurve_);
+        } else {
+            QL_FAIL("Unknown time extrapolation method");
         }
     }
+
+
 }
 

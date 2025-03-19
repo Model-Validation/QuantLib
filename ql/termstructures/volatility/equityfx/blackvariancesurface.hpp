@@ -56,7 +56,7 @@ namespace QuantLib {
                              DayCounter dayCounter,
                              Extrapolation lowerExtrapolation = InterpolatorDefaultExtrapolation,
                              Extrapolation upperExtrapolation = InterpolatorDefaultExtrapolation,
-                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatInVolatility);
+                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility);
         //! \name TermStructure interface
         //@{
         DayCounter dayCounter() const override { return dayCounter_; }
