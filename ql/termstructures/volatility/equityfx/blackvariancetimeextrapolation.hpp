@@ -26,7 +26,7 @@
 #include <ql/math/comparison.hpp>
 #include <ql/math/interpolation.hpp>
 #include <ql/math/interpolations/interpolation2d.hpp>
-
+#include <ql/math/interpolations/linearinterpolation.hpp>
 namespace QuantLib {
 
 namespace {
@@ -40,12 +40,8 @@ inline Real linearExtrapolation(const double t, const std::array<double, 2>& tim
     std::array<double, 2> vols;
     vols[0] = close_enough(times[0], 0.0) ? 0.0 : std::sqrt(variances[0] / times[0]);
     vols[1] = close_enough(times[1], 0.0) ? 0.0 : std::sqrt(variances[1] / times[1]);
-    if (close_enough(t, times[1])) {
-        return vols[1];
-    } else {
-        auto vol = vols[0] + (vols[1] - vols[0]) / (times[1] - times[0]) * t;
-        return std::max(vol, 0.0);
-    }
+    LinearInterpolation interpolation(times.begin(), times.end(), vols.begin());
+    return std::max(interpolation(t, true), 0.0);
 }
 } // namespace
 
