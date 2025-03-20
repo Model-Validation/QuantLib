@@ -19,7 +19,9 @@
 */
 
 #include <ql/math/interpolations/bilinearinterpolation.hpp>
+#include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancesurface.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvariancetimeextrapolation.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -31,10 +33,11 @@ namespace QuantLib {
                                                const Matrix& blackVolMatrix,
                                                DayCounter dayCounter,
                                                BlackVarianceSurface::Extrapolation lowerEx,
-                                               BlackVarianceSurface::Extrapolation upperEx)
+                                               BlackVarianceSurface::Extrapolation upperEx,
+                                               BlackVolTimeExtrapolation timeExtrapolation)
     : BlackVarianceTermStructure(referenceDate, cal), dayCounter_(std::move(dayCounter)),
       maxDate_(dates.back()), strikes_(std::move(strikes)), lowerExtrapolation_(lowerEx),
-      upperExtrapolation_(upperEx) {
+      upperExtrapolation_(upperEx), timeExtrapolation_(timeExtrapolation) {
 
         QL_REQUIRE(dates.size()==blackVolMatrix.columns(),
                    "mismatch between date vector and vol matrix colums");
@@ -66,22 +69,24 @@ namespace QuantLib {
 
     Real BlackVarianceSurface::blackVarianceImpl(Time t, Real strike) const {
 
-        if (t==0.0) return 0.0;
+        if (t == 0.0)
+            return 0.0;
 
         // enforce constant extrapolation when required
-        if (strike < strikes_.front()
-            && lowerExtrapolation_ == ConstantExtrapolation)
+        if (strike < strikes_.front() && lowerExtrapolation_ == ConstantExtrapolation)
             strike = strikes_.front();
-        if (strike > strikes_.back()
-            && upperExtrapolation_ == ConstantExtrapolation)
+        if (strike > strikes_.back() && upperExtrapolation_ == ConstantExtrapolation)
             strike = strikes_.back();
 
-        if (t<=times_.back())
+        if (t <= times_.back() || timeExtrapolation_ == BlackVolTimeExtrapolation::UseInterpolatorVariance) {
             return varianceSurface_(t, strike, true);
-        else // t>times_.back() || extrapolate
-            return varianceSurface_(times_.back(), strike, true) *
-                t/times_.back();
+        } else if (t > times_.back() && timeExtrapolation_ == BlackVolTimeExtrapolation::FlatVolatility) {
+            return timeExtrapolatationBlackVarianceFlat(t, strike, times_, varianceSurface_);
+        } else if (t > times_.back() && timeExtrapolation_ == BlackVolTimeExtrapolation::UseInterpolatorVolatility) {
+            return timeExtrapolatationBlackVarianceInVolatility(t, strike, times_, varianceSurface_);
+        } else {
+            QL_FAIL("unkown time extrapolation method");
+        }
     }
-
 }
 
