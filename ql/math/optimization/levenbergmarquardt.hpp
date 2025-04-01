@@ -40,7 +40,7 @@ namespace QuantLib {
         of the problem is used instead. Note that
         the default implementation of the jacobian
         in CostFunction uses a central difference
-        (oder 2, but requiring more function
+        (order 2, but requiring more function
         evaluations) compared to the forward
         difference implemented here (order 1).
 
@@ -53,28 +53,35 @@ namespace QuantLib {
                            Real gtol = 1.0e-8,
                            bool useCostFunctionsJacobian = false);
         EndCriteria::Type minimize(Problem& P,
-                                   const EndCriteria& endCriteria //= EndCriteria()
-                                   ) override;
-        //      = EndCriteria(400, 1.0e-8, 1.0e-8)
-        virtual Integer getInfo() const;
-        void fcn(int m,
-                 int n,
-                 Real* x,
-                 Real* fvec,
-                 int* iflag);
-        void jacFcn(int m,
-                 int n,
-                 Real* x,
-                 Real* fjac,
-                 int* iflag);
+                                   const EndCriteria& endCriteria) override;
 
+        /*! \deprecated Don't use this method; inspect the result of minimize instead.
+                        Deprecated in version 1.36.
+        */
+        [[deprecated("Don't use this method; inspect the result of minimize instead")]]
+        virtual Integer getInfo() const { return info_; }
+
+        /*! \deprecated Don't use this method; it is for internal use.
+                        Deprecated in version 1.37.
+        */
+        [[deprecated("Don't use this method; it is for internal use")]]
+        void fcn(int m, int n, Real* x, Real* fvec, int*) { fcn(m, n, x, fvec); }
+
+        /*! \deprecated Don't use this method; it is for internal use.
+                        Deprecated in version 1.37.
+        */
+        [[deprecated("Don't use this method; it is for internal use")]]
+        void jacFcn(int m, int n, Real* x, Real* fjac, int*) { jacFcn(m, n, x, fjac); }
       private:
+        void fcn(int m, int n, Real* x, Real* fvec);
+        void jacFcn(int m, int n, Real* x, Real* fjac);
+
         Problem* currentProblem_;
         Array initCostValues_;
         Matrix initJacobian_;
-        mutable Integer info_ = 0;
+        mutable Integer info_ = 0; // remove together with getInfo
         const Real epsfcn_, xtol_, gtol_;
-        bool useCostFunctionsJacobian_;
+        const bool useCostFunctionsJacobian_;
     };
 
 }

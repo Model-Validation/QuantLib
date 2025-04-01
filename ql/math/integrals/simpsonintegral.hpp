@@ -40,7 +40,7 @@ namespace QuantLib {
 
       protected:
         Size minIterations_ = 6;
-        Real integrate(const ext::function<Real(Real)>& f, Real a, Real b) const override {
+        Real integrate(const std::function<Real(Real)>& f, Real a, Real b) const override {
 
             // start from the coarsest trapezoid...
             Size N = 1;

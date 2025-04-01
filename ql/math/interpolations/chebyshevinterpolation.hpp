@@ -28,15 +28,9 @@
 #include <ql/math/array.hpp>
 #include <ql/math/interpolation.hpp>
 
-
 namespace QuantLib {
-    class LagrangeInterpolation;
 
-    /*! References:
-        S.A. Sarra: Chebyshev Interpolation: An Interactive Tour,
-        https://www.maa.org/sites/default/files/images/upload_library/4/vol6/Sarra/Chebyshev.html
-     */
-
+    /*! See S.A. Sarra: Chebyshev Interpolation: An Interactive Tour. */
     class ChebyshevInterpolation: public Interpolation {
       public:
         enum PointsType {FirstKind, SecondKind};
@@ -44,8 +38,14 @@ namespace QuantLib {
         explicit ChebyshevInterpolation(
             const Array& y, PointsType pointsType = SecondKind);
         ChebyshevInterpolation(
-            Size n, const ext::function<Real(Real)>& f,
+            Size n, const std::function<Real(Real)>& f,
             PointsType pointsType = SecondKind);
+
+        ~ChebyshevInterpolation() override = default;
+        explicit ChebyshevInterpolation(const ChebyshevInterpolation&) = delete;
+        explicit ChebyshevInterpolation(ChebyshevInterpolation&&) = delete;
+        ChebyshevInterpolation& operator=(const ChebyshevInterpolation&) = delete;
+        ChebyshevInterpolation& operator=(ChebyshevInterpolation&&) = delete;
 
         void updateY(const Array& y);
 
@@ -55,8 +55,8 @@ namespace QuantLib {
       private:
         const Array x_;
         Array y_;
-        ext::shared_ptr<LagrangeInterpolation> lagrangeInterp_;
     };
+
 }
 
 #endif
