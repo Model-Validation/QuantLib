@@ -278,7 +278,9 @@ namespace QuantLib {
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     const Date& referenceDate,
@@ -288,7 +290,9 @@ namespace QuantLib {
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Natural settlementDays,
@@ -299,7 +303,9 @@ namespace QuantLib {
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Date baseDate,
