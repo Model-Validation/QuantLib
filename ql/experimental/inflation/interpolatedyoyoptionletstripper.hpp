@@ -61,7 +61,7 @@ protected:
             lag_ = surf_->observationLag();
             capfloor_ = MakeYoYInflationCapFloor(type, anIndex,
                                                  (Size)std::floor(0.5 + surf->timeFromReference(surf->minMaturity())),
-                                                 surf->calendar(), lag)
+                                                 surf->calendar(), lag, CPI::AsIndex)
                             .withNominal(10000.0)
                             .withStrike(K_);
 

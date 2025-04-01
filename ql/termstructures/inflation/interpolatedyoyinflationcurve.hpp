@@ -47,6 +47,7 @@ namespace QuantLib {
         InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       std::vector<Date> dates,
                                       const std::vector<Rate>& rates,
+                                      const Period& observationLag,
                                       Frequency frequency,
                                       const DayCounter& dayCounter,
                                       const ext::shared_ptr<Seasonality>& seasonality = {},
@@ -59,7 +60,7 @@ namespace QuantLib {
         InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       std::vector<Date> dates,
                                       const std::vector<Rate>& rates,
-                                      const Period& lag,
+                                      const Period& observationLag,
                                       Frequency frequency,
                                       bool indexIsInterpolated,
                                       const DayCounter& dayCounter,
@@ -110,6 +111,7 @@ namespace QuantLib {
         InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       Date baseDate,
                                       Rate baseYoYRate,
+                                      const Period& observationLag,
                                       Frequency frequency,
                                       const DayCounter& dayCounter,
                                       const ext::shared_ptr<Seasonality>& seasonality = {},
@@ -122,7 +124,7 @@ namespace QuantLib {
         InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       Date baseDate,
                                       Rate baseYoYRate,
-                                      const Period& lag,
+                                      const Period& observationLag,
                                       Frequency frequency,
                                       bool indexIsInterpolated,
                                       const DayCounter& dayCounter,
@@ -155,13 +157,13 @@ namespace QuantLib {
         const Date& referenceDate,
         std::vector<Date> dates,
         const std::vector<Rate>& rates,
-        const Period& lag,
+        const Period& observationLag,
         Frequency frequency,
         const DayCounter& dayCounter,
         const ext::shared_ptr<Seasonality>& seasonality,
         const Interpolator& interpolator)
-    : YoYInflationTermStructure(referenceDate, dates.at(0), rates[0], lag,
-                                frequency, dayCounter, seasonality),
+    : YoYInflationTermStructure(referenceDate, dates.at(0), rates[0], 
+                                observationLag, frequency, dayCounter, seasonality),
       InterpolatedCurve<Interpolator>(std::vector<Time>(), rates, interpolator),
       dates_(std::move(dates)) {
 
@@ -188,12 +190,13 @@ namespace QuantLib {
         const Date& referenceDate,
         std::vector<Date> dates,
         const std::vector<Rate>& rates,
+        const Period& observationLag,
         Frequency frequency,
         bool indexIsInterpolated,
         const DayCounter& dayCounter,
         const ext::shared_ptr<Seasonality>& seasonality,
         const Interpolator& interpolator)
-    : InterpolatedYoYInflationCurve(referenceDate, dates, rates, frequency,
+    : InterpolatedYoYInflationCurve(referenceDate, dates, rates, observationLag, frequency,
                                     dayCounter, seasonality, interpolator) {
         QL_DEPRECATED_DISABLE_WARNING
         indexIsInterpolated_ = indexIsInterpolated;
@@ -205,11 +208,12 @@ namespace QuantLib {
     InterpolatedYoYInflationCurve(const Date& referenceDate,
                                   Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   const DayCounter& dayCounter,
                                   const ext::shared_ptr<Seasonality>& seasonality,
                                   const Interpolator& interpolator)
-    : YoYInflationTermStructure(referenceDate, baseDate, baseYoYRate,
+    : YoYInflationTermStructure(referenceDate, baseDate, baseYoYRate, observationLag,
                                 frequency, dayCounter, seasonality),
       InterpolatedCurve<Interpolator>(interpolator) {}
 
@@ -218,14 +222,14 @@ namespace QuantLib {
     InterpolatedYoYInflationCurve(const Date& referenceDate,
                                   Date baseDate,
                                   Rate baseYoYRate,
-                                  const Period& lag,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   bool indexIsInterpolated,
                                   const DayCounter& dayCounter,
                                   const ext::shared_ptr<Seasonality>& seasonality,
                                   const Interpolator& interpolator)
-    : InterpolatedYoYInflationCurve(referenceDate, baseDate, baseYoYRate, lag, frequency,
-                                    dayCounter, seasonality, interpolator) {
+    : InterpolatedYoYInflationCurve(referenceDate, baseDate, baseYoYRate, observationLag,
+                                    frequency, dayCounter, seasonality, interpolator) {
         QL_DEPRECATED_DISABLE_WARNING
         indexIsInterpolated_ = indexIsInterpolated;
         QL_DEPRECATED_ENABLE_WARNING

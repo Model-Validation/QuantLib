@@ -238,15 +238,12 @@ namespace QuantLib {
         Date latestNeededDate = fixingPeriod.first;
         // Instead enforcing strict availability lag, we give a grace period of
         // two periods, in the grace period we check the actual available fixing
-        Date possiblePublishedFixing =
-            inflationPeriod(todayMinusLag, frequency_).first;
+        Date possiblePublishedFixing = latestPossibleHistoricalFixingPeriod.first;
 
         Date expectedPublishedFixing =
             inflationPeriod(possiblePublishedFixing -1, frequency_).first - 1;
 
-        Date latestNeededDate = fixingDate;
-
-        if (latestNeededDate > today) {
+        if (latestNeededDate > latestPossibleHistoricalFixingPeriod.second) {
             return true;
         } else if (latestNeededDate < expectedPublishedFixing) {
             return false;

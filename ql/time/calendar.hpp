@@ -120,7 +120,7 @@ namespace QuantLib {
         */
         bool isEndOfMonth(const Date& d) const;
         //! last business day of the month to which the given date belongs
-        Date endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c) const;
+        Date endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c = ext::nullopt) const;
 
         /*! Adds a date to the set of holidays for the given calendar. */
         void addHoliday(const Date&);
@@ -261,7 +261,7 @@ namespace QuantLib {
         return d >= endOfMonth(d);
     }
 
-    inline Date Calendar::endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c = ext::nullopt) const {
+    inline Date Calendar::endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c) const {
         return adjust(Date::endOfMonth(d), c ? *c : Preceding);
     }
 

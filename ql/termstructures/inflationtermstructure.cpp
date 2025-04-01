@@ -274,38 +274,48 @@ namespace QuantLib {
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(baseDate, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     const Date& referenceDate,
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(referenceDate, baseDate, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Natural settlementDays,
                                     const Calendar& calendar,
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : InflationTermStructure(settlementDays, calendar, baseDate, frequency, dayCounter, seasonality, baseYoYRate) {}
+    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+        indexIsInterpolated_ = false;
+    }
 
     YoYInflationTermStructure::YoYInflationTermStructure(
                                     Date baseDate,
                                     Rate baseYoYRate,
+                                    const Period& observationLag,
                                     Frequency frequency,
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : YoYInflationTermStructure(baseDate, baseYoYRate, frequency, dayCounter, seasonality) {
+    : YoYInflationTermStructure(baseDate, baseYoYRate, observationLag, frequency, dayCounter, seasonality) {
         indexIsInterpolated_ = indexIsInterpolated;
     }
 
@@ -318,7 +328,7 @@ namespace QuantLib {
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : YoYInflationTermStructure(referenceDate, baseDate, baseYoYRate,
+    : YoYInflationTermStructure(referenceDate, baseDate, baseYoYRate, observationLag,
                                 frequency, dayCounter, seasonality) {
         indexIsInterpolated_ = indexIsInterpolated;
     }
@@ -333,7 +343,7 @@ namespace QuantLib {
                                     bool indexIsInterpolated,
                                     const DayCounter& dayCounter,
                                     const ext::shared_ptr<Seasonality> &seasonality)
-    : YoYInflationTermStructure(settlementDays, calendar, baseDate, baseYoYRate,
+    : YoYInflationTermStructure(settlementDays, calendar, baseDate, baseYoYRate, observationLag,
                                 frequency, dayCounter, seasonality) {
         indexIsInterpolated_ = indexIsInterpolated;
     }

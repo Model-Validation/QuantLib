@@ -98,15 +98,6 @@ if (NOT DEFINED MSVC_LINK_DYNAMIC_RUNTIME)
     set(MSVC_LINK_DYNAMIC_RUNTIME ON)
 endif ()
 
-if (CMAKE_CXX_STANDARD LESS 17)
-    if (QL_USE_STD_ANY)
-        message(FATAL_ERROR "QL_USE_STD_ANY requires at least C++17")
-    endif()
-    if (QL_USE_STD_OPTIONAL)
-        message(FATAL_ERROR "QL_USE_STD_OPTIONAL requires at least C++17")
-    endif()
-endif ()
-
 # Set the default warning level we use to pass the GitHub workflows
 if (QL_ENABLE_DEFAULT_WARNING_LEVEL)
     if (MSVC)

@@ -198,10 +198,7 @@ namespace QuantLib {
     }
 
     Real CPICashFlow::baseFixing() const {
-        if (baseFixing_ != Null<Rate>())
-            return baseFixing_;
-        else
-            return CPI::laggedFixing(cpiIndex(), baseDate(), 0 * Months, interpolation_);
+        return baseFixing_;
     }
 
     Real CPICashFlow::indexFixing() const {
@@ -238,6 +235,7 @@ namespace QuantLib {
     : schedule_(std::move(schedule)), index_(std::move(index)), baseCPI_(baseCPI),
       observationLag_(observationLag), paymentDayCounter_(Thirty360(Thirty360::BondBasis)),
       paymentCalendar_(schedule_.calendar()), baseDate_(Null<Date>()) {}
+
 
     CPILeg& CPILeg::withObservationInterpolation(CPI::InterpolationType interp) {
         observationInterpolation_ = interp;

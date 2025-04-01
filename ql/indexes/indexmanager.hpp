@@ -41,56 +41,6 @@ namespace QuantLib {
 
       private:
         IndexManager() = default;
-        friend class Index;
-        //! add a fixing
-        void addFixing(const std::string& name,
-                       const Date& fixingDate,
-                       Real fixing,
-                       bool forceOverwrite = false);
-        //! add fixings
-        template <class DateIterator, class ValueIterator>
-        void addFixings(const std::string& name,
-                        DateIterator dBegin,
-                        DateIterator dEnd,
-                        ValueIterator vBegin,
-                        bool forceOverwrite = false,
-                        const std::function<bool(const Date& d)>& isValidFixingDate = {}) {
-            auto& h = data_[name];
-            bool noInvalidFixing = true, noDuplicatedFixing = true;
-            Date invalidDate, duplicatedDate;
-            Real nullValue = Null<Real>();
-            Real invalidValue = Null<Real>();
-            Real duplicatedValue = Null<Real>();
-            while (dBegin != dEnd) {
-                bool validFixing = isValidFixingDate ? isValidFixingDate(*dBegin) : true;
-                Real currentValue = h[*dBegin];
-                bool missingFixing = forceOverwrite || currentValue == nullValue;
-                if (validFixing) {
-                    if (missingFixing)
-                        h[*(dBegin++)] = *(vBegin++);
-                    else if (close(currentValue, *(vBegin))) {
-                        ++dBegin;
-                        ++vBegin;
-                    } else {
-                        noDuplicatedFixing = false;
-                        duplicatedDate = *(dBegin++);
-                        duplicatedValue = *(vBegin++);
-                    }
-                } else {
-                    noInvalidFixing = false;
-                    invalidDate = *(dBegin++);
-                    invalidValue = *(vBegin++);
-                }
-            }
-            notifier(name)->notifyObservers();
-            QL_REQUIRE(noInvalidFixing, "At least one invalid fixing provided: "
-                                            << invalidDate.weekday() << " " << invalidDate << ", "
-                                            << invalidValue);
-            QL_REQUIRE(noDuplicatedFixing, "At least one duplicated fixing provided: "
-                                               << duplicatedDate << ", " << duplicatedValue
-                                               << " while " << h[duplicatedDate]
-                                               << " value is already present");
-        }
 
       public:
         //! returns all names of the indexes for which fixings were stored
