@@ -29,9 +29,10 @@ namespace QuantLib {
     LevenbergMarquardt::LevenbergMarquardt(Real epsfcn,
                                            Real xtol,
                                            Real gtol,
-                                           bool useCostFunctionsJacobian)
+                                           bool useCostFunctionsJacobian,
+                                           Real factor)
     : epsfcn_(epsfcn), xtol_(xtol), gtol_(gtol),
-      useCostFunctionsJacobian_(useCostFunctionsJacobian) {}
+      useCostFunctionsJacobian_(useCostFunctionsJacobian), factor_(factor) {}
 
     EndCriteria::Type LevenbergMarquardt::minimize(Problem& P,
                                                    const EndCriteria& endCriteria) {
@@ -49,8 +50,6 @@ namespace QuantLib {
         std::unique_ptr<Real[]> fvec(new Real[m]);
         std::unique_ptr<Real[]> diag(new Real[n]);
         int mode = 1;
-        // magic number recommended by the documentation
-        Real factor = 100;
         // lmdif() evaluates cost function n+1 times for each iteration (technically, 2n+1
         // times if useCostFunctionsJacobian is true, but lmdif() doesn't account for that)
         int maxfev = endCriteria.maxIterations() * (n + 1);
@@ -94,7 +93,7 @@ namespace QuantLib {
                        gtol_,
                        maxfev,
                        epsfcn_,
-                       diag.get(), mode, factor,
+                       diag.get(), mode, factor_,
                        nprint, &info, &nfev, fjac.get(),
                        ldfjac, ipvt.get(), qtf.get(),
                        wa1.get(), wa2.get(), wa3.get(), wa4.get(),
