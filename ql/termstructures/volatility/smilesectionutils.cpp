@@ -182,7 +182,8 @@ namespace QuantLib {
                 m_.erase(m_.begin() + rightIndex_ + 1);
                 k_.erase(k_.begin() + rightIndex_ + 1);
                 c_.erase(c_.begin() + rightIndex_ + 1);
-                rightIndex_--;
+                if (rightIndex_ > 0)
+                    rightIndex_--;
                 done = false;
             }
         }

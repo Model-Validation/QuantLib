@@ -222,9 +222,8 @@ Real D0Interpolator::operator()() const {
     // we do not need to check the indices here, because this is already
     // done in the NoArbSabr constructor
 
-    Size tauInd = std::upper_bound(tauG_.begin(), tauG_.end(), expiryTime_) -
-                                   tauG_.begin();
-    if (tauInd == tauG_.size())
+    int tauInd = (int)(std::upper_bound(tauG_.begin(), tauG_.end(), expiryTime_) - tauG_.begin());
+    if (tauInd == (int)tauG_.size())
         --tauInd; // tau at upper bound
     Real expiryTimeTmp = expiryTime_;
     if (tauInd == 0) {
@@ -234,18 +233,16 @@ Real D0Interpolator::operator()() const {
     Real tauL = (expiryTimeTmp - tauG_[tauInd - 1]) /
                 (tauG_[tauInd] - tauG_[tauInd - 1]);
 
-    Size sigmaIInd =
-        sigmaIG_.size() -
-        (std::upper_bound(sigmaIG_.rbegin(), sigmaIG_.rend(), sigmaI_) -
-         sigmaIG_.rbegin());
+    int sigmaIInd =
+        (int)sigmaIG_.size() -
+        (std::upper_bound(sigmaIG_.rbegin(), sigmaIG_.rend(), sigmaI_) - sigmaIG_.rbegin());
     if (sigmaIInd == 0)
         ++sigmaIInd; // sigmaI at upper bound
     Real sigmaIL = (sigmaI_ - sigmaIG_[sigmaIInd - 1]) /
                    (sigmaIG_[sigmaIInd] - sigmaIG_[sigmaIInd - 1]);
 
-    Size rhoInd =
-        rhoG_.size() -
-        (std::upper_bound(rhoG_.rbegin(), rhoG_.rend(), rho_) - rhoG_.rbegin());
+    int rhoInd =
+        (int)rhoG_.size() - (std::upper_bound(rhoG_.rbegin(), rhoG_.rend(), rho_) - rhoG_.rbegin());
     if (rhoInd == 0) {
         rhoInd++;
     }
@@ -256,15 +253,14 @@ Real D0Interpolator::operator()() const {
         (rho_ - rhoG_[rhoInd - 1]) / (rhoG_[rhoInd] - rhoG_[rhoInd - 1]);
 
     // for nu = 0 we know phi = 0.5*z_F^2
-    Size nuInd = std::upper_bound(nuG_.begin(), nuG_.end(), nu_) - nuG_.begin();
+    int nuInd = std::upper_bound(nuG_.begin(), nuG_.end(), nu_) - nuG_.begin();
     if (nuInd == nuG_.size())
         --nuInd; // nu at upper bound
     Real tmpNuG = nuInd > 0 ? nuG_[nuInd - 1] : 0.0;
     Real nuL = (nu_ - tmpNuG) / (nuG_[nuInd] - tmpNuG);
 
     // for beta = 1 we know phi = 0.0
-    Size betaInd =
-        std::upper_bound(betaG_.begin(), betaG_.end(), beta_) - betaG_.begin();
+    int betaInd = std::upper_bound(betaG_.begin(), betaG_.end(), beta_) - betaG_.begin();
     Real tmpBetaG;
     if (betaInd == betaG_.size())
         tmpBetaG = 1.0;
