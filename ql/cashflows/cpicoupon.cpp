@@ -198,10 +198,7 @@ namespace QuantLib {
     }
 
     Real CPICashFlow::baseFixing() const {
-        if (baseFixing_ != Null<Rate>())
-            return baseFixing_;
-        else
-            return CPI::laggedFixing(cpiIndex(), baseDate(), 0 * Months, interpolation_);
+        return baseFixing_;
     }
 
     Real CPICashFlow::indexFixing() const {
