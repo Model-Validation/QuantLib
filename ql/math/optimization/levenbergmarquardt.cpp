@@ -30,9 +30,11 @@ namespace QuantLib {
                                            Real xtol,
                                            Real gtol,
                                            bool useCostFunctionsJacobian,
-                                           Real factor)
+                                           Real factor,
+                                           bool adjustMaxIterationsForDimension)
     : epsfcn_(epsfcn), xtol_(xtol), gtol_(gtol),
-      useCostFunctionsJacobian_(useCostFunctionsJacobian), factor_(factor) {}
+      useCostFunctionsJacobian_(useCostFunctionsJacobian), factor_(factor), 
+      adjustMaxIterationsForDimension_(adjustMaxIterationsForDimension) {}
 
     EndCriteria::Type LevenbergMarquardt::minimize(Problem& P,
                                                    const EndCriteria& endCriteria) {
@@ -52,7 +54,8 @@ namespace QuantLib {
         int mode = 1;
         // lmdif() evaluates cost function n+1 times for each iteration (technically, 2n+1
         // times if useCostFunctionsJacobian is true, but lmdif() doesn't account for that)
-        int maxfev = endCriteria.maxIterations() * (n + 1);
+        int maxfev =
+            adjustMaxIterationsForDimension_ ? endCriteria.maxIterations() * (n + 1) : endCriteria.maxIterations();
         int nprint = 0;
         int info = 0;
         int nfev = 0;

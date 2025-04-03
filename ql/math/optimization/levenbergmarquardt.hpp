@@ -52,7 +52,8 @@ namespace QuantLib {
                            Real xtol = 1.0e-8,
                            Real gtol = 1.0e-8,
                            bool useCostFunctionsJacobian = false,
-                           Real factor = 1.0);
+                           Real factor = 1.0,
+                           bool adjustMaxIterationsForDimension = false);
         EndCriteria::Type minimize(Problem& P,
                                    const EndCriteria& endCriteria) override;
 
@@ -84,6 +85,7 @@ namespace QuantLib {
         const Real epsfcn_, xtol_, gtol_;
         const bool useCostFunctionsJacobian_;
         const Real factor_;
+        const bool adjustMaxIterationsForDimension_;
     };
 
 }
