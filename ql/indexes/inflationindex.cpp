@@ -243,7 +243,7 @@ namespace QuantLib {
         Date expectedPublishedFixing =
             inflationPeriod(possiblePublishedFixing -1, frequency_).first - 1;
 
-        if (latestNeededDate > today) {
+        if (latestNeededDate > latestPossibleHistoricalFixingPeriod.second) {
             return true;
         } else if (latestNeededDate < expectedPublishedFixing) {
             return false;

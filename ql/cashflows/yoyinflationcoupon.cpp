@@ -78,7 +78,7 @@ namespace QuantLib {
     }
 
     Rate YoYInflationCoupon::indexFixing() const {
-        return CPI::laggedYoYRate(yoyIndex(), accrualEndDate(), observationLag(), interpolation_);
+        return CPI::laggedYoYRate(yoyIndex(), fixingDate() + observationLag(), observationLag(), interpolation_);
     }
 
 
