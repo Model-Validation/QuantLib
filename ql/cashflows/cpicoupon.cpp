@@ -28,8 +28,6 @@
 
 namespace QuantLib {
 
-    QL_DEPRECATED_DISABLE_WARNING
-
     CPICoupon::CPICoupon(Real baseCPI,
                          const Date& paymentDate,
                          Real nominal,
@@ -43,9 +41,9 @@ namespace QuantLib {
                          const Date& refPeriodStart,
                          const Date& refPeriodEnd,
                          const Date& exCouponDate)
-    : CPICoupon(baseCPI, paymentDate, nominal, startDate, endDate, index,
-                observationLag, observationInterpolation, dayCounter,
-                fixedRate, 0.0, refPeriodStart, refPeriodEnd, exCouponDate) {}
+    : CPICoupon(baseCPI, Date(), paymentDate, nominal, startDate, endDate,
+                index, observationLag, observationInterpolation, dayCounter,
+                fixedRate, refPeriodStart, refPeriodEnd, exCouponDate) {}
 
     CPICoupon::CPICoupon(const Date& baseDate,
                          const Date& paymentDate,
@@ -60,9 +58,9 @@ namespace QuantLib {
                          const Date& refPeriodStart,
                          const Date& refPeriodEnd,
                          const Date& exCouponDate)
-    : CPICoupon(baseDate, paymentDate, nominal, startDate, endDate, index,
-                observationLag, observationInterpolation, dayCounter,
-                fixedRate, 0.0, refPeriodStart, refPeriodEnd, exCouponDate) {}
+    : CPICoupon(Null<Real>(), baseDate, paymentDate, nominal, startDate, endDate,
+                index, observationLag, observationInterpolation, dayCounter,
+                fixedRate, refPeriodStart, refPeriodEnd, exCouponDate) {}
 
     CPICoupon::CPICoupon(Real baseCPI,
                          const Date& baseDate,
@@ -75,105 +73,21 @@ namespace QuantLib {
                          CPI::InterpolationType observationInterpolation,
                          const DayCounter& dayCounter,
                          Real fixedRate,
-                         const Date& refPeriodStart,
-                         const Date& refPeriodEnd,
-                         const Date& exCouponDate)
-    : CPICoupon(baseCPI, baseDate, paymentDate, nominal, startDate, endDate, index,
-                observationLag, observationInterpolation, dayCounter,
-                fixedRate, 0.0, refPeriodStart, refPeriodEnd, exCouponDate) {}
-
-    CPICoupon::CPICoupon(Real baseCPI,
-                         const Date& paymentDate,
-                         Real nominal,
-                         const Date& startDate,
-                         const Date& endDate,
-                         const ext::shared_ptr<ZeroInflationIndex>& index,
-                         const Period& observationLag,
-                         CPI::InterpolationType observationInterpolation,
-                         const DayCounter& dayCounter,
-                         Real fixedRate,
-                         Spread spread,
-                         const Date& refPeriodStart,
-                         const Date& refPeriodEnd,
-                         const Date& exCouponDate)
-    : CPICoupon(baseCPI, Null<Date>(), paymentDate, nominal, startDate, endDate, index,
-                observationLag, observationInterpolation, dayCounter,
-                fixedRate, spread, refPeriodStart, refPeriodEnd, exCouponDate) {}
-
-    CPICoupon::CPICoupon(const Date& baseDate,
-                         const Date& paymentDate,
-                         Real nominal,
-                         const Date& startDate,
-                         const Date& endDate,
-                         const ext::shared_ptr<ZeroInflationIndex>& index,
-                         const Period& observationLag,
-                         CPI::InterpolationType observationInterpolation,
-                         const DayCounter& dayCounter,
-                         Real fixedRate,
-                         Spread spread,
-                         const Date& refPeriodStart,
-                         const Date& refPeriodEnd,
-                         const Date& exCouponDate)
-    : CPICoupon(Null<Real>(), baseDate, paymentDate, nominal, startDate, endDate, index,
-                observationLag, observationInterpolation, dayCounter,
-                fixedRate, spread, refPeriodStart, refPeriodEnd, exCouponDate) {}
-
-    CPICoupon::CPICoupon(Real baseCPI,
-                         const Date& baseDate,
-                         const Date& paymentDate,
-                         Real nominal,
-                         const Date& startDate,
-                         const Date& endDate,
-                         const ext::shared_ptr<ZeroInflationIndex>& index,
-                         const Period& observationLag,
-                         CPI::InterpolationType observationInterpolation,
-                         const DayCounter& dayCounter,
-                         Real fixedRate,
-                         Spread spread,
                          const Date& refPeriodStart,
                          const Date& refPeriodEnd,
                          const Date& exCouponDate)
     : InflationCoupon(paymentDate, nominal, startDate, endDate, 0,
                       index, observationLag, dayCounter,
                       refPeriodStart, refPeriodEnd, exCouponDate),
-      baseCPI_(baseCPI), fixedRate_(fixedRate), spread_(spread),
+      baseCPI_(baseCPI), fixedRate_(fixedRate),
       observationInterpolation_(observationInterpolation), baseDate_(baseDate) {
 
         QL_REQUIRE(index_, "no index provided");
-        QL_REQUIRE(
-            baseCPI_ != Null<Rate>() || baseDate != Null<Date>(),
-            "baseCPI and baseDate can not be both null, provide a valid baseCPI or baseDate");
+        QL_REQUIRE(baseCPI_ != Null<Rate>() || baseDate != Date(),
+                   "baseCPI and baseDate can not be both null, provide a valid baseCPI or baseDate");
         QL_REQUIRE(baseCPI_ == Null<Rate>() || std::fabs(baseCPI_) > 1e-16,
                    "|baseCPI_| < 1e-16, future divide-by-zero problem");
     }
-
-    CPICoupon::CPICoupon(Real baseCPI,
-                         const Date& paymentDate,
-                         Real nominal,
-                         const Date& startDate,
-                         const Date& endDate,
-                         Natural fixingDays,
-                         const ext::shared_ptr<ZeroInflationIndex>& zeroIndex,
-                         const Period& observationLag,
-                         CPI::InterpolationType observationInterpolation,
-                         const DayCounter& dayCounter,
-                         Real fixedRate,
-                         Spread spread,
-                         const Date& refPeriodStart,
-                         const Date& refPeriodEnd,
-                         const Date& exCouponDate)
-    : InflationCoupon(paymentDate, nominal, startDate, endDate,
-                      fixingDays, zeroIndex, observationLag,
-                      dayCounter, refPeriodStart, refPeriodEnd, exCouponDate),
-        baseCPI_(baseCPI), fixedRate_(fixedRate), spread_(spread),
-        observationInterpolation_(observationInterpolation), baseDate_(Date()) {
-
-        QL_REQUIRE(zeroIndex, "no index provided");
-        QL_REQUIRE(std::fabs(baseCPI_) > 1e-16,
-                   "|baseCPI_| < 1e-16, future divide-by-zero problem");
-    }
-
-    QL_DEPRECATED_ENABLE_WARNING
 
     void CPICoupon::accept(AcyclicVisitor& v) {
         auto* v1 = dynamic_cast<Visitor<CPICoupon>*>(&v);
@@ -268,7 +182,7 @@ namespace QuantLib {
       interpolation_(interpolation), frequency_(index ? index->frequency() : NoFrequency) {
         QL_REQUIRE(index, "no index provided");
         QL_REQUIRE(
-            baseFixing_ != Null<Rate>() || baseDate != Null<Date>(),
+            baseFixing_ != Null<Rate>() || baseDate != Date(),
             "baseCPI and baseDate can not be both null, provide a valid baseCPI or baseDate");
         QL_REQUIRE(baseFixing_ == Null<Rate>() || std::fabs(baseFixing_) > 1e-16,
                    "|baseCPI_| < 1e-16, future divide-by-zero problem");
@@ -320,8 +234,8 @@ namespace QuantLib {
                    const Period& observationLag)
     : schedule_(std::move(schedule)), index_(std::move(index)), baseCPI_(baseCPI),
       observationLag_(observationLag), paymentDayCounter_(Thirty360(Thirty360::BondBasis)),
-      paymentCalendar_(schedule_.calendar()),
-      spreads_(std::vector<Real>(1, 0)), baseDate_(Null<Date>()) {}
+      paymentCalendar_(schedule_.calendar()), baseDate_(Null<Date>()) {}
+
 
     CPILeg& CPILeg::withObservationInterpolation(CPI::InterpolationType interp) {
         observationInterpolation_ = interp;
@@ -366,16 +280,6 @@ namespace QuantLib {
 
     CPILeg& CPILeg::withPaymentCalendar(const Calendar& cal) {
         paymentCalendar_ = cal;
-        return *this;
-    }
-
-    CPILeg& CPILeg::withSpreads(Spread spread) {
-        spreads_ = std::vector<Spread>(1,spread);
-        return *this;
-    }
-
-    CPILeg& CPILeg::withSpreads(const std::vector<Spread>& spreads) {
-        spreads_ = spreads;
         return *this;
     }
 
@@ -429,10 +333,9 @@ namespace QuantLib {
         // should be at startDate - observationLag
 
         if (n>0) {
-            QL_REQUIRE(!fixedRates_.empty() || !spreads_.empty(),
-                       "no fixedRates or spreads given");
+            QL_REQUIRE(!fixedRates_.empty(), "no fixedRates given");
 
-            if (baseDate_ == Null<Date>() && baseCPI_ == Null<Real>()) {
+            if (baseDate_ == Date() && baseCPI_ == Null<Real>()) {
                 baseDate = schedule_.date(0) - observationLag_;
             }
 
@@ -461,13 +364,13 @@ namespace QuantLib {
                     refEnd = schedule_.calendar().adjust(start + schedule_.tenor(), bdc);
                 }
                 if (detail::get(fixedRates_, i, 1.0) == 0.0) { // fixed coupon
+                    // this looks like an optimization but I'm not sure it's worth it?
                     leg.push_back(ext::make_shared<FixedRateCoupon>
                                    (paymentDate, detail::get(notionals_, i, 0.0),
-                                    detail::effectiveFixedRate(spreads_,caps_,floors_,i),
+                                    detail::effectiveFixedRate({},caps_,floors_,i),
                                     paymentDayCounter_, start, end, refStart, refEnd, exCouponDate));
                 } else { // zero inflation coupon
                     if (detail::noOption(caps_, floors_, i)) { // just swaplet
-                        QL_DEPRECATED_DISABLE_WARNING
                         leg.push_back(ext::make_shared<CPICoupon>
                                     (baseCPI_,    // all have same base for ratio
                                      baseDate,
@@ -478,9 +381,7 @@ namespace QuantLib {
                                      observationInterpolation_,
                                      paymentDayCounter_,
                                      detail::get(fixedRates_, i, 0.0),
-                                     detail::get(spreads_, i, 0.0),
                                      refStart, refEnd, exCouponDate));
-                        QL_DEPRECATED_ENABLE_WARNING
                     } else  {     // cap/floorlet
                         QL_FAIL("caps/floors on CPI coupons not implemented.");
                     }

@@ -170,8 +170,8 @@ namespace QuantLib {
                     Real receiveQuoteValue = 0;
 
                     if (stepDate <= lastQuoteDate) {
-                        payQuoteValue = payIndex_->price(stepDate);
-                        receiveQuoteValue = receiveIndex_->price(stepDate);
+                        payQuoteValue = payIndex_->fixing(stepDate);
+                        receiveQuoteValue = receiveIndex_->fixing(stepDate);
                     } else {
                         payQuoteValue = payIndex_->forwardPrice(stepDate);
                         receiveQuoteValue =
@@ -290,10 +290,8 @@ namespace QuantLib {
 
             QL_REQUIRE(!paymentCashFlows_.empty(), "no cashflows");
 
-            for (SecondaryCostAmounts::const_iterator i =
-                     secondaryCostAmounts_.begin();
-                 i != secondaryCostAmounts_.end(); ++i) {
-                Real amount = i->second.value();
+            for (auto & secondaryCostAmount : secondaryCostAmounts_) {
+                Real amount = secondaryCostAmount.second.value();
                 NPV_ -= amount;
             }
 

@@ -46,7 +46,7 @@ namespace QuantLib {
 
     MakeCreditDefaultSwap::operator ext::shared_ptr<CreditDefaultSwap>() const {
 
-        Date tradeDate = (tradeDate_ != Null<Date>()) ? tradeDate_ : Settings::instance().evaluationDate();
+        Date tradeDate = (tradeDate_ != Date()) ? tradeDate_ : Settings::instance().evaluationDate();
         Date upfrontDate = WeekendsOnly().advance(tradeDate, cashSettlementDays_, Days);
 
         Date protectionStart;
@@ -64,7 +64,8 @@ namespace QuantLib {
                 end = tradeDate + *tenor_;
             }
         } else {
-            end = *termDate_;
+            // we have two exclusive constructors; if we don't have a tenor, we have a term date
+            end = *termDate_; // NOLINT(bugprone-unchecked-optional-access)
         }
 
         Schedule schedule(protectionStart, end, couponTenor_, WeekendsOnly(), Following,

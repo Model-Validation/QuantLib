@@ -33,15 +33,15 @@ namespace QuantLib {
     namespace {
 
         // makes typing a little easier
-        typedef std::vector<ext::function<Real(Real)> > VF_R;
-        typedef std::vector<ext::function<Real(Array)> > VF_A;
+        typedef std::vector<std::function<Real(Real)> > VF_R;
+        typedef std::vector<std::function<Real(Array)> > VF_A;
         typedef std::vector<std::vector<Size> > VV;
 
         // pow(x, order)
         class MonomialFct {
           public:
             explicit MonomialFct(Size order): order_(order) {}
-            inline Real operator()(const Real x) const {
+            Real operator()(const Real x) const {
                 Real ret = 1.0;
                 for(Size i=0; i<order_; ++i)
                     ret *= x;
@@ -58,7 +58,7 @@ namespace QuantLib {
             explicit MultiDimFct(VF_R b) : b_(std::move(b)) {
                 QL_REQUIRE(!b_.empty(), "zero size basis");
             }
-            inline Real operator()(const Array& a) const {
+            Real operator()(const Array& a) const {
                 #if defined(QL_EXTRA_SAFETY_CHECKS)
                 QL_REQUIRE(b_.size()==a.size(), "wrong argument size");
                 #endif
