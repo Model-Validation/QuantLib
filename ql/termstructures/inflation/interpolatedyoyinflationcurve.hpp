@@ -197,7 +197,7 @@ namespace QuantLib {
         const ext::shared_ptr<Seasonality>& seasonality,
         const Interpolator& interpolator)
     : InterpolatedYoYInflationCurve(referenceDate, dates, rates, observationLag, frequency,
-                                    observationLag, dayCounter, seasonality, interpolator) {
+                                    dayCounter, seasonality, interpolator) {
         QL_DEPRECATED_DISABLE_WARNING
         indexIsInterpolated_ = indexIsInterpolated;
         QL_DEPRECATED_ENABLE_WARNING
