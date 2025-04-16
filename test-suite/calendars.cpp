@@ -39,6 +39,7 @@
 #include <ql/time/calendars/japan.hpp>
 #include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/mexico.hpp>
+#include <ql/time/calendars/newzealand.hpp>
 #include <ql/time/calendars/russia.hpp>
 #include <ql/time/calendars/southkorea.hpp>
 #include <ql/time/calendars/target.hpp>
@@ -1770,6 +1771,7 @@ BOOST_AUTO_TEST_CASE(testSouthKoreanSettlement) {
     expectedHol.emplace_back(16, September, 2024);
     expectedHol.emplace_back(17, September, 2024);
     expectedHol.emplace_back(18, September, 2024);
+    expectedHol.emplace_back(1, October, 2024);
     expectedHol.emplace_back(3, October, 2024);
     expectedHol.emplace_back(9, October, 2024);
     expectedHol.emplace_back(25, December, 2024);
@@ -2518,6 +2520,7 @@ BOOST_AUTO_TEST_CASE(testKoreaStockExchange) {
     expectedHol.emplace_back(16, September, 2024);
     expectedHol.emplace_back(17, September, 2024);
     expectedHol.emplace_back(18, September, 2024);
+    expectedHol.emplace_back(1, October, 2024);
     expectedHol.emplace_back(3, October, 2024);
     expectedHol.emplace_back(9, October, 2024);
     expectedHol.emplace_back(25, December, 2024);
@@ -3370,6 +3373,112 @@ BOOST_AUTO_TEST_CASE(testMexicoInaugurationDay) {
 }
 
 
+BOOST_AUTO_TEST_CASE(testNewZealand) {
+    BOOST_TEST_MESSAGE("Testing a few holiday rules for New Zealand...");
+
+    auto auckland = NewZealand(NewZealand::Auckland);
+    auto wellington = NewZealand(NewZealand::Wellington);
+
+    for (const auto& calendar: { auckland, wellington }) {
+        // mid-week New Year's day
+        BOOST_TEST(calendar.isHoliday({1, January, 2025}));
+        BOOST_TEST(calendar.isHoliday({2, January, 2025}));
+        BOOST_TEST(calendar.isBusinessDay({3, January, 2025}));
+        // New Year's day on Sunday
+        BOOST_TEST(calendar.isHoliday({1, January, 2023}));
+        BOOST_TEST(calendar.isHoliday({2, January, 2023}));
+        BOOST_TEST(calendar.isHoliday({3, January, 2023}));
+        BOOST_TEST(calendar.isBusinessDay({4, January, 2023}));
+        // New Year's day on Saturday
+        BOOST_TEST(calendar.isHoliday({1, January, 2022}));
+        BOOST_TEST(calendar.isHoliday({2, January, 2022}));
+        BOOST_TEST(calendar.isHoliday({3, January, 2022}));
+        BOOST_TEST(calendar.isHoliday({4, January, 2022}));
+        BOOST_TEST(calendar.isBusinessDay({5, January, 2022}));
+        // New Year's day on Friday
+        BOOST_TEST(calendar.isHoliday({1, January, 2027}));
+        BOOST_TEST(calendar.isHoliday({2, January, 2027}));
+        BOOST_TEST(calendar.isHoliday({3, January, 2027}));
+        BOOST_TEST(calendar.isHoliday({4, January, 2027}));
+        BOOST_TEST(calendar.isBusinessDay({5, January, 2027}));
+
+        // mid-week Christmas day
+        BOOST_TEST(calendar.isHoliday({25, December, 2024}));
+        BOOST_TEST(calendar.isHoliday({26, December, 2024}));
+        BOOST_TEST(calendar.isBusinessDay({27, December, 2024}));
+        // Christmas day on Sunday
+        BOOST_TEST(calendar.isHoliday({25, December, 2022}));
+        BOOST_TEST(calendar.isHoliday({26, December, 2022}));
+        BOOST_TEST(calendar.isHoliday({27, December, 2022}));
+        BOOST_TEST(calendar.isBusinessDay({28, December, 2022}));
+        // Christmas day on Saturday
+        BOOST_TEST(calendar.isHoliday({25, December, 2021}));
+        BOOST_TEST(calendar.isHoliday({26, December, 2021}));
+        BOOST_TEST(calendar.isHoliday({27, December, 2021}));
+        BOOST_TEST(calendar.isHoliday({28, December, 2021}));
+        BOOST_TEST(calendar.isBusinessDay({29, December, 2021}));
+        // Christmas day on Friday
+        BOOST_TEST(calendar.isHoliday({25, December, 2026}));
+        BOOST_TEST(calendar.isHoliday({26, December, 2026}));
+        BOOST_TEST(calendar.isHoliday({27, December, 2026}));
+        BOOST_TEST(calendar.isHoliday({28, December, 2026}));
+        BOOST_TEST(calendar.isBusinessDay({29, December, 2026}));
+
+        // Waitangi Day is moved to Monday but only since 2013
+        BOOST_TEST(calendar.isHoliday({8, February, 2021}));
+        BOOST_TEST(calendar.isHoliday({7, February, 2022}));
+        BOOST_TEST(calendar.isBusinessDay({8, February, 2010}));
+        BOOST_TEST(calendar.isBusinessDay({7, February, 2011}));
+
+        // The same goes for ANZAC Day
+        BOOST_TEST(calendar.isHoliday({27, April, 2020}));
+        BOOST_TEST(calendar.isHoliday({26, April, 2021}));
+        BOOST_TEST(calendar.isBusinessDay({27, April, 2009}));
+        BOOST_TEST(calendar.isBusinessDay({26, April, 2010}));
+    }
+
+    // different Anniversary Day for the two calendars
+    BOOST_TEST(auckland.isBusinessDay({22, January, 2024}));
+    BOOST_TEST(wellington.isHoliday({22, January, 2024}));
+    BOOST_TEST(auckland.isHoliday({29, January, 2024}));
+    BOOST_TEST(wellington.isBusinessDay({29, January, 2024}));
+    BOOST_TEST(auckland.isBusinessDay({19, January, 2026}));
+    BOOST_TEST(wellington.isHoliday({19, January, 2026}));
+    BOOST_TEST(auckland.isHoliday({26, January, 2026}));
+    BOOST_TEST(wellington.isBusinessDay({26, January, 2026}));
+    BOOST_TEST(auckland.isBusinessDay({25, January, 2027}));
+    BOOST_TEST(wellington.isHoliday({25, January, 2027}));
+    BOOST_TEST(auckland.isHoliday({1, February, 2027}));
+    BOOST_TEST(wellington.isBusinessDay({1, February, 2027}));
+}
+
+
+BOOST_AUTO_TEST_CASE(testStartOfMonth) {
+    BOOST_TEST_MESSAGE("Testing start-of-month calculation...");
+
+    Calendar c = TARGET(); // any calendar would be OK
+
+    Date som, counter = Date::minDate() + 2 * Months;
+    Date last = Date::maxDate();
+
+    while (counter < last) {
+        som = c.startOfMonth(counter);
+        // check that som is som
+        if (!c.isStartOfMonth(som))
+            BOOST_FAIL("\n  " << som.weekday() << " " << som << " is not the first business day in "
+                              << som.month() << " " << som.year() << " according to " << c.name());
+        // check that som is in the same month as counter
+        if (som.month() != counter.month())
+            BOOST_FAIL("\n  " << som << " is not in the same month as " << counter);
+        // Check that previous business day is in a different month
+        if (c.advance(som, -1, Days, Unadjusted).month() == som.month())
+            BOOST_FAIL("\n  " << c.advance(som, -1, Days, Unadjusted)
+                              << " is in the same month as "
+                              << som);
+        counter = counter + 1;
+    }
+}
+
 BOOST_AUTO_TEST_CASE(testEndOfMonth) {
     BOOST_TEST_MESSAGE("Testing end-of-month calculation...");
 
@@ -3387,6 +3496,11 @@ BOOST_AUTO_TEST_CASE(testEndOfMonth) {
         // check that eom is in the same month as counter
         if (eom.month() != counter.month())
             BOOST_FAIL("\n  " << eom << " is not in the same month as " << counter);
+        // Check that next business day is in a different month
+        if (c.advance(eom, 1, Days, Unadjusted).month() == eom.month())
+            BOOST_FAIL("\n  " << c.advance(eom, 1, Days, Unadjusted) 
+                              << " is in the same month as "
+                              << eom);
         counter = counter + 1;
     }
 }

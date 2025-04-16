@@ -33,32 +33,30 @@ namespace QuantLib {
     : epsfcn_(epsfcn), xtol_(xtol), gtol_(gtol),
       useCostFunctionsJacobian_(useCostFunctionsJacobian) {}
 
-    Integer LevenbergMarquardt::getInfo() const {
-        return info_;
-    }
-
     EndCriteria::Type LevenbergMarquardt::minimize(Problem& P,
                                                    const EndCriteria& endCriteria) {
-        EndCriteria::Type ecType = EndCriteria::None;
         P.reset();
-        Array x_ = P.currentValue();
+        const Array& initX = P.currentValue();
         currentProblem_ = &P;
-        initCostValues_ = P.costFunction().values(x_);
+        initCostValues_ = P.costFunction().values(initX);
         int m = initCostValues_.size();
-        int n = x_.size();
-        if(useCostFunctionsJacobian_) {
+        int n = initX.size();
+        if (useCostFunctionsJacobian_) {
             initJacobian_ = Matrix(m,n);
-            P.costFunction().jacobian(initJacobian_, x_);
+            P.costFunction().jacobian(initJacobian_, initX);
         }
-        std::unique_ptr<Real[]> xx(new Real[n]);
-        std::copy(x_.begin(), x_.end(), xx.get());
+        Array xx = initX;
         std::unique_ptr<Real[]> fvec(new Real[m]);
         std::unique_ptr<Real[]> diag(new Real[n]);
         int mode = 1;
-        Real factor = 1;
+        // magic number recommended by the documentation
+        Real factor = 100;
+        // lmdif() evaluates cost function n+1 times for each iteration (technically, 2n+1
+        // times if useCostFunctionsJacobian is true, but lmdif() doesn't account for that)
+        int maxfev = endCriteria.maxIterations() * (n + 1);
         int nprint = 0;
         int info = 0;
-        int nfev =0;
+        int nfev = 0;
         std::unique_ptr<Real[]> fjac(new Real[m*n]);
         int ldfjac = m;
         std::unique_ptr<int[]> ipvt(new int[n]);
@@ -76,26 +74,25 @@ namespace QuantLib {
                    "negative f tolerance");
         QL_REQUIRE(xtol_ >= 0.0, "negative x tolerance");
         QL_REQUIRE(gtol_ >= 0.0, "negative g tolerance");
-        QL_REQUIRE(endCriteria.maxIterations() > 0,
-                   "null number of evaluations");
+        QL_REQUIRE(maxfev > 0, "null number of evaluations");
 
         // call lmdif to minimize the sum of the squares of m functions
         // in n variables by the Levenberg-Marquardt algorithm.
         MINPACK::LmdifCostFunction lmdifCostFunction =
             [this](const auto m, const auto n, const auto x, const auto fvec, const auto iflag) {
-                this->fcn(m, n, x, fvec, iflag);
+                this->fcn(m, n, x, fvec);
             };
         MINPACK::LmdifCostFunction lmdifJacFunction =
             useCostFunctionsJacobian_
                 ? [this](const auto m, const auto n, const auto x, const auto fjac, const auto iflag) {
-                    this->jacFcn(m, n, x, fjac, iflag);
+                    this->jacFcn(m, n, x, fjac);
                 }
                 : MINPACK::LmdifCostFunction();
-        MINPACK::lmdif(m, n, xx.get(), fvec.get(),
+        MINPACK::lmdif(m, n, xx.begin(), fvec.get(),
                        endCriteria.functionEpsilon(),
                        xtol_,
                        gtol_,
-                       endCriteria.maxIterations(),
+                       maxfev,
                        epsfcn_,
                        diag.get(), mode, factor,
                        nprint, &info, &nfev, fjac.get(),
@@ -103,31 +100,44 @@ namespace QuantLib {
                        wa1.get(), wa2.get(), wa3.get(), wa4.get(),
                        lmdifCostFunction,
                        lmdifJacFunction);
+        // for the time being
         info_ = info;
         // check requirements & endCriteria evaluation
         QL_REQUIRE(info != 0, "MINPACK: improper input parameters");
-        //QL_REQUIRE(info != 6, "MINPACK: ftol is too small. no further "
-        //                               "reduction in the sum of squares "
-        //                               "is possible.");
-        if (info != 6) ecType = QuantLib::EndCriteria::StationaryFunctionValue;
-        //QL_REQUIRE(info != 5, "MINPACK: number of calls to fcn has "
-        //                               "reached or exceeded maxfev.");
-        endCriteria.checkMaxIterations(nfev, ecType);
         QL_REQUIRE(info != 7, "MINPACK: xtol is too small. no further "
                                        "improvement in the approximate "
                                        "solution x is possible.");
         QL_REQUIRE(info != 8, "MINPACK: gtol is too small. fvec is "
                                        "orthogonal to the columns of the "
                                        "jacobian to machine precision.");
+
+        EndCriteria::Type ecType = EndCriteria::None;
+        switch (info) {
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+            // 2 and 3 should be StationaryPoint, 4 a new gradient-related value,
+            // but we keep StationaryFunctionValue for backwards compatibility.
+            ecType = EndCriteria::StationaryFunctionValue;
+            break;
+          case 5:
+            ecType = EndCriteria::MaxIterations;
+            break;
+          case 6:
+            ecType = EndCriteria::FunctionEpsilonTooSmall;
+            break;
+          default:
+            QL_FAIL("unknown MINPACK result: " << info);
+        }
         // set problem
-        std::copy(xx.get(), xx.get()+n, x_.begin());
-        P.setCurrentValue(x_);
-        P.setFunctionValue(P.costFunction().value(x_));
+        P.setCurrentValue(std::move(xx));
+        P.setFunctionValue(P.costFunction().value(P.currentValue()));
 
         return ecType;
     }
 
-    void LevenbergMarquardt::fcn(int, int n, Real* x, Real* fvec, int*) {
+    void LevenbergMarquardt::fcn(int, int n, Real* x, Real* fvec) {
         Array xt(n);
         std::copy(x, x+n, xt.begin());
         // constraint handling needs some improvement in the future:
@@ -140,7 +150,7 @@ namespace QuantLib {
         }
     }
 
-    void LevenbergMarquardt::jacFcn(int m, int n, Real* x, Real* fjac, int*) {
+    void LevenbergMarquardt::jacFcn(int m, int n, Real* x, Real* fjac) {
         Array xt(n);
         std::copy(x, x+n, xt.begin());
         // constraint handling needs some improvement in the future:

@@ -56,7 +56,7 @@ namespace QuantLib {
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(paysAtDefaultTime),
       protectionPaymentTime_(settlesAccrual ? atDefault : atPeriodEnd), claim_(std::move(claim)),
-      protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
+      protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
       rebatesAccrual_(rebatesAccrual), dayCounter_(dayCounter),
       lastPeriodDayCounter_(lastPeriodDayCounter){
@@ -84,7 +84,7 @@ namespace QuantLib {
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(paysAtDefaultTime),
       protectionPaymentTime_(settlesAccrual ? atDefault : atPeriodEnd), claim_(claim),
-      protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
+      protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays),
       rebatesAccrual_(rebatesAccrual), dayCounter_(dayCounter),
       lastPeriodDayCounter_(lastPeriodDayCounter){
@@ -592,10 +592,8 @@ namespace QuantLib {
         QL_REQUIRE(!leg.empty(), "coupons not set");
         QL_REQUIRE(upfrontPayment, "upfront payment not set");
         QL_REQUIRE(claim, "claim not set");
-        QL_REQUIRE(protectionStart != Null<Date>(),
-                   "protection start date not set");
-        QL_REQUIRE(maturity != Null<Date>(),
-                   "maturity date not set");
+        QL_REQUIRE(protectionStart != Date(), "protection start date not set");
+        QL_REQUIRE(maturity != Date(), "maturity date not set");
     }
 
     void CreditDefaultSwap::results::reset() {

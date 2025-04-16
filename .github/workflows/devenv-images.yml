@@ -6,13 +6,13 @@ on:
         description: 'Boost version'
         required: true
 env:
-  ROLLING: noble
+  ROLLING: oracular
 jobs:
   docker-images:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: [lunar, mantic, noble]
+        tag: [noble, oracular]
     steps:
     - uses: actions/checkout@v4
     - name: Build CI images

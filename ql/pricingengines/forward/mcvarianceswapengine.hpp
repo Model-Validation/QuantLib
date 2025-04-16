@@ -92,7 +92,7 @@ namespace QuantLib {
             results_.value =
                 multiplier * (results_.variance - arguments_.strike);
 
-            if (RNG::allowsErrorEstimate) {
+            if constexpr (RNG::allowsErrorEstimate) {
                 Real varianceError =
                     this->mcModel_->sampleAccumulator().errorEstimate();
                 results_.errorEstimate = multiplier * varianceError;
@@ -329,7 +329,7 @@ namespace QuantLib {
 
 
     inline Real VariancePathPricer::operator()(const Path& path) const {
-        QL_REQUIRE(path.length() > 0, "the path cannot be empty");
+        QL_REQUIRE(!path.empty(), "the path cannot be empty");
         Time t0 = path.timeGrid().front();
         Time t = path.timeGrid().back();
         Time dt = path.timeGrid().dt(0);
