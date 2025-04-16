@@ -276,6 +276,7 @@ namespace QuantLib {
         YoYInflationTermStructure(const Date& referenceDate,
                                   Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   const DayCounter& dayCounter,
                                   const ext::shared_ptr<Seasonality>& seasonality = {});
@@ -284,6 +285,7 @@ namespace QuantLib {
                                   const Calendar& calendar,
                                   Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   const DayCounter& dayCounter,
                                   const ext::shared_ptr<Seasonality>& seasonality = {});
@@ -294,6 +296,7 @@ namespace QuantLib {
         [[deprecated("Use an overload with an explicit base date and without indexIsInterpolated")]]
         YoYInflationTermStructure(Date baseDate,
                                   Rate baseYoYRate,
+                                  const Period& observationLag,
                                   Frequency frequency,
                                   bool indexIsInterpolated,
                                   const DayCounter& dayCounter,
