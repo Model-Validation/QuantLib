@@ -45,9 +45,8 @@ namespace QuantLib {
         Real I1 = indexFixing();
 
         if (growthOnly_)
-            amount_ = notional() * (I1 / I0 - 1.0);
+            amount_ = notional_ * (I1 / I0 - 1.0);
         else
-            amount_ = notional() * (I1 / I0);
+            amount_ = notional_ * (I1 / I0);
     }
-
 }

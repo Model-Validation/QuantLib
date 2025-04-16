@@ -158,31 +158,23 @@ namespace QuantLib {
         return gradientNormEpsilon_;
     }
 
-    bool EndCriteria::succeeded(EndCriteria::Type ecType) {
-        return ecType == StationaryPoint ||
-               ecType == StationaryFunctionValue ||
-               ecType == StationaryFunctionAccuracy;
-    }
-
     std::ostream& operator<<(std::ostream& out, EndCriteria::Type ec) {
         switch (ec) {
-          case EndCriteria::None:
+        case QuantLib::EndCriteria::None:
             return out << "None";
-          case EndCriteria::MaxIterations:
+        case QuantLib::EndCriteria::MaxIterations:
             return out << "MaxIterations";
-          case EndCriteria::StationaryPoint:
+        case QuantLib::EndCriteria::StationaryPoint:
             return out << "StationaryPoint";
-          case EndCriteria::StationaryFunctionValue:
+        case QuantLib::EndCriteria::StationaryFunctionValue:
             return out << "StationaryFunctionValue";
-          case EndCriteria::StationaryFunctionAccuracy:
+        case QuantLib::EndCriteria::StationaryFunctionAccuracy:
             return out << "StationaryFunctionAccuracy";
-          case EndCriteria::ZeroGradientNorm:
+        case QuantLib::EndCriteria::ZeroGradientNorm:
             return out << "ZeroGradientNorm";
-          case EndCriteria::FunctionEpsilonTooSmall:
-            return out << "FunctionEpsilonTooSmall";
-          case EndCriteria::Unknown:
+        case QuantLib::EndCriteria::Unknown:
             return out << "Unknown";
-          default:
+        default:
             QL_FAIL("unknown EndCriteria::Type (" << Integer(ec) << ")");
         }
     }

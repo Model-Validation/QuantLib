@@ -18,7 +18,6 @@
 */
 
 #include <ql/models/equity/batesmodel.hpp>
-#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -37,11 +36,11 @@ namespace QuantLib {
     }
 
     void BatesModel::generateArguments() {
-        process_ = ext::make_shared<BatesProcess>(
+        process_.reset(new BatesProcess(
              process_->riskFreeRate(), process_->dividendYield(),
              process_->s0(), v0(), 
              kappa(), theta(), sigma(), rho(),
-             lambda(), nu(), delta());
+             lambda(), nu(), delta()));
     }
 
     BatesDetJumpModel::BatesDetJumpModel(

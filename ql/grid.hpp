@@ -28,27 +28,9 @@
 
 namespace QuantLib {
 
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
-    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
     Array CenteredGrid(Real center, Real dx, Size steps);
-
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
-    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
     Array BoundedGrid(Real xMin, Real xMax, Size steps);
-
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
-    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
     Array BoundedLogGrid(Real xMin, Real xMax, Size steps);
-
 
     // inline definitions
 

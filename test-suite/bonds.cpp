@@ -1771,7 +1771,7 @@ BOOST_AUTO_TEST_CASE(testBasisPointValue) {
     DayCounter dayCounter = Thirty360(Thirty360::USA);
     Compounding compounding = Compounded;
     Frequency frequency = Semiannual;
-    auto period = Period(frequency);
+    Period period = Period(frequency);
 
     Schedule fixedBondSchedule(datedDate,
             maturity,

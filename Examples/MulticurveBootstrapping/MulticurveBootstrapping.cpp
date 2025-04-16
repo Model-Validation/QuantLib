@@ -153,7 +153,7 @@ int main(int, char* []) {
             auto startDate = q.first.first;
             auto endDate = q.first.second;
             auto quote = q.second;
-            auto helper = ext::make_shared<OISRateHelper>(
+            auto helper = ext::make_shared<DatedOISRateHelper>(
                 startDate, endDate, Handle<Quote>(quote), eonia);
             eoniaInstruments.push_back(helper);
         }

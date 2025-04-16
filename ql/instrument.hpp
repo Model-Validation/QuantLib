@@ -190,7 +190,7 @@ namespace QuantLib {
     template <class T>
     inline T Instrument::result(const std::string& tag) const {
         calculate();
-        auto value =
+        std::map<std::string, ext::any>::const_iterator value =
             additionalResults_.find(tag);
         QL_REQUIRE(value != additionalResults_.end(),
                    tag << " not provided");

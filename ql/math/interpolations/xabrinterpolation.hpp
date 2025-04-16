@@ -45,7 +45,9 @@
 #include <ql/utilities/null.hpp>
 #include <utility>
 
-namespace QuantLib::detail {
+namespace QuantLib {
+
+namespace detail {
 
 template <typename Model> class XABRCoeffHolder {
   public:
@@ -321,6 +323,7 @@ class XABRInterpolationImpl final : public Interpolation::templateImpl<I1, I2>,
     VolatilityType volatilityType_;
 };
 
+} // namespace detail
 } // namespace QuantLib
 
 #endif

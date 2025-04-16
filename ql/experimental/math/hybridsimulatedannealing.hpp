@@ -30,7 +30,6 @@ Mathl. Comput. Modelling, 967-973, 1989
 #include <ql/math/optimization/constraint.hpp>
 #include <ql/math/optimization/levenbergmarquardt.hpp>
 #include <ql/math/optimization/problem.hpp>
-#include <ql/shared_ptr.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -88,7 +87,7 @@ namespace QuantLib {
                                  ResetScheme resetScheme = ResetToBestPoint,
                                  Size resetSteps = 150,
                                  ext::shared_ptr<OptimizationMethod> localOptimizer =
-                                     ext::make_shared<LevenbergMarquardt>(),
+                                     ext::shared_ptr<OptimizationMethod>(),
                                  LocalOptimizeScheme optimizeScheme = EveryBestPoint)
         : sampler_(sampler), probability_(probability), temperature_(std::move(temperature)),
           reannealing_(reannealing), startTemperature_(startTemperature),
@@ -96,7 +95,10 @@ namespace QuantLib {
           reAnnealSteps_(reAnnealSteps == 0 ? QL_MAX_INTEGER : reAnnealSteps),
           resetScheme_(resetScheme), resetSteps_(resetSteps == 0 ? QL_MAX_INTEGER : resetSteps),
           localOptimizer_(localOptimizer),
-          optimizeScheme_(localOptimizer != nullptr ? optimizeScheme : NoLocalOptimize) {}
+          optimizeScheme_(localOptimizer != nullptr ? optimizeScheme : NoLocalOptimize) {
+            if (!localOptimizer)
+                localOptimizer.reset(new LevenbergMarquardt);
+        }
 
         EndCriteria::Type minimize(Problem& P, const EndCriteria& endCriteria) override;
 

@@ -29,7 +29,6 @@
 
 #include <ql/indexes/indexmanager.hpp>
 #include <ql/math/comparison.hpp>
-#include <ql/patterns/observable.hpp>
 #include <ql/time/calendar.hpp>
 
 namespace QuantLib {
@@ -42,7 +41,7 @@ namespace QuantLib {
                  possible inconsistencies due to "seeing in the
                  future"
     */
-    class Index : public Observable, public Observer {
+    class Index : public Observable {
       public:
         ~Index() override = default;
         //! Returns the name of the index.
@@ -62,16 +61,9 @@ namespace QuantLib {
             date of the fixing; no settlement days must be used.
         */
         virtual Real fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const = 0;
-        //! returns a past fixing at the given date
-        /*! the date passed as arguments must be the actual calendar
-            date of the fixing; no settlement days must be used.
-        */
-        virtual Real pastFixing(const Date& fixingDate) const;
         //! returns the fixing TimeSeries
         const TimeSeries<Real>& timeSeries() const {
-            QL_DEPRECATED_DISABLE_WARNING
             return IndexManager::instance().getHistory(name());
-            QL_DEPRECATED_ENABLE_WARNING
         }
         //! check if index allows for native fixings.
         /*! If this returns false, calls to addFixing and similar
@@ -82,10 +74,6 @@ namespace QuantLib {
         /*! the date passed as arguments must be the actual calendar
             date of the fixing; no settlement days must be used.
         */
-        //! \name Observer interface
-        //@{
-        void update() override;
-        //@}
         virtual void addFixing(const Date& fixingDate, Real fixing, bool forceOverwrite = false);
         //! stores historical fixings from a TimeSeries
         /*! the dates in the TimeSeries must be the actual calendar
@@ -109,32 +97,13 @@ namespace QuantLib {
         //! clears all stored historical fixings
         void clearFixings();
 
-      protected:
-        ext::shared_ptr<Observable> notifier() const {
-            QL_DEPRECATED_DISABLE_WARNING
-            return IndexManager::instance().notifier(name());
-            QL_DEPRECATED_ENABLE_WARNING
-        }
-
       private:
         //! check if index allows for native fixings
         void checkNativeFixingsAllowed();
-
     };
 
     inline bool Index::hasHistoricalFixing(const Date& fixingDate) const {
-        QL_DEPRECATED_DISABLE_WARNING
         return IndexManager::instance().hasHistoricalFixing(name(), fixingDate);
-        QL_DEPRECATED_ENABLE_WARNING
-    }
-
-    inline Real Index::pastFixing(const Date& fixingDate) const {
-        QL_REQUIRE(isValidFixingDate(fixingDate), fixingDate << " is not a valid fixing date");
-        return timeSeries()[fixingDate];
-    }
-
-    inline void Index::update() {
-        notifyObservers();
     }
 
 }

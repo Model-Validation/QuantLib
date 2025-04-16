@@ -30,20 +30,11 @@ namespace QuantLib {
                                                        ext::shared_ptr<YoYInflationIndex> index,
                                                        const Size& length,
                                                        Calendar cal,
-                                                       const Period& observationLag,
-                                                       CPI::InterpolationType interpolation)
+                                                       const Period& observationLag)
     : capFloorType_(capFloorType), length_(length), calendar_(std::move(cal)),
-      index_(std::move(index)), observationLag_(observationLag),
-      interpolation_(interpolation), strike_(Null<Rate>()),
+      index_(std::move(index)), observationLag_(observationLag), strike_(Null<Rate>()),
 
       dayCounter_(Thirty360(Thirty360::BondBasis)) {}
-
-    MakeYoYInflationCapFloor::MakeYoYInflationCapFloor(YoYInflationCapFloor::Type capFloorType,
-                                                       ext::shared_ptr<YoYInflationIndex> index,
-                                                       const Size& length,
-                                                       Calendar cal,
-                                                       const Period& observationLag)
-    : MakeYoYInflationCapFloor(capFloorType, std::move(index), length, std::move(cal), observationLag, CPI::AsIndex)  {}
 
     MakeYoYInflationCapFloor::operator YoYInflationCapFloor() const {
         ext::shared_ptr<YoYInflationCapFloor> capfloor = *this;
@@ -67,7 +58,7 @@ namespace QuantLib {
                           Unadjusted, Unadjusted, // ref periods & acc periods
                           DateGeneration::Forward, false);
         Leg leg = yoyInflationLeg(schedule, calendar_, index_,
-                                  observationLag_, interpolation_)
+                                  observationLag_)
         .withPaymentAdjustment(roll_)
         .withPaymentDayCounter(dayCounter_)
         .withNotionals(nominal_)

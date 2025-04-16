@@ -221,8 +221,7 @@ namespace QuantLib {
     MakeVanillaSwap&
     MakeVanillaSwap::withTerminationDate(const Date& terminationDate) {
         terminationDate_ = terminationDate;
-        if (terminationDate != Date())
-            swapTenor_ = Period();
+        swapTenor_ = Period();
         return *this;
     }
 

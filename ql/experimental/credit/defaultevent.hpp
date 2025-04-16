@@ -96,7 +96,7 @@ namespace QuantLib {
                      Currency curr,
                      Seniority bondsSen,
                      // Settlement information:
-                     const Date& settleDate = Date(),
+                     const Date& settleDate = Null<Date>(),
                      const std::map<Seniority, Real>& recoveryRates = rate_map());
         /*! Use NoSeniority to settle to all seniorities with that
             recovery. In that case the event is assumed to have
@@ -114,7 +114,7 @@ namespace QuantLib {
         bool isRestructuring() const { return eventType_.isRestructuring(); }
         bool isDefault() const { return !isRestructuring();}
         bool hasSettled() const {
-            return defSettlement_.date() != Date();
+            return defSettlement_.date() != Null<Date>();
         }
         const DefaultSettlement& settlement() const {
             return defSettlement_;

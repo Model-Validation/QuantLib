@@ -124,8 +124,8 @@ void setup() {
 
     std::vector <Real> r;
     std::vector <Date> d;
-    Size nTimesEUR = std::size(timesEUR);
-    Size nTimesGBP = std::size(timesGBP);
+    Size nTimesEUR = LENGTH(timesEUR);
+    Size nTimesGBP = LENGTH(timesGBP);
     for (Size i = 0; i < nTimesEUR; i++) {
         r.push_back(ratesEUR[i]);
         Size ys = (Size)floor(timesEUR[i]);
@@ -171,22 +171,19 @@ void setup() {
 
     d.clear();
     r.clear();
-    // the base date is based on the last published index fixing
-    Date baseDate = inflationPeriod(eval - 1*Months, yoyIndexEU->frequency()).first;
-    d.push_back(baseDate);
-    r.push_back(yoyEUrates[0]);
-
-    // cap maturities are based on the observation lag
-    Date capStartDate = TARGET().advance(eval, -2, Months, ModifiedFollowing);
-    for (Size i = 1; i < std::size(yoyEUrates); i++) {
-        Date dd = TARGET().advance(capStartDate, i, Years, ModifiedFollowing);
+    Date baseDate = TARGET().advance(eval, -2, Months, ModifiedFollowing);
+    for (Size i = 0; i < LENGTH(yoyEUrates); i++) {
+        Date dd = TARGET().advance(baseDate, i, Years, ModifiedFollowing);
         d.push_back(dd);
         r.push_back(yoyEUrates[i]);
     }
 
+    bool indexIsInterpolated = true;    // actually false for UKRPI but smooth surfaces are
+                                        // better for finding intersections etc
+
     auto pYTSEU =
         ext::make_shared<InterpolatedYoYInflationCurve<Linear>>(
-                    eval, d, r, 2 * Months, Monthly, Actual365Fixed());
+                    eval, d, r, 2 * Months, Monthly, indexIsInterpolated, Actual365Fixed());
     yoyEU.linkTo(pYTSEU);
 
     // price data
@@ -250,6 +247,7 @@ void setupPriceSurface() {
     Natural fixingDays = 0;
     Size lag = 3;// must be 3 because we use an interpolated index (EU)
     Period yyLag = Period(lag,Months);
+    Rate baseRate = 1; // not really used
     DayCounter dc = Actual365Fixed();
     TARGET cal;
     BusinessDayConvention bdc = ModifiedFollowing;
@@ -258,7 +256,7 @@ void setupPriceSurface() {
     ext::shared_ptr<InterpolatedYoYCapFloorTermPriceSurface<Bicubic,Cubic> >
         cfEUprices(new InterpolatedYoYCapFloorTermPriceSurface<Bicubic,Cubic>(
                                        fixingDays,
-                                       yyLag, yoyIndexEU, CPI::Linear,
+                                       yyLag, yoyIndexEU, baseRate,
                                        n, dc,
                                        cal,    bdc,
                                        cStrikesEU, fStrikesEU, cfMaturitiesEU,
@@ -367,7 +365,7 @@ BOOST_AUTO_TEST_CASE(testYoYPriceSurfaceToATM) {
                           0.0258498, 0.0262883, 0.0267915};
     const Real swaps[] = {0.024586, 0.0247575, 0.0249396, 0.0252596,
                           0.0258498, 0.0262883, 0.0267915};
-    const Real ayoy[] = {0.0247659, 0.0251437, 0.0255945, 0.0265015,
+    const Real ayoy[] = {0.0247659, 0.0251437, 0.0255945, 0.0265234,
                            0.0280457, 0.0285534, 0.0295884};
     Real eps = 2e-5;
     for(Size i = 0; i < yyATMt.first.size(); i++) {

@@ -47,9 +47,9 @@ namespace QuantLib {
         for (auto j : *this) {
             Date date = j.first;
             Real value = j.second;
-            Date pDate = Date(), nDate = Date();
+            Date pDate = Null<Date>(), nDate = Null<Date>();
 
-            auto bi =
+            std::vector<Date>::const_iterator bi =
                 std::lower_bound(sbuckets.begin(), sbuckets.end(), date);
 
             if (bi == sbuckets.end())
@@ -60,7 +60,7 @@ namespace QuantLib {
             if (bi != sbuckets.begin() && bi != sbuckets.end())
                 nDate = *(bi-1);
 
-            if (pDate == date || nDate == Date()) {
+            if (pDate == date || nDate == Null<Date>()) {
                 result[pDate] += value;
             } else {
                 Real pDays = Real(pDate-date);

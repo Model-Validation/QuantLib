@@ -670,17 +670,17 @@ namespace QuantLib {
                     modelCall.push_back(
                         calibrationPoint.second.isCaplet_ ?
                             capletPriceInternal(Option::Call, calibrationPoint.first, strikes[j],
-                                                Date(), 0.0, true) :
+                                                Null<Date>(), 0.0, true) :
                             swaptionPriceInternal(Option::Call, calibrationPoint.first,
                                                   calibrationPoint.second.tenor_, strikes[j],
-                                                  Date(), 0.0, true));
+                                                  Null<Date>(), 0.0, true));
                     modelPut.push_back(
                         calibrationPoint.second.isCaplet_ ?
                             capletPriceInternal(Option::Put, calibrationPoint.first, strikes[j],
-                                                Date(), 0.0, true) :
+                                                Null<Date>(), 0.0, true) :
                             swaptionPriceInternal(Option::Put, calibrationPoint.first,
                                                   calibrationPoint.second.tenor_, strikes[j],
-                                                  Date(), 0.0, true));
+                                                  Null<Date>(), 0.0, true));
                     marketVega.push_back(sec->vega(strikes[j], calibrationPoint.second.annuity_));
                 }
                 modelOutputs_.smileStrikes_.push_back(strikes);
@@ -1029,7 +1029,7 @@ namespace QuantLib {
 
         Time fixingTime = termStructure()->timeFromReference(expiry);
         Time referenceTime =
-            referenceDate == Date()
+            referenceDate == Null<Date>()
                 ? 0.0
                 : termStructure()->timeFromReference(referenceDate);
 
@@ -1099,7 +1099,7 @@ namespace QuantLib {
 
         Time fixingTime = termStructure()->timeFromReference(expiry);
         Time referenceTime =
-            referenceDate == Date()
+            referenceDate == Null<Date>()
                 ? 0.0
                 : termStructure()->timeFromReference(referenceDate);
 

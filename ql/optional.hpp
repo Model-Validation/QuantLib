@@ -32,16 +32,22 @@
 #include <boost/optional.hpp>
 #endif
 
-namespace QuantLib::ext {
+namespace QuantLib {
+
+    namespace ext {
 
         #if defined(QL_USE_STD_OPTIONAL)
         using std::optional;                    // NOLINT(misc-unused-using-decls)
+        // here we can assume C++17
         inline constexpr const std::nullopt_t& nullopt = std::nullopt;
         #else
         using boost::optional;                  // NOLINT(misc-unused-using-decls)
-        inline constexpr const boost::none_t& nullopt = boost::none;
+        // here we can't
+        extern const boost::none_t& nullopt;
         #endif
 
     }
+
+}
 
 #endif

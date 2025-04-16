@@ -54,7 +54,7 @@ namespace QuantLib {
         FdmCellAveragingInnerValue(ext::shared_ptr<Payoff> payoff,
                                    ext::shared_ptr<FdmMesher> mesher,
                                    Size direction,
-                                   std::function<Real(Real)> gridMapping = [](Real x){ return x; });
+                                   ext::function<Real(Real)> gridMapping = [](Real x){ return x; });
 
         Real innerValue(const FdmLinearOpIterator& iter, Time) override;
         Real avgInnerValue(const FdmLinearOpIterator& iter, Time t) override;
@@ -65,7 +65,7 @@ namespace QuantLib {
         const ext::shared_ptr<Payoff> payoff_;
         const ext::shared_ptr<FdmMesher> mesher_;
         const Size direction_;
-        const std::function<Real(Real)> gridMapping_;
+        const ext::function<Real(Real)> gridMapping_;
 
         std::vector<Real> avgInnerValues_;
     };

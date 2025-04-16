@@ -25,8 +25,6 @@ using std::sqrt;
 
 namespace QuantLib {
 
-    QL_DEPRECATED_DISABLE_WARNING
-
     CreditRiskPlus::CreditRiskPlus(std::vector<Real> exposure,
                                    std::vector<Real> defaultProbability,
                                    std::vector<Size> sector,
@@ -235,6 +233,4 @@ namespace QuantLib {
             loss_.push_back(res * pC_ / (pdSum_ * ((Real)(n + 1))));
         }
     }
-
-    QL_DEPRECATED_ENABLE_WARNING
 }

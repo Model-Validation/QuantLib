@@ -203,7 +203,7 @@ namespace QuantLib {
         this->results_.value = this->mcModel_->sampleAccumulator().mean();
         this->results_.additionalResults["exerciseProbability"] =
             this->pathPricer_->exerciseProbability();
-        if constexpr (RNG::allowsErrorEstimate) {
+        if (RNG::allowsErrorEstimate) {
             this->results_.errorEstimate =
                 this->mcModel_->sampleAccumulator().errorEstimate();
         }

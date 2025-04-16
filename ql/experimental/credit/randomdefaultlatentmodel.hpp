@@ -181,7 +181,7 @@ namespace QuantLib {
         Real percentile(const Date& d, Real percentile) const override;
         /*! Returns the VaR value for a given percentile and the 95 confidence
         interval of that value. */
-        virtual std::tuple<Real, Real, Real> percentileAndInterval(
+        virtual ext::tuple<Real, Real, Real> percentileAndInterval(
             const Date& d, Real percentile) const;
         /*! Distributes the total VaR amount along the portfolio counterparties.
             The passed loss amount is in loss units.
@@ -277,7 +277,7 @@ namespace QuantLib {
                         events[iEvt].nameIdx));
             }
             if(namesDefaulting.size() >= n) {
-                auto
+                std::map<unsigned short, unsigned short>::const_iterator
                     itdefs = namesDefaulting.begin();
                 // locate nth default in time:
                 std::advance(itdefs, n-1);
@@ -524,7 +524,7 @@ namespace QuantLib {
     template<template <class, class> class D, class C, class URNG>
     Real RandomLM<D, C, URNG>::percentile(const Date& d, Real perc) const {
         // need to specify return type in tuples' get is parametric
-        return std::get<0>(percentileAndInterval(d, perc));
+        return ext::get<0>(percentileAndInterval(d, perc));
     }
 
 
@@ -535,7 +535,7 @@ namespace QuantLib {
     of the stimator just computed. See the reference for a discussion.
     */
     template<template <class, class> class D, class C, class URNG>
-    std::tuple<Real, Real, Real> RandomLM<D, C, URNG>::percentileAndInterval(const Date& d,
+    ext::tuple<Real, Real, Real> RandomLM<D, C, URNG>::percentileAndInterval(const Date& d,
                                                                              Real percentile) const {
 
         QL_REQUIRE(percentile >= 0. && percentile <= 1.,
@@ -613,7 +613,7 @@ namespace QuantLib {
         lowerPercentile = rankLosses[r];
         upperPercentile = rankLosses[s];
 
-        return std::make_tuple(quantileValue, lowerPercentile, upperPercentile);
+        return ext::make_tuple(quantileValue, lowerPercentile, upperPercentile);
     }
 
 

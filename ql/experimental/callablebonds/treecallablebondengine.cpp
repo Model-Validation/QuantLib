@@ -44,7 +44,7 @@ namespace QuantLib {
     }
 
     void TreeCallableFixedRateBondEngine::calculate() const {
-        calculateWithSpread(arguments_.spread);
+        return calculateWithSpread(arguments_.spread);
     }
 
     void TreeCallableFixedRateBondEngine::calculateWithSpread(Spread s) const {

@@ -40,11 +40,12 @@ namespace QuantLib {
         ext::shared_ptr<LmVolatilityModel>  volatilityModel() const;
         ext::shared_ptr<LmCorrelationModel> correlationModel() const;
 
-        Matrix diffusion(Time t, const Array& x = {}) const override;
-        Matrix covariance(Time t, const Array& x = {}) const override;
+        Matrix diffusion(Time t, const Array& x = Null<Array>()) const override;
+        Matrix covariance(Time t, const Array& x = Null<Array>()) const override;
 
         using LfmCovarianceParameterization::integratedCovariance;
-        virtual Real integratedCovariance(Size i, Size j, Time t, const Array& x = {}) const;
+        virtual Real integratedCovariance(
+            Size i, Size j, Time t, const Array& x = Null<Array>()) const;
 
       protected:
         const ext::shared_ptr<LmVolatilityModel>  volaModel_;

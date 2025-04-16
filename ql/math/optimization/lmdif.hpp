@@ -28,8 +28,10 @@
 #include <ql/types.hpp>
 #include <ql/functional.hpp>
 
-namespace QuantLib::MINPACK {
-        typedef std::function<void (int,
+namespace QuantLib {
+
+    namespace MINPACK {
+        typedef ext::function<void (int,
                                       int, 
                                       Real*,
                                       Real*,
@@ -56,4 +58,5 @@ namespace QuantLib::MINPACK {
         void qrfac(int m,int n,Real* a,int, int pivot,int* ipvt,
                    int,Real* rdiag,Real* acnorm,Real* wa);
     }
+}
 #endif

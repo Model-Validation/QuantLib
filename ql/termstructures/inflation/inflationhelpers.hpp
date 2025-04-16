@@ -75,21 +75,6 @@ namespace QuantLib {
                                       BusinessDayConvention paymentConvention,
                                       DayCounter dayCounter,
                                       ext::shared_ptr<YoYInflationIndex> yii,
-                                      CPI::InterpolationType interpolation,
-                                      Handle<YieldTermStructure> nominalTermStructure,
-                                      const Date& start = Date());
-
-        /*! \deprecated Use the overload that passes an interpolation type instead.
-                        Deprecated in version 1.36.
-        */
-        [[deprecated("Use the overload that passes an interpolation type instead")]]
-        YearOnYearInflationSwapHelper(const Handle<Quote>& quote,
-                                      const Period& swapObsLag_,
-                                      const Date& maturity,
-                                      Calendar calendar,
-                                      BusinessDayConvention paymentConvention,
-                                      DayCounter dayCounter,
-                                      ext::shared_ptr<YoYInflationIndex> yii,
                                       Handle<YieldTermStructure> nominalTermStructure,
                                       const Date& start = Date());
 
@@ -103,7 +88,6 @@ namespace QuantLib {
         BusinessDayConvention paymentConvention_;
         DayCounter dayCounter_;
         ext::shared_ptr<YoYInflationIndex> yii_;
-        CPI::InterpolationType interpolation_;
         ext::shared_ptr<YearOnYearInflationSwap> yyiis_;
         Handle<YieldTermStructure> nominalTermStructure_;
         Date start_;

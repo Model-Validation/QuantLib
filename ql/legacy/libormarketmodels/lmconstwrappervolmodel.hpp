@@ -37,14 +37,15 @@ namespace QuantLib {
           volaModel_(volaModel) {
         }
 
-        Array volatility(Time t, const Array& x = {}) const override {
+        Array volatility(Time t, const Array& x = Null<Array>()) const override {
             return volaModel_->volatility(t, x);
         }
         Volatility volatility(
-            Size i, Time t, const Array& x = {}) {
+            Size i, Time t, const Array& x = Null<Array>()) {
             return volaModel_->volatility(i, t, x);
         }
-        Real integratedVariance(Size i, Size j, Time u, const Array& x = {}) const override {
+        Real
+        integratedVariance(Size i, Size j, Time u, const Array& x = Null<Array>()) const override {
             return volaModel_->integratedVariance(i, j, u, x);
         }
 

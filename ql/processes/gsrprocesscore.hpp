@@ -32,7 +32,9 @@
 #include <ql/math/comparison.hpp>
 #include <map>
 
-namespace QuantLib::detail {
+namespace QuantLib {
+
+namespace detail {
 
 class GsrProcessCore {
   public:
@@ -96,6 +98,8 @@ inline Real GsrProcessCore::sigma(const Time t) const {
 inline Real GsrProcessCore::reversion(const Time t) const {
     return rev(lowerIndex(t));
 }
+
+} // namespace detail
 
 } // namespace QuantLib
 

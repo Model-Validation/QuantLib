@@ -4,34 +4,18 @@ AM_CPPFLAGS = -I${top_builddir} -I${top_srcdir}
 this_includedir=${includedir}/${subdir}
 this_include_HEADERS = \
 	all.hpp \
-	bjerksundstenslandspreadengine.hpp \
-	choibasketengine.hpp \
-	denglizhoubasketengine.hpp \
 	fd2dblackscholesvanillaengine.hpp \
-	fdndimblackscholesvanillaengine.hpp \
 	kirkengine.hpp \
 	mcamericanbasketengine.hpp \
 	mceuropeanbasketengine.hpp \
-	operatorsplittingspreadengine.hpp \
-	singlefactorbsmbasketengine.hpp \
-	spreadblackscholesvanillaengine.hpp \
-	stulzengine.hpp \
-	vectorbsmprocessextractor.hpp
+	stulzengine.hpp
 
 cpp_files = \
-	bjerksundstenslandspreadengine.cpp \
-	choibasketengine.cpp \
-	denglizhoubasketengine.cpp \
 	fd2dblackscholesvanillaengine.cpp \
-	fdndimblackscholesvanillaengine.cpp \
 	kirkengine.cpp \
 	mcamericanbasketengine.cpp \
 	mceuropeanbasketengine.cpp \
-	operatorsplittingspreadengine.cpp \
-	singlefactorbsmbasketengine.cpp \
-	spreadblackscholesvanillaengine.cpp \
-	stulzengine.cpp \
-	vectorbsmprocessextractor.cpp
+	stulzengine.cpp
 
 if UNITY_BUILD
 

@@ -70,9 +70,9 @@ namespace QuantLib {
 
         dates_.clear();
         data_.clear();
-        for (auto & price : prices) {
-            dates_.push_back(price.first);
-            data_.push_back(price.second);
+        for (std::map<Date, Real>::const_iterator i = prices.begin(); i != prices.end(); ++i) {
+            dates_.push_back(i->first);
+            data_.push_back(i->second);
         }
 
         times_.resize(dates_.size());

@@ -42,6 +42,8 @@
 #include <iostream>
 #include <iomanip>
 
+#define LENGTH(a) (sizeof(a)/sizeof(a[0]))
+
 using namespace std;
 using namespace QuantLib;
 
@@ -127,7 +129,7 @@ int main(int, char* []) {
         std::vector<ext::shared_ptr<BondHelper>> instrumentsA;
         std::vector<ext::shared_ptr<RateHelper>> instrumentsB;
 
-        for (Size j=0; j<std::size(lengths); j++) {
+        for (Size j=0; j<LENGTH(lengths); j++) {
 
             Date maturity = calendar.advance(bondSettlementDate, lengths[j]*Years);
 
@@ -586,7 +588,7 @@ int main(int, char* []) {
              << endl
              << endl;
 
-        for (Size k=0; k<std::size(lengths)-1; k++) {
+        for (Size k=0; k<LENGTH(lengths)-1; k++) {
 
             Real P = instrumentsA[k]->quote()->value();
             const Bond& b = *instrumentsA[k]->bond();

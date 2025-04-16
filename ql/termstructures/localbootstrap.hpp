@@ -240,8 +240,9 @@ namespace QuantLib {
             EndCriteria::Type endType = solver.minimize(toSolve, endCriteria);
 
             // check the end criteria
-            QL_REQUIRE(EndCriteria::succeeded(endType),
-                       "Unable to strip yieldcurve to required accuracy: " << endType);
+            QL_REQUIRE(endType == EndCriteria::StationaryFunctionAccuracy ||
+                       endType == EndCriteria::StationaryFunctionValue,
+                       "Unable to strip yieldcurve to required accuracy " );
             ++iInst;
         } while ( iInst < nInsts );
         validCurve_ = true;

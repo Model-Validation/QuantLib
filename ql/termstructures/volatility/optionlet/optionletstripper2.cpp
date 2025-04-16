@@ -102,7 +102,7 @@ namespace QuantLib {
                     adjustedVol = unadjustedVol + spreadsVolImplied_[j];
 
                     // insert adjusted volatility
-                    auto previous =
+                    std::vector<Rate>::const_iterator previous =
                         std::lower_bound(optionletStrikes_[i].begin(),
                                          optionletStrikes_[i].end(),
                                          atmCapFloorStrikes_[j]);

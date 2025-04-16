@@ -25,8 +25,6 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-QL_DEPRECATED_DISABLE_WARNING
-
 BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
 BOOST_AUTO_TEST_SUITE(CreditRiskPlusTests)
@@ -128,5 +126,3 @@ BOOST_AUTO_TEST_CASE(testReferenceValues) {
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()
-
-QL_DEPRECATED_ENABLE_WARNING

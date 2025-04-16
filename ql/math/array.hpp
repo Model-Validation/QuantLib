@@ -168,6 +168,27 @@ namespace QuantLib {
         }
     };
 
+    #ifdef QL_NULL_AS_FUNCTIONS
+
+    //! specialization of null template for this class
+    template <>
+    class Null<Array> {
+      public:
+        Null() = default;
+        operator Array() const { return Array(); }
+    };
+
+    #else
+
+    //! specialization of null template for this class
+    template <>
+    class Null<Array> {
+      public:
+        Null() = default;
+        operator Array() const { return Array(); }
+    };
+
+    #endif
 
     /*! \relates Array */
     Real DotProduct(const Array&, const Array&);

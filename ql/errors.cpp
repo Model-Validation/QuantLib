@@ -22,7 +22,7 @@
 
 namespace {
 
-    #if defined(_MSC_VER)
+    #if defined(_MSC_VER) || defined(__BORLANDC__)
     // allow Visual Studio integration
     std::string format(
                        #ifdef QL_ERROR_LINES

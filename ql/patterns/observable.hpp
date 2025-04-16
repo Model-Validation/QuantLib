@@ -64,7 +64,7 @@ namespace QuantLib {
         friend class ObservableSettings;
       public:
         // constructors, assignment, destructor
-        Observable() = default;
+        Observable();
         Observable(const Observable&);
         Observable& operator=(const Observable&);
         // delete the move operations because the semantics are not yet clear
@@ -157,6 +157,8 @@ namespace QuantLib {
 
 
     // inline definitions
+
+    inline Observable::Observable() = default;
 
     inline void ObservableSettings::registerDeferredObservers(const Observable::set_type& observers) {
         if (updatesDeferred()) {

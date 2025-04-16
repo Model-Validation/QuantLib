@@ -387,7 +387,8 @@ BOOST_AUTO_TEST_CASE(zciisconsistency) {
     bool subtractInflationNominal = true;
     Real dummySpread=0.0, dummyFixedRate=0.0;
     Natural fixingDays = 0;
-    Real baseCPI = CPI::laggedFixing(common.ii, startDate, observationLag, CPI::AsIndex);
+    Date baseDate = startDate - observationLag;
+    Real baseCPI = common.ii->fixing(baseDate);
 
     ext::shared_ptr<IborIndex> dummyFloatIndex;
 

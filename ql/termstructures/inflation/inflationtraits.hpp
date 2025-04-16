@@ -117,7 +117,6 @@ namespace QuantLib {
 
         // start of curve data
         static Date initialDate(const YoYInflationTermStructure* t) {
-            QL_DEPRECATED_DISABLE_WARNING
             if (t->hasExplicitBaseDate()) {
                 return t->baseDate();
             } else if (t->indexIsInterpolated()) {
@@ -126,7 +125,6 @@ namespace QuantLib {
                 return inflationPeriod(t->referenceDate() - t->observationLag(),
                                        t->frequency()).first;
             }
-            QL_DEPRECATED_ENABLE_WARNING
         }
 
         // value at reference date

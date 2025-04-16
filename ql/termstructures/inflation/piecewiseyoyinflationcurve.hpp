@@ -47,37 +47,8 @@ namespace QuantLib {
       public:
         typedef Traits traits_type;
         typedef Interpolator interpolator_type;
-
         //! \name Constructors
         //@{
-
-        PiecewiseYoYInflationCurve(
-            const Date& referenceDate,
-            Date baseDate,
-            Rate baseYoYRate,
-            const Period& lag,
-            Frequency frequency,
-            const DayCounter& dayCounter,
-            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
-            const ext::shared_ptr<Seasonality>& seasonality = {},
-            Real accuracy = 1.0e-12,
-            const Interpolator& i = Interpolator())
-        : base_curve(referenceDate,
-                     baseDate,
-                     baseYoYRate,
-                     lag,
-                     frequency,
-                     dayCounter,
-                     seasonality,
-                     i),
-          instruments_(std::move(instruments)), accuracy_(accuracy) {
-            bootstrap_.setup(this);
-        }
-
-        /*! \deprecated Use the overload without indexIsInterpolated.
-                        Deprecated in version 1.37.
-        */
-        [[deprecated("Use the overload without indexIsInterpolated")]]
         PiecewiseYoYInflationCurve(
             const Date& referenceDate,
             Date baseDate,
@@ -90,21 +61,27 @@ namespace QuantLib {
             const ext::shared_ptr<Seasonality>& seasonality = {},
             Real accuracy = 1.0e-12,
             const Interpolator& i = Interpolator())
-        : PiecewiseYoYInflationCurve(referenceDate, baseDate, baseYoYRate, lag, frequency,
-                                     dayCounter, instruments, seasonality, accuracy, i) {
-            QL_DEPRECATED_DISABLE_WARNING
-            this->indexIsInterpolated_ = indexIsInterpolated;
-            QL_DEPRECATED_ENABLE_WARNING
+        : base_curve(referenceDate,
+                     baseDate,
+                     baseYoYRate,
+                     lag,
+                     frequency,
+                     indexIsInterpolated,
+                     dayCounter,
+                     seasonality,
+                     i),
+          instruments_(std::move(instruments)), accuracy_(accuracy) {
+            bootstrap_.setup(this);
         }
 
 
         QL_DEPRECATED_DISABLE_WARNING
 
-        /*! \deprecated Use the overload without lag and indexIsInterpolated and
-                        pass the base date as the first date in the vector.
+        /*! \deprecated Use the other overload and pass the base date directly
+                        instead of using a lag.
                         Deprecated in version 1.34.
         */
-        [[deprecated("Use the overload without lag and indexIsInterpolated and pass the base date as the first date in the vector")]]
+        QL_DEPRECATED
         PiecewiseYoYInflationCurve(
             const Date& referenceDate,
             const Calendar& calendar,
@@ -142,15 +119,18 @@ namespace QuantLib {
         const std::vector<Date>& dates() const;
         const std::vector<Real>& data() const;
         std::vector<std::pair<Date, Real> > nodes() const;
+
         //@}
         //! \name Observer interface
         //@{
         void update() override;
         //@}
+
+      protected:
+          Rate yoyRateImpl(Time t) const override;
       private:
         // methods
         void performCalculations() const override;
-        Rate yoyRateImpl(Time t) const override;
         // data members
         std::vector<ext::shared_ptr<typename Traits::helper> > instruments_;
         Real accuracy_;
@@ -207,17 +187,16 @@ namespace QuantLib {
     }
 
     template <class I, template <class> class B, class T>
-    Rate PiecewiseYoYInflationCurve<I,B,T>::yoyRateImpl(Time t) const {
-        calculate();
-        return base_curve::yoyRateImpl(t);
-    }
-
-    template <class I, template <class> class B, class T>
     void PiecewiseYoYInflationCurve<I,B,T>::update() {
         base_curve::update();
         LazyObject::update();
     }
 
+    template <class I, template <class> class B, class T>
+    Rate PiecewiseYoYInflationCurve<I, B, T>::yoyRateImpl(Time t) const {
+        calculate();
+        return base_curve::yoyRateImpl(t);
+    }
 }
 
 #endif

@@ -38,20 +38,20 @@ namespace QuantLib {
         struct mapped_payoff {
             explicit mapped_payoff(
                 const Payoff& payoff,
-                const std::function<Real(Real)>& gridMapping)
+                const ext::function<Real(Real)>& gridMapping)
             : payoff(payoff), gridMapping_(gridMapping) {}
 
             Real operator()(Real x) const { return payoff(gridMapping_(x)); }
 
             const Payoff& payoff;
-            const std::function<Real(Real)>& gridMapping_;
+            const ext::function<Real(Real)>& gridMapping_;
         };
     }
 
     FdmCellAveragingInnerValue::FdmCellAveragingInnerValue(ext::shared_ptr<Payoff> payoff,
                                                            ext::shared_ptr<FdmMesher> mesher,
                                                            Size direction,
-                                                           std::function<Real(Real)> gridMapping)
+                                                           ext::function<Real(Real)> gridMapping)
     : payoff_(std::move(payoff)), mesher_(std::move(mesher)), direction_(direction),
       gridMapping_(std::move(gridMapping)) {}
 

@@ -61,24 +61,23 @@ struct Datum {
     Rate rate;
 };
 
-std::vector<ext::shared_ptr<BootstrapHelper<YoYInflationTermStructure> > > makeHelpers(
+template <class T, class U, class I>
+std::vector<ext::shared_ptr<BootstrapHelper<T> > > makeHelpers(
                  const std::vector<Datum>& iiData,
-                 const ext::shared_ptr<YoYInflationIndex> &ii,
-                 CPI::InterpolationType interpolation,
-                 const Period &observationLag,
+                 const ext::shared_ptr<I> &ii, const Period &observationLag,
                  const Calendar &calendar,
                  const BusinessDayConvention &bdc,
                  const DayCounter &dc,
                  const Handle<YieldTermStructure>& discountCurve) {
 
-    std::vector<ext::shared_ptr<BootstrapHelper<YoYInflationTermStructure> > > instruments;
+    std::vector<ext::shared_ptr<BootstrapHelper<T> > > instruments;
     for (Datum datum : iiData) {
         Date maturity = datum.date;
         Handle<Quote> quote(ext::shared_ptr<Quote>(
                     new SimpleQuote(datum.rate/100.0)));
-        auto anInstrument = ext::make_shared<YearOnYearInflationSwapHelper>(
+        ext::shared_ptr<BootstrapHelper<T> > anInstrument(new U(
                     quote, observationLag, maturity,
-                    calendar, bdc, dc, ii, interpolation, discountCurve);
+                    calendar, bdc, dc, ii, discountCurve));
         instruments.push_back(anInstrument);
     }
 
@@ -170,17 +169,18 @@ struct CommonVars {
 
         // now build the helpers ...
         std::vector<ext::shared_ptr<BootstrapHelper<YoYInflationTermStructure> > > helpers =
-            makeHelpers(yyData, iir,
-                        CPI::Flat,
-                        observationLag,
-                        calendar, convention, dc,
-                        Handle<YieldTermStructure>(nominalTS));
+            makeHelpers<YoYInflationTermStructure,YearOnYearInflationSwapHelper,
+            YoYInflationIndex>(yyData, iir,
+                               observationLag,
+                               calendar, convention, dc,
+                               Handle<YieldTermStructure>(nominalTS));
 
         Date baseDate = rpi->lastFixingDate();
         Rate baseYYRate = yyData[0].rate/100.0;
         auto pYYTS =
             ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
-                evaluationDate, baseDate, baseYYRate, observationLag, iir->frequency(), dc, helpers);
+                        evaluationDate, baseDate, baseYYRate, observationLag, iir->frequency(),
+                        iir->interpolated(), dc, helpers);
         yoyTS = ext::dynamic_pointer_cast<YoYInflationTermStructure>(pYYTS);
 
         // make sure that the index has the latest yoy term structure
@@ -195,7 +195,7 @@ struct CommonVars {
         Schedule schedule(startDate, endDate, Period(frequency), calendar,
                           Unadjusted,Unadjusted,// ref periods & acc periods
                           DateGeneration::Forward, false);
-        return yoyInflationLeg(schedule, calendar, ii, observationLag, CPI::Flat)
+        return yoyInflationLeg(schedule, calendar, ii, observationLag)
             .withNotionals(nominals)
             .withPaymentDayCounter(dc)
             .withPaymentAdjustment(convention);
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE(testParity) {
                     YearOnYearInflationSwap swap(Swap::Payer, 1000000.0,
                                                  yoySchedule, // fixed schedule, but same as yoy
                                                  strike, vars.dc, yoySchedule, vars.iir,
-                                                 vars.observationLag, CPI::Flat,
+                                                 vars.observationLag,
                                                  0.0, // spread on index
                                                  vars.dc, UnitedKingdom());
 

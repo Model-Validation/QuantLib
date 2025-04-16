@@ -28,7 +28,7 @@ namespace QuantLib {
                              PaymentTerm::EventType eventType,
                              Integer offsetDays,
                              const Calendar& calendar) {
-        auto i = paymentTerms_.find(name);
+        std::map<std::string, ext::shared_ptr<PaymentTerm::Data> >::const_iterator i = paymentTerms_.find(name);
         if (i != paymentTerms_.end())
             data_ = i->second;
         else {

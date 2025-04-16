@@ -20,8 +20,14 @@
 #include <ql/utilities/tracing.hpp>
 #include <iostream>
 
-namespace QuantLib::detail {
+namespace QuantLib {
+
+    // defined here in order not to include the full <iostream> in the header
+
+    namespace detail {
 
         Tracing::Tracing() : out_(&std::cerr) {}
     }
+
+}
 

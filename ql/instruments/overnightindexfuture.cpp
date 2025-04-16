@@ -46,7 +46,8 @@ namespace QuantLib {
         Date d1 = valueDate_;
         // d1 could be a holiday
         Date fixingDate = calendar.adjust(d1, Preceding);
-        const auto& history = overnightIndex_->timeSeries();
+        const TimeSeries<Real>& history = IndexManager::instance()
+            .getHistory(overnightIndex_->name());
         Real fwd;
         while (d1 < maturityDate_) {
             Date d2 = calendar.advance(d1, 1, Days);
@@ -85,7 +86,8 @@ namespace QuantLib {
             forwardDiscountStart = today;
             // for valuations inside the reference period, index quotes
             // must have been populated in the history
-            const auto& history = overnightIndex_->timeSeries();
+            const TimeSeries<Real>& history = IndexManager::instance()
+                .getHistory(overnightIndex_->name());
             Date d1 = valueDate_;
             // d1 could be a holiday
             Date fixingDate = calendar.adjust(d1, Preceding);

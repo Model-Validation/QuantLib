@@ -22,7 +22,6 @@
 
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
-#include <ql/shared_ptr.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
@@ -419,9 +418,9 @@ BOOST_AUTO_TEST_CASE(testCashAtExpiryOrNothingAmericanValues) {
                                       Handle<BlackVolTermStructure>(volTS)));
         ext::shared_ptr<PricingEngine> engine;
         if (value.knockin)
-            engine = ext::make_shared<AnalyticDigitalAmericanEngine>(stochProcess);
+            engine.reset(new AnalyticDigitalAmericanEngine(stochProcess));
         else
-           engine = ext::make_shared<AnalyticDigitalAmericanKOEngine>(stochProcess);
+           engine.reset(new AnalyticDigitalAmericanKOEngine(stochProcess));
 
         VanillaOption opt(payoff, amExercise);
         opt.setPricingEngine(engine);
@@ -491,9 +490,9 @@ BOOST_AUTO_TEST_CASE(testAssetAtExpiryOrNothingAmericanValues) {
                                       Handle<BlackVolTermStructure>(volTS)));
         ext::shared_ptr<PricingEngine> engine;
         if (value.knockin)
-            engine = ext::make_shared<AnalyticDigitalAmericanEngine>(stochProcess);
+            engine.reset(new AnalyticDigitalAmericanEngine(stochProcess));
         else
-           engine = ext::make_shared<AnalyticDigitalAmericanKOEngine>(stochProcess);
+           engine.reset(new AnalyticDigitalAmericanKOEngine(stochProcess));
 
         VanillaOption opt(payoff, amExercise);
         opt.setPricingEngine(engine);
@@ -561,7 +560,7 @@ BOOST_AUTO_TEST_CASE(testCashAtHitOrNothingAmericanGreeks) {
     ext::shared_ptr<PricingEngine> engines[] = { euroEngine, amEngine };
 
     bool knockin=true;
-    for (Size j=0; j<std::size(engines); j++) {
+    for (Size j=0; j<LENGTH(engines); j++) {
         for (auto& type : types) {
             for (Real strike : strikes) {
                 ext::shared_ptr<StrikedTypePayoff> payoff(

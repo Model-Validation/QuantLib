@@ -57,7 +57,7 @@ namespace QuantLib {
         name_ = out.str();
 
         registerWith(Settings::instance().evaluationDate());
-        registerWith(notifier());
+        registerWith(IndexManager::instance().notifier(InterestRateIndex::name()));
     }
 
     Rate InterestRateIndex::fixing(const Date& fixingDate,

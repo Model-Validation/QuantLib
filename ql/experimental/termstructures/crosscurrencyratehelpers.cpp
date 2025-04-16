@@ -69,7 +69,8 @@ namespace QuantLib {
             Date refDt = discountCurveHandle->referenceDate();
             const YieldTermStructure& discountRef = **discountCurveHandle;
             bool includeSettleDtFlows = true;
-            auto [npv, bps] = CashFlows::npvbps(iborLeg, discountRef, includeSettleDtFlows, refDt, refDt);
+            Real npv, bps;
+            std::tie(npv, bps) = CashFlows::npvbps(iborLeg, discountRef, includeSettleDtFlows, refDt, refDt);
             // Include NPV of the notional exchange at start and maturity.
             // on the settlement date
             npv += (-1.0) * discountRef.discount(CashFlows::startDate(iborLeg));
@@ -230,8 +231,10 @@ namespace QuantLib {
                                            isBasisOnFxBaseCurrencyLeg) {}
 
     Real ConstNotionalCrossCurrencyBasisSwapRateHelper::impliedQuote() const {
-        auto [npvBaseCcy, bpsBaseCcy] = npvbpsConstNotionalLeg(baseCcyIborLeg_, baseCcyLegDiscountHandle());
-        auto [npvQuoteCcy, bpsQuoteCcy] = npvbpsConstNotionalLeg(quoteCcyIborLeg_, quoteCcyLegDiscountHandle());
+        Real npvBaseCcy = 0.0, bpsBaseCcy = 0.0;
+        std::tie(npvBaseCcy, bpsBaseCcy) = npvbpsConstNotionalLeg(baseCcyIborLeg_, baseCcyLegDiscountHandle());
+        Real npvQuoteCcy = 0.0, bpsQuoteCcy = 0.0;
+        std::tie(npvQuoteCcy, bpsQuoteCcy) = npvbpsConstNotionalLeg(quoteCcyIborLeg_, quoteCcyLegDiscountHandle());
         Real bps = isBasisOnFxBaseCurrencyLeg_ ? -bpsBaseCcy : bpsQuoteCcy;
         return -(npvQuoteCcy - npvBaseCcy) / bps;
     }

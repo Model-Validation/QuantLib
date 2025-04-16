@@ -869,7 +869,7 @@ BOOST_AUTO_TEST_CASE(testCDS2015ZeroMonthsMatured) {
     };
 
     for (const Date& input: inputs) {
-        BOOST_CHECK_EQUAL(cdsMaturity(input, tenor, rule), Date());
+        BOOST_CHECK_EQUAL(cdsMaturity(input, tenor, rule), Null<Date>());
     }
 }
 
@@ -945,21 +945,6 @@ BOOST_AUTO_TEST_CASE(testFourWeeksTenor) {
     } catch (Error& e) {
         BOOST_ERROR("A four-weeks tenor caused an exception: " << e.what());
     }
-}
-
-BOOST_AUTO_TEST_CASE(testOnceFrequency) {
-    BOOST_TEST_MESSAGE(
-        "Testing that Once frequency works...");
-
-    Schedule s =
-        MakeSchedule().from(Date(13,January,2016))
-                      .to(Date(13,January,2019))
-                      .withFrequency(Once)
-                      .forwards();
-
-    BOOST_CHECK(s.size() == 2);
-    BOOST_CHECK(s[0] == Date(13,January,2016));
-    BOOST_CHECK(s[1] == Date(13,January,2019));
 }
 
 BOOST_AUTO_TEST_CASE(testScheduleAlwaysHasAStartDate) {

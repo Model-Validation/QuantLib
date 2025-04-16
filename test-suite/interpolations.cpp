@@ -46,11 +46,11 @@
 #include <ql/math/optimization/levenbergmarquardt.hpp>
 #include <ql/math/randomnumbers/sobolrsg.hpp>
 #include <ql/math/richardsonextrapolation.hpp>
+#include <ql/tuple.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <ql/utilities/null.hpp>
 #include <cmath>
 #include <utility>
-#include <tuple>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(testSplineErrorOnGaussianValues) {
     // results from the paper
     Real scaleFactor = 1.9;
 
-    for (Size i=0; i<std::size(points); i++) {
+    for (Size i=0; i<LENGTH(points); i++) {
         Size n = points[i];
         std::vector<Real> x = xRange(-1.7, 1.9, n);
         std::vector<Real> y = gaussian(x);
@@ -539,7 +539,7 @@ BOOST_AUTO_TEST_CASE(testSplineOnGenericValues) {
     const Real generic_natural_y2[] = { 0.0, 1.5, -1.5, 0.0 };
 
     Real interpolated, error;
-    Size i, n = std::size(generic_x);
+    Size i, n = LENGTH(generic_x);
     std::vector<Real> x35(3);
 
     // Natural spline
@@ -940,7 +940,7 @@ BOOST_AUTO_TEST_CASE(testAsFunctor) {
     f.update();
 
     const Real x2[] = { -2.0, -1.0, 0.0, 1.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-    Size N = std::size(x2);
+    Size N = LENGTH(x2);
     std::vector<Real> y2(N);
     Real tolerance = 1.0e-12;
 
@@ -1018,7 +1018,7 @@ BOOST_AUTO_TEST_CASE(testBackwardFlat) {
     Interpolation f = BackwardFlatInterpolation(std::begin(x), std::end(x), std::begin(y));
     f.update();
 
-    Size N = std::size(x);
+    Size N = LENGTH(x);
     Size i;
     Real tolerance = 1.0e-12;
 
@@ -1136,7 +1136,7 @@ BOOST_AUTO_TEST_CASE(testForwardFlat) {
     Interpolation f = ForwardFlatInterpolation(std::begin(x), std::end(x), std::begin(y));
     f.update();
 
-    Size N = std::size(x);
+    Size N = LENGTH(x);
     Size i;
     Real tolerance = 1.0e-12;
 
@@ -1882,7 +1882,7 @@ BOOST_AUTO_TEST_CASE(testNoArbSabrInterpolation, *precondition(if_speed(Fast))){
     for (Size j=1; j<methods_.size(); ++j) { // skip simplex (gets caught in some cases)
         for (bool i : vegaWeighted) {
             for (bool k_a : isAlphaFixed) {
-                for (Size k_b=0; k_b<1/*std::size(isBetaFixed)*/; ++k_b) { // keep beta fixed (all 4 params free is a problem for this kind of test)
+                for (Size k_b=0; k_b<1/*LENGTH(isBetaFixed)*/; ++k_b) { // keep beta fixed (all 4 params free is a problem for this kind of test)
                     for (bool k_n : isNuFixed) {
                         for (bool k_r : isRhoFixed) {
                             NoArbSabrInterpolation noarbSabrInterpolation(
@@ -2117,7 +2117,7 @@ BOOST_AUTO_TEST_CASE(testLeFlochKennedySabrExample) {
 
     const Real expected[] = {0.408702473958, 0.428489933046, 0.585701651161};
 
-    for (Size i=0; i < std::size(strikes); ++i) {
+    for (Size i=0; i < LENGTH(strikes); ++i) {
         const Real strike = strikes[i];
         const Real vol =
             sabrFlochKennedyVolatility(strike, f0, t, alpha, beta, nu, rho);
@@ -2313,21 +2313,24 @@ BOOST_AUTO_TEST_CASE(testBSplines) {
     const Natural p = 2;
     const BSpline bspline(p, knots.size()-p-2, knots);
 
-    std::vector<std::tuple<Natural, Real, Real>> referenceValues = {
-        {0, -0.95, 9.5238095238e-04},
-        {0, -0.01, 0.37337142857},
-        {0, 0.49, 0.84575238095},
-        {0, 1.21, 0.0},
-        {1, 1.49, 0.562987654321},
-        {1, 1.59, 0.490888888889},
-        {2, 1.99, 0.62429409171},
-        {3, 1.19, 0.0},
-        {3, 1.99, 0.12382936508},
-        {3, 3.59, 0.765914285714}
+    std::vector<ext::tuple<Natural, Real, Real>> referenceValues = {
+        ext::make_tuple(0, -0.95, 9.5238095238e-04),
+        ext::make_tuple(0, -0.01, 0.37337142857),
+        ext::make_tuple(0, 0.49, 0.84575238095),
+        ext::make_tuple(0, 1.21, 0.0),
+        ext::make_tuple(1, 1.49, 0.562987654321),
+        ext::make_tuple(1, 1.59, 0.490888888889),
+        ext::make_tuple(2, 1.99, 0.62429409171),
+        ext::make_tuple(3, 1.19, 0.0),
+        ext::make_tuple(3, 1.99, 0.12382936508),
+        ext::make_tuple(3, 3.59, 0.765914285714)
     };
 
     const Real tol = 1e-10;
-    for (const auto& [idx, x, expected] : referenceValues) {
+    for (auto& referenceValue : referenceValues) {
+        const Natural idx = ext::get<0>(referenceValue);
+        const Real x = ext::get<1>(referenceValue);
+        const Real expected = ext::get<2>(referenceValue);
 
         const Real calculated = bspline(idx, x);
 
@@ -2756,7 +2759,7 @@ BOOST_AUTO_TEST_CASE(testLaplaceInterpolation) {
 
     // no point
 
-    LaplaceInterpolation l0([](const std::vector<Size>&) { return Null<Real>(); }, {});
+    LaplaceInterpolation l0([](const std::vector<Size>& x) { return Null<Real>(); }, {});
     BOOST_CHECK_CLOSE(l0({}), 0.0, tol);
 
     // single test cases from actual issues observed in the field

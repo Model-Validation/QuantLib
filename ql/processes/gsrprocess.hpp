@@ -43,7 +43,7 @@ namespace QuantLib {
                    const Array& vols,
                    const Array& reversions,
                    Real T = 60.0,
-                   const Date& referenceDate = Date(),
+                   const Date& referenceDate = Null<Date>(),
                    DayCounter dc = DayCounter());
         //! \name StochasticProcess1D interface
         //@{

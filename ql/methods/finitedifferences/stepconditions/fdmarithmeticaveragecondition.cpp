@@ -60,7 +60,7 @@ namespace QuantLib {
         QL_REQUIRE(mesher_->layout()->size() == a.size(),
                    "inconsistent array dimensions");
 
-        const auto iter
+        const std::vector<Time>::const_iterator iter
             = std::find(averageTimes_.begin(), averageTimes_.end(), t);
         const Size nTimes
             = std::count(averageTimes_.begin(), averageTimes_.end(), t);

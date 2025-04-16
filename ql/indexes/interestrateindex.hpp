@@ -36,7 +36,8 @@ namespace QuantLib {
 
     //! base class for interest rate indexes
     /*! \todo add methods returning InterestRate */
-    class InterestRateIndex : public Index {
+    class InterestRateIndex : public Index,
+                              public Observer {
       public:
         InterestRateIndex(std::string familyName,
                           const Period& tenor,
@@ -50,6 +51,10 @@ namespace QuantLib {
         Calendar fixingCalendar() const override;
         bool isValidFixingDate(const Date& fixingDate) const override;
         Rate fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const override;
+        //@}
+        //! \name Observer interface
+        //@{
+        void update() override;
         //@}
         //! \name Inspectors
         //@{
@@ -74,6 +79,7 @@ namespace QuantLib {
         //@{
         //! It can be overridden to implement particular conventions
         virtual Rate forecastFixing(const Date& fixingDate) const = 0;
+        virtual Rate pastFixing(const Date& fixingDate) const;
         // @}
       protected:
         std::string familyName_;
@@ -101,6 +107,10 @@ namespace QuantLib {
         return fixingCalendar().isBusinessDay(d);
     }
 
+    inline void InterestRateIndex::update() {
+        notifyObservers();
+    }
+
     inline Date InterestRateIndex::fixingDate(const Date& valueDate) const {
         Date fixingDate = fixingCalendar().advance(valueDate,
             -static_cast<Integer>(fixingDays_), Days);
@@ -112,6 +122,13 @@ namespace QuantLib {
                    fixingDate << " is not a valid fixing date");
         return fixingCalendar().advance(fixingDate, fixingDays_, Days);
     }
+
+    inline Rate InterestRateIndex::pastFixing(const Date& fixingDate) const {
+        QL_REQUIRE(isValidFixingDate(fixingDate),
+                   fixingDate << " is not a valid fixing date");
+        return timeSeries()[fixingDate];
+    }
+
 }
 
 #endif

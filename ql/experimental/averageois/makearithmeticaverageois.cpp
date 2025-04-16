@@ -24,8 +24,6 @@
 
 namespace QuantLib {
 
-    QL_DEPRECATED_DISABLE_WARNING
-
     MakeArithmeticAverageOIS::MakeArithmeticAverageOIS(
         const Period& swapTenor,
         const ext::shared_ptr<OvernightIndex>& overnightIndex,
@@ -235,7 +233,5 @@ namespace QuantLib {
         byApprox_ = byApprox;
         return *this;
     }
-
-    QL_DEPRECATED_ENABLE_WARNING
 
 }

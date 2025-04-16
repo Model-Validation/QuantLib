@@ -36,28 +36,14 @@ namespace QuantLib {
                              Handle<YieldTermStructure> interest,
                              Handle<YieldTermStructure> dividend,
                              Handle<Quote> spot)
-    : EquityIndex(std::move(name),
-                  std::move(fixingCalendar),
-                  Currency(),
-                  std::move(interest),
-                  std::move(dividend),
-                  std::move(spot)) {}
-
-    EquityIndex::EquityIndex(std::string name,
-                             Calendar fixingCalendar,
-                             Currency currency,
-                             Handle<YieldTermStructure> interest,
-                             Handle<YieldTermStructure> dividend,
-                             Handle<Quote> spot)
     : name_(std::move(name)), fixingCalendar_(std::move(fixingCalendar)),
-      currency_(std::move(currency)), interest_(std::move(interest)),
-      dividend_(std::move(dividend)), spot_(std::move(spot)) {
+      interest_(std::move(interest)), dividend_(std::move(dividend)), spot_(std::move(spot)) {
 
         registerWith(interest_);
         registerWith(dividend_);
         registerWith(spot_);
         registerWith(Settings::instance().evaluationDate());
-        registerWith(notifier());
+        registerWith(IndexManager::instance().notifier(EquityIndex::name()));
     }
 
     Real EquityIndex::fixing(const Date& fixingDate, bool forecastTodaysFixing) const {
@@ -83,6 +69,11 @@ namespace QuantLib {
         QL_FAIL("Missing " << name() << " fixing for " << fixingDate);
     }
 
+    Real EquityIndex::pastFixing(const Date& fixingDate) const {
+        QL_REQUIRE(isValidFixingDate(fixingDate), fixingDate << " is not a valid fixing date");
+        return timeSeries()[fixingDate];
+    }
+
     Real EquityIndex::forecastFixing(const Date& fixingDate) const {
         QL_REQUIRE(!interest_.empty(),
                    "null interest rate term structure set to this instance of " << name());
@@ -104,7 +95,6 @@ namespace QuantLib {
     ext::shared_ptr<EquityIndex> EquityIndex::clone(const Handle<YieldTermStructure>& interest,
                                                     const Handle<YieldTermStructure>& dividend,
                                                     const Handle<Quote>& spot) const {
-        return ext::make_shared<EquityIndex>(name(), fixingCalendar(), currency(), interest,
-                                             dividend, spot);
+        return ext::make_shared<EquityIndex>(name(), fixingCalendar(), interest, dividend, spot);
     }
 }

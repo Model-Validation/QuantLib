@@ -30,7 +30,7 @@ jobs:
             tag: jammy
             cc: gcc
             cxx: g++
-          - name: "gcc 12.3 (Boost 1.86)"
+          - name: "gcc 12.x"
             shortname: gcc12
             tag: lunar
             cc: gcc
@@ -38,11 +38,6 @@ jobs:
           - name: "gcc 13.x"
             shortname: gcc13
             tag: noble
-            cc: gcc
-            cxx: g++
-          - name: "gcc 14.x"
-            shortname: gcc14
-            tag: oracular
             cc: gcc
             cxx: g++
           - name: "Clang 7 (Boost 1.72)"
@@ -85,12 +80,12 @@ jobs:
             tag: jammy
             cc: clang
             cxx: clang++
-          - name: "Clang 15 (Boost 1.86)"
+          - name: "Clang 15"
             shortname: clang15
             tag: lunar
             cc: clang
             cxx: clang++
-          - name: "Clang 16 (Boost 1.86)"
+          - name: "Clang 16"
             shortname: clang16
             tag: mantic
             cc: clang
@@ -105,11 +100,13 @@ jobs:
             tag: noble
             cc: clang
             cxx: clang++
-          - name: "Clang 19"
-            shortname: clang19
-            tag: oracular
-            cc: clang
-            cxx: clang++
+            cxxflags: -Wno-deprecated-declarations
+          - name: "C++14 mode"
+            shortname: c++14
+            tag: rolling
+            cc: gcc
+            cxx: g++
+            cxxflags: "-std=c++14"
           - name: "C++17 mode"
             shortname: c++17
             tag: rolling
@@ -122,12 +119,6 @@ jobs:
             cc: gcc
             cxx: g++
             cxxflags: "-std=c++20"
-          - name: "C++23 mode"
-            shortname: c++23
-            tag: rolling
-            cc: gcc
-            cxx: g++
-            cxxflags: "-std=c++23"
           - name: "Unity build enabled"
             shortname: unity
             tag: rolling
@@ -152,12 +143,12 @@ jobs:
             cc: gcc
             cxx: g++
             configureflags: --enable-indexed-coupons
-          - name: "Standard Library classes enabled"
+          - name: "Standard Library classes enabled/disabled"
             shortname: stdclasses
             tag: rolling
             cc: gcc
             cxx: g++
-            configureflags: --enable-std-classes
+            configureflags: --disable-std-function --disable-std-tuple --enable-std-pointers --enable-std-any --enable-std-optional
           - name: "Thread-safe observer enabled"
             shortname: threadsafe
             tag: rolling
@@ -198,7 +189,6 @@ jobs:
       run: |
         ./autogen.sh
         ./configure --disable-static ${{ matrix.configureflags }} CC="${{ matrix.cc }}" CXX="${{ matrix.cxx }}" CXXFLAGS="-O2 -g0 -Wall -Wno-unknown-pragmas -Werror ${{ matrix.cxxflags }}"
-        cat ql/config.hpp
         make -j 4
     - name: Run tests
       run: |

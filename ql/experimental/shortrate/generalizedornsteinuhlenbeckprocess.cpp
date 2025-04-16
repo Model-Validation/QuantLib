@@ -24,7 +24,7 @@
 namespace QuantLib {
 
     GeneralizedOrnsteinUhlenbeckProcess::GeneralizedOrnsteinUhlenbeckProcess(
-        std::function<Real(Time)> speed, std::function<Real(Time)> vol, Real x0, Real level)
+        ext::function<Real(Time)> speed, ext::function<Real(Time)> vol, Real x0, Real level)
     : x0_(x0), level_(level), speed_(std::move(speed)), volatility_(std::move(vol)) {
 
         QL_REQUIRE(x0 >= 0.0, "negative initial data given");

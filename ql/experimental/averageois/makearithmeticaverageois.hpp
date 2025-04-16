@@ -30,13 +30,12 @@
 
 namespace QuantLib {
 
-    /*! \deprecated Use MakeOIS instead.
-                        Deprecated in version 1.36.
+    //! helper class
+    /*! This class provides a more comfortable way
+        to instantiate arithemtic average overnight indexed swaps.
     */
-    class [[deprecated("Use MakeOIS instead")]] MakeArithmeticAverageOIS {
+    class MakeArithmeticAverageOIS {
       public:
-        QL_DEPRECATED_DISABLE_WARNING
-
         MakeArithmeticAverageOIS(const Period& swapTenor,
                 const ext::shared_ptr<OvernightIndex>& overnightIndex,
                 Rate fixedRate = Null<Rate>(),
@@ -96,8 +95,6 @@ namespace QuantLib {
         DayCounter fixedDayCount_;
 
         ext::shared_ptr<PricingEngine> engine_;
-
-        QL_DEPRECATED_ENABLE_WARNING
     };
 
 }

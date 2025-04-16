@@ -61,7 +61,7 @@ protected:
             lag_ = surf_->observationLag();
             capfloor_ = MakeYoYInflationCapFloor(type, anIndex,
                                                  (Size)std::floor(0.5 + surf->timeFromReference(surf->minMaturity())),
-                                                 surf->calendar(), lag, CPI::AsIndex)
+                                                 surf->calendar(), lag)
                             .withNominal(10000.0)
                             .withStrike(K_);
 
@@ -214,8 +214,7 @@ void InterpolatedYoYOptionletStripper<Interpolator1D, Bootstrap>::initialize(
             // this is enforced by rounding
             Size nT = (Size)floor(s->timeFromReference(s->yoyOptionDateFromTenor(Tp)) + 0.5);
             helpers.push_back(ext::shared_ptr<YoYOptionletHelper>(
-                new YoYOptionletHelper(quote1, notional, useType, lag_, dc, cal, fixingDays_, anIndex, CPI::Flat,
-                                                 K, nT, p_)));
+                new YoYOptionletHelper(quote1, notional, useType, lag_, dc, cal, fixingDays_, anIndex, K, nT, p_)));
 
             ext::shared_ptr<ConstantYoYOptionletVolatility> yoyVolBLACK(
                 new ConstantYoYOptionletVolatility(found, settlementDays, cal, bdc, dc, lag_, frequency_, false,

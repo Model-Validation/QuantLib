@@ -28,7 +28,6 @@
 #ifndef quantlib_overnight_indexed_coupon_hpp
 #define quantlib_overnight_indexed_coupon_hpp
 
-#include <ql/cashflows/couponpricer.hpp>
 #include <ql/cashflows/floatingratecoupon.hpp>
 #include <ql/cashflows/rateaveraging.hpp>
 #include <ql/indexes/iborindex.hpp>
@@ -78,11 +77,11 @@ namespace QuantLib {
         //! interest dates for the rates to be compounded
         const std::vector<Date>& interestDates() const { return interestDates_; }
         //! averaging method
-        RateAveraging::Type averagingMethod() const { return averagingMethod_; }
+        const RateAveraging::Type averagingMethod() const { return averagingMethod_; }
         //! lockout days
-        Natural lockoutDays() const { return lockoutDays_; }
+        const Natural lockoutDays() const { return lockoutDays_; }
         //! apply observation shift
-        bool applyObservationShift() const { return applyObservationShift_; }
+        const bool applyObservationShift() const { return applyObservationShift_; }
         //@}
         //! \name FloatingRateCoupon interface
         //@{
@@ -100,10 +99,7 @@ namespace QuantLib {
         //! Only when index fixing delay is 0 and observation shift is used,
         //! we can apply telescopic formula, when applying lookback period.
         //@{
-        bool canApplyTelescopicFormula() const {
-            return fixingDays_ == index_->fixingDays() ||
-                (applyObservationShift_ && index_->fixingDays() == 0);
-        }
+        const bool canApplyTelescopicFormula() const;
         //@}
       private:
         std::vector<Date> valueDates_, interestDates_, fixingDates_;
@@ -116,6 +112,12 @@ namespace QuantLib {
 
         Rate averageRate(const Date& date) const;
     };
+
+    inline const bool OvernightIndexedCoupon::canApplyTelescopicFormula() const {
+        return fixingDays_ == index_->fixingDays() ||
+               (applyObservationShift_ && index_->fixingDays() == 0);
+    }
+
 
     //! helper class building a sequence of overnight coupons
     class OvernightLeg {

@@ -165,7 +165,7 @@ namespace QuantLib {
         Real P0 = discountCurve_->discount(d0);
         Real Q0 = probability_->survivalProbability(d0);
         Date d1;
-        auto it =
+        std::vector<Date>::const_iterator it =
             std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
 
         for(;it != nodes.end(); ++it) {
@@ -196,7 +196,7 @@ namespace QuantLib {
             Q0 = Q1;
         }
         protectionNpv *= arguments_.claim->amount(
-            Date(), arguments_.notional, recoveryRate_);
+            Null<Date>(), arguments_.notional, recoveryRate_);
 
         results_.defaultLegNPV = protectionNpv;
 
@@ -234,16 +234,16 @@ namespace QuantLib {
                 localNodes.push_back(start);
                 //add intermediary nodes, if any
                 if (forwardsInCouponPeriod_ == Piecewise) {
-                    auto it0 =
+                    std::vector<Date>::const_iterator it0 =
                         std::upper_bound(nodes.begin(), nodes.end(), start);
-                    auto it1 =
+                    std::vector<Date>::const_iterator it1 =
                         std::lower_bound(nodes.begin(), nodes.end(), end);
                     localNodes.insert(localNodes.end(), it0, it1);
                 }
                 localNodes.push_back(end);
 
                 Real defaultAccrThisNode = 0.;
-                auto node = localNodes.begin();
+                std::vector<Date>::const_iterator node = localNodes.begin();
                 Real t0 = discountCurve_->timeFromReference(*node);
                 Real P0 = discountCurve_->discount(*node);
                 Real Q0 = probability_->survivalProbability(*node);

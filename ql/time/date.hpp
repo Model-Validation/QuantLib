@@ -207,10 +207,6 @@ namespace QuantLib {
         static Date maxDate();
         //! whether the given year is a leap one
         static bool isLeap(Year y);
-        //! first day of the month to which the given date belongs
-        static Date startOfMonth(const Date& d);
-        //! whether a date is the first day of its month
-        static bool isStartOfMonth(const Date& d);
         //! last day of the month to which the given date belongs
         static Date endOfMonth(const Date& d);
         //! whether a date is the last day of its month
@@ -374,20 +370,30 @@ namespace QuantLib {
 
     }
 
+    #ifdef QL_NULL_AS_FUNCTIONS
 
-    // inline definitions
+    //! specialization of Null template for the Date class
+    template <>
+    class Null<Date> {
+      public:
+        Null() = default;
+        operator Date() const { return {}; }
+    };
 
-    inline Date Date::startOfMonth(const Date& d) {
-        Month m = d.month();
-        Year y = d.year();
-        return Date(1, m, y);
-    }
+    #else
 
-    inline bool Date::isStartOfMonth(const Date& d) {
-       return (d.dayOfMonth() == 1);
-    }
+    template <>
+    class Null<Date> {
+      public:
+        Null() = default;
+        operator Date() const { return {}; }
+    };
+
+    #endif
 
 #ifndef QL_HIGH_RESOLUTION_DATE
+    // inline definitions
+
     inline Weekday Date::weekday() const {
         Integer w = serialNumber_ % 7;
         return Weekday(w == 0 ? 7 : w);

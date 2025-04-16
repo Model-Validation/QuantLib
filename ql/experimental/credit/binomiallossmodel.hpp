@@ -354,7 +354,7 @@ namespace QuantLib {
 
         if(perc == 1.) return dist.rbegin()->first;
         if(perc == 0.) return dist.begin()->first;
-        auto itdist = dist.begin();
+        std::map<Real, Probability>::const_iterator itdist = dist.begin();
         while (itdist->second <= perc) ++itdist;
         Real valPlus = itdist->second;
         Real xPlus   = itdist->first;

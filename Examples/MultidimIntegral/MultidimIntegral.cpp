@@ -25,7 +25,9 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 #include <ql/experimental/math/multidimquadrature.hpp>
 #include <ql/math/integrals/trapezoidintegral.hpp>
 #include <ql/patterns/singleton.hpp>
-#include <functional>
+#include <ql/functional.hpp>
+
+
 #include <iostream>
 #include <iomanip>
 
@@ -60,7 +62,7 @@ int main() {
     Real exactSol = std::pow(std::exp(-.25) * 
         std::sqrt(M_PI), static_cast<Real>(dimension));
 
-    std::function<Real(const std::vector<Real>& arg)> f = integrand();
+    ext::function<Real(const std::vector<Real>& arg)> f = integrand();
 
     #ifndef QL_PATCH_SOLARIS
     GaussianQuadMultidimIntegrator intg(dimension, 15);

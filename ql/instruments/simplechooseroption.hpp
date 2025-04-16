@@ -50,7 +50,7 @@ namespace QuantLib {
     //! Extra %arguments for single chooser option
     class SimpleChooserOption::arguments : public OneAssetOption::arguments {
       public:
-        arguments() = default;
+        arguments() : choosingDate(Null<Date>()) {}
         void validate() const override;
         Date choosingDate;
     };

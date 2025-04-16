@@ -55,16 +55,14 @@ namespace QuantLib {
             return zeroInflationIndex_;
         }
         CPI::InterpolationType observationInterpolation() const {
-            return interpolation_;
+            return observationInterpolation_;
         }
         //@}
 
-        //! \name ZeroInflationCashFlow interface
+        //! \name CashFlow interface
         //@{
-        Real baseFixing() const override;
-        Real indexFixing() const override;
+        void performCalculations() const override;
         //@}
-
         //! \name Visitability
         //@{
         void accept(AcyclicVisitor&) override;
@@ -72,7 +70,7 @@ namespace QuantLib {
 
       private:
         ext::shared_ptr<ZeroInflationIndex> zeroInflationIndex_;
-        CPI::InterpolationType interpolation_;
+        CPI::InterpolationType observationInterpolation_;
         Date startDate_, endDate_;
         Period observationLag_;
     };

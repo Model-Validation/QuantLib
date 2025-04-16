@@ -19,7 +19,6 @@
 
 #include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/quotes/simplequote.hpp>
-#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -66,13 +65,13 @@ namespace QuantLib {
     }
 
     void GJRGARCHModel::generateArguments() {
-        process_ = ext::make_shared<GJRGARCHProcess>(process_->riskFreeRate(),
+        process_.reset(new GJRGARCHProcess(process_->riskFreeRate(),
                                            process_->dividendYield(),
                                            process_->s0(),
                                            v0(), omega(),
                                            alpha(), beta(),
                                            gamma(), lambda(),
-                                           process_->daysPerYear());
+                                           process_->daysPerYear()));
     }
 }
 

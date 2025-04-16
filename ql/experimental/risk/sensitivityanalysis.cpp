@@ -26,8 +26,6 @@ using std::pair;
 
 namespace QuantLib {
 
-    QL_DEPRECATED_DISABLE_WARNING
-
     std::ostream& operator<<(std::ostream& out,
                              SensitivityAnalysis s) {
         switch (s) {
@@ -346,5 +344,4 @@ namespace QuantLib {
         return result;
     }
 
-    QL_DEPRECATED_ENABLE_WARNING
 }

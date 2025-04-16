@@ -55,7 +55,7 @@ namespace QuantLib {
                 QL_REQUIRE(dim_ == weights_.size(), "Invalid weights");
         }
         template <class InputIterator>
-        void nextReal(InputIterator first) {
+        inline void nextReal(InputIterator first) {
             Real radius = distribution_(engine_);
             Array::const_iterator weight = weights_.begin();
             if (dim_ > 1) {
@@ -76,11 +76,11 @@ namespace QuantLib {
                     *first = radius*(*weight);
             }
         }
-        void setDimension(Size dim) { 
+        inline void setDimension(Size dim) { 
             dim_ = dim;
             weights_ = Array(dim, 1.0);
         }
-        void setDimension(Size dim, const Array& weights) {
+        inline void setDimension(Size dim, const Array& weights) {
             QL_REQUIRE(dim == weights.size(), "Invalid weights");
             dim_ = dim;
             weights_ = weights;
@@ -90,7 +90,7 @@ namespace QuantLib {
         but if the limits are provided, they are used to rescale the sphere so as to make it to an
         ellipsoid, with different radius in different dimensions.
         */
-        void setDimension(Size dim,
+        inline void setDimension(Size dim,
             const Array& lowerBound, const Array& upperBound) {
             QL_REQUIRE(dim == lowerBound.size(),
                 "Incompatible dimension and lower bound");

@@ -65,7 +65,8 @@ or guarantee.
 #include <cmath>
 #include <cstdio>
 
-namespace QuantLib::MINPACK {
+namespace QuantLib {
+  namespace MINPACK {
 #define BUG 0
 /* resolution of arithmetic */
 double MACHEP = 1.2e-16;
@@ -1665,6 +1666,7 @@ if(nprint > 0)
 /*
       last card of subroutine lmdif.
 */
+}
 }
 }
 

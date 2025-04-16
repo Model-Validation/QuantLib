@@ -26,6 +26,7 @@
 #include <ql/math/quadratic.hpp>
 #include <ql/math/rounding.hpp>
 #include <ql/math/richardsonextrapolation.hpp>
+#include <ql/math/sampledcurve.hpp>
 #include <ql/math/solver1d.hpp>
 #include <ql/math/transformedgrid.hpp>
 

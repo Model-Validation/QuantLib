@@ -32,20 +32,37 @@
 
 namespace QuantLib {
 
+    namespace detail {
+
+        template <bool>
+        struct FloatingPointNull;
+
+        // null value for floating-point types
+        template <>
+        struct FloatingPointNull<true> {
+            constexpr static float nullValue() {
+                // a specific values that should fit into any Real
+                return (std::numeric_limits<float>::max)();
+            }
+        };
+
+        // null value for integer types
+        template <>
+        struct FloatingPointNull<false> {
+            constexpr static int nullValue() {
+                // a specific values that should fit into any Integer
+                return (std::numeric_limits<int>::max)();
+            }
+        };
+
+    }
+
     #ifdef QL_NULL_AS_FUNCTIONS
 
     //! template function providing a null value for a given type.
     template <typename T>
     T Null() {
-        if constexpr (std::is_floating_point_v<T>) {
-            // a specific, unlikely value that should fit into any Real
-            return (std::numeric_limits<float>::max)();
-        } else if constexpr (std::is_integral_v<T>) {
-            // this should fit into any Integer
-            return (std::numeric_limits<int>::max)();
-        } else {
-            return T();
-        }
+        return T(detail::FloatingPointNull<std::is_floating_point<T>::value>::nullValue());
     }
 
     #else
@@ -60,15 +77,7 @@ namespace QuantLib {
       public:
         Null() = default;
         operator T() const {
-            if constexpr (std::is_floating_point_v<T>) {
-                // a specific, unlikely value that should fit into any Real
-                return (std::numeric_limits<float>::max)();
-            } else if constexpr (std::is_integral_v<T>) {
-                // this should fit into any Integer
-                return (std::numeric_limits<int>::max)();
-            } else {
-                return T();
-            }
+            return T(detail::FloatingPointNull<std::is_floating_point<T>::value>::nullValue());
         }
     };
 

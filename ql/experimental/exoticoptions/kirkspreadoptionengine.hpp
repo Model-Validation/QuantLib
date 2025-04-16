@@ -29,12 +29,8 @@
 
 namespace QuantLib {
 
-    QL_DEPRECATED_DISABLE_WARNING
-    
-    /*! \deprecated Use BasketOption and KirkEngine instead.
-                        Deprecated in version 1.37.
-    */
-    class [[deprecated("Use BasketOption and KirkEngine instead")]] KirkSpreadOptionEngine : public SpreadOption::engine {
+    //! Kirk approximation for European spread option on futures
+    class KirkSpreadOptionEngine : public SpreadOption::engine {
       public:
         KirkSpreadOptionEngine(ext::shared_ptr<BlackProcess> process1,
                                ext::shared_ptr<BlackProcess> process2,
@@ -46,8 +42,6 @@ namespace QuantLib {
         ext::shared_ptr<BlackProcess> process2_;
         Handle<Quote> rho_;
     };
-
-    QL_DEPRECATED_ENABLE_WARNING
 
 }
 

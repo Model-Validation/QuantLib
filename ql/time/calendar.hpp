@@ -110,17 +110,11 @@ namespace QuantLib {
         */
         bool isWeekend(Weekday w) const;
         /*! Returns <tt>true</tt> iff in the given market, the date is on
-            or before the first business day for that month.
-        */
-        bool isStartOfMonth(const Date& d) const;
-        //! first business day of the month to which the given date belongs
-        Date startOfMonth(const Date& d) const;
-        /*! Returns <tt>true</tt> iff in the given market, the date is on
             or after the last business day for that month.
         */
         bool isEndOfMonth(const Date& d) const;
         //! last business day of the month to which the given date belongs
-        Date endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c = ext::nullopt) const;
+        Date endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c) const;
 
         /*! Adds a date to the set of holidays for the given calendar. */
         void addHoliday(const Date&);
@@ -249,19 +243,11 @@ namespace QuantLib {
         return impl_->isBusinessDay(_d);
     }
 
-    inline bool Calendar::isStartOfMonth(const Date& d) const {
-        return d <= startOfMonth(d);
-    }
-
-    inline Date Calendar::startOfMonth(const Date& d) const {
-        return adjust(Date::startOfMonth(d), Following);
-    }
-
     inline bool Calendar::isEndOfMonth(const Date& d) const {
-        return d >= endOfMonth(d);
+        return (d.month() != adjust(d+1).month());
     }
 
-    inline Date Calendar::endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c) const {
+    inline Date Calendar::endOfMonth(const Date& d, const ext::optional<BusinessDayConvention>& c = ext::nullopt) const {
         return adjust(Date::endOfMonth(d), c ? *c : Preceding);
     }
 

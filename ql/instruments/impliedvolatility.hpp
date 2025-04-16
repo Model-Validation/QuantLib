@@ -28,7 +28,9 @@
 #include <ql/quotes/simplequote.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 
-namespace QuantLib::detail {
+namespace QuantLib {
+
+    namespace detail {
 
         //! helper class for one-asset implied-volatility calculation
         /*! The passed engine must be linked to the passed quote (see,
@@ -60,5 +62,7 @@ namespace QuantLib::detail {
         };
 
     }
+
+}
 
 #endif

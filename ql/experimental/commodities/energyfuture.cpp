@@ -76,7 +76,7 @@ namespace QuantLib {
 
         Date lastQuoteDate = index_->lastQuoteDate();
         if (lastQuoteDate >= evaluationDate - 1) {
-            quoteValue = index_->fixing(evaluationDate);
+            quoteValue = index_->price(evaluationDate);
         } else {
             quoteValue = index_->forwardPrice(evaluationDate);
             std::ostringstream message;
@@ -106,8 +106,8 @@ namespace QuantLib {
 
         calculateSecondaryCostAmounts(quantity_.commodityType(),
                                       quantity_.amount(), evaluationDate);
-        for (auto & secondaryCostAmount : secondaryCostAmounts_) {
-            Real amount = secondaryCostAmount.second.value();
+        for (SecondaryCostAmounts::const_iterator i = secondaryCostAmounts_.begin(); i != secondaryCostAmounts_.end(); ++i) {
+            Real amount = i->second.value();
             NPV_ -= amount;
         }
 

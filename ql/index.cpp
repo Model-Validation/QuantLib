@@ -42,9 +42,7 @@ namespace QuantLib {
 
     void Index::clearFixings() {
         checkNativeFixingsAllowed();
-        QL_DEPRECATED_DISABLE_WARNING
         IndexManager::instance().clearHistory(name());
-        QL_DEPRECATED_ENABLE_WARNING
     }
 
     void Index::checkNativeFixingsAllowed() {

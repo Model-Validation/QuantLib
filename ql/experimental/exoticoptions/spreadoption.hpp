@@ -29,10 +29,8 @@
 
 namespace QuantLib {
 
-    /*! \deprecated Use BasketOption and KirkEngine instead.
-                        Deprecated in version 1.37.
-    */
-    class [[deprecated("Use BasketOption and KirkEngine instead")]] SpreadOption : public MultiAssetOption {
+    //! Spread option on two assets
+    class SpreadOption : public MultiAssetOption {
       public:
         class engine;
         SpreadOption(const ext::shared_ptr<PlainVanillaPayoff>& payoff,
@@ -40,10 +38,8 @@ namespace QuantLib {
         : MultiAssetOption(payoff, exercise) {}
     };
 
-    /*! \deprecated Use BasketOption and KirkEngine instead.
-                        Deprecated in version 1.37.
-    */
-    class [[deprecated("Use BasketOption and KirkEngine instead")]] SpreadOption::engine
+    //! %Spread option %engine base class
+    class SpreadOption::engine
         : public GenericEngine<SpreadOption::arguments,
                                SpreadOption::results> {};
 

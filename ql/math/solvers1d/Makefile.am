@@ -8,7 +8,6 @@ this_include_HEADERS = \
 	brent.hpp \
 	falseposition.hpp \
 	finitedifferencenewtonsafe.hpp \
-	halley.hpp \
 	newton.hpp \
 	newtonsafe.hpp \
 	ridder.hpp \

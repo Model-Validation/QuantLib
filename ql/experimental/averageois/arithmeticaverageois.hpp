@@ -32,10 +32,8 @@ namespace QuantLib {
     class Schedule;
     class OvernightIndex;
 
-    /*! \deprecated Use OvernightIndexedSwap instead.
-                        Deprecated in version 1.36.
-    */
-    class [[deprecated("Use OvernightIndexedSwap instead")]] ArithmeticAverageOIS : public Swap {
+    //! Arithemtic Average OIS: fix vs arithmetic average of overnight rate
+    class ArithmeticAverageOIS : public Swap {
       public:
         ArithmeticAverageOIS(Type type,
                              Real nominal,
@@ -62,10 +60,7 @@ namespace QuantLib {
         //! \name Inspectors
         //@{
         Type type() const { return type_; }
-        Real nominal() const {
-            QL_REQUIRE(nominals_.size()==1, "varying nominals");
-            return nominals_[0];
-        }
+        Real nominal() const;
         std::vector<Real> nominals() const { return nominals_; }
 
         //const Schedule& schedule() { return schedule_; }
@@ -111,6 +106,14 @@ namespace QuantLib {
         Real mrs_;
         Real vol_;
     };
+
+
+    // inline
+
+    inline Real ArithmeticAverageOIS::nominal() const {
+        QL_REQUIRE(nominals_.size()==1, "varying nominals");
+        return nominals_[0];
+    }
 
 }
 

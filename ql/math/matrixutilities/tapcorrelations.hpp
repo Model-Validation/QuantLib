@@ -88,7 +88,7 @@ namespace QuantLib {
     class FrobeniusCostFunction : public CostFunction{
       public:
         FrobeniusCostFunction(Matrix target,
-                              std::function<Matrix(const Array&, Size, Size)> f,
+                              ext::function<Matrix(const Array&, Size, Size)> f,
                               Size matrixSize,
                               Size rank)
         : target_(std::move(target)), f_(std::move(f)), matrixSize_(matrixSize), rank_(rank) {}
@@ -97,7 +97,7 @@ namespace QuantLib {
 
       private:
         Matrix target_;
-        std::function<Matrix(const Array&, Size, Size)> f_;
+        ext::function<Matrix(const Array&, Size, Size)> f_;
         Size matrixSize_;
         Size rank_;
     };

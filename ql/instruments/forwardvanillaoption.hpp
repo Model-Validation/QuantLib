@@ -36,7 +36,8 @@ namespace QuantLib {
     template <class ArgumentsType>
     class ForwardOptionArguments : public ArgumentsType {
       public:
-        ForwardOptionArguments() : moneyness(Null<Real>()) {}
+        ForwardOptionArguments() : moneyness(Null<Real>()),
+                                   resetDate(Null<Date>()) {}
         void validate() const override;
         Real moneyness;
         Date resetDate;
@@ -71,7 +72,7 @@ namespace QuantLib {
         QL_REQUIRE(moneyness != Null<Real>(), "null moneyness given");
         QL_REQUIRE(moneyness > 0.0, "negative or zero moneyness given");
 
-        QL_REQUIRE(resetDate != Date(), "null reset date given");
+        QL_REQUIRE(resetDate != Null<Date>(), "null reset date given");
         QL_REQUIRE(resetDate >= Settings::instance().evaluationDate(),
                    "reset date in the past");
         QL_REQUIRE(this->exercise->lastDate() > resetDate,

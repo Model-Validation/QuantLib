@@ -29,7 +29,9 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/time/schedule.hpp>
 
-namespace QuantLib::detail {
+namespace QuantLib {
+
+    namespace detail {
 
         Rate effectiveFixedRate(const std::vector<Spread>& spreads,
                                 const std::vector<Rate>& caps,
@@ -53,3 +55,5 @@ namespace QuantLib::detail {
         }
 
     }
+
+}

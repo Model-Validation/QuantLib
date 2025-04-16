@@ -174,9 +174,9 @@ namespace QuantLib {
                 npvp1.push_back(npvTmp1);
             }
         }
-        // end probability computation
+        // end probabkility computation
 
-        Date expiry1 = Date(), expiry0;
+        Date expiry1 = Null<Date>(), expiry0;
         Time expiry1Time = Null<Real>(), expiry0Time;
 
         do {

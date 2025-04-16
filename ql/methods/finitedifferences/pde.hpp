@@ -29,18 +29,12 @@
 #include <ql/math/transformedgrid.hpp>
 
 namespace QuantLib {
-
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
-    class [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]] PdeSecondOrderParabolic {
+    class PdeSecondOrderParabolic {
     public:
       virtual ~PdeSecondOrderParabolic() = default;
       virtual Real diffusion(Time t, Real x) const = 0;
       virtual Real drift(Time t, Real x) const = 0;
       virtual Real discount(Time t, Real x) const = 0;
-      QL_DEPRECATED_DISABLE_WARNING
       virtual void
       generateOperator(Time t, const TransformedGrid& tg, TridiagonalOperator& L) const {
           for (Size i = 1; i < tg.size() - 1; i++) {
@@ -57,12 +51,8 @@ namespace QuantLib {
         }
     };
 
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
     template <class PdeClass>
-    class [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]] PdeConstantCoeff : public PdeSecondOrderParabolic  {
+    class PdeConstantCoeff : public PdeSecondOrderParabolic  {
     public:
         PdeConstantCoeff(const typename PdeClass::argument_type &process,
                          Time t, Real x) {
@@ -81,14 +71,8 @@ namespace QuantLib {
         Real discount_;
     };
 
-    QL_DEPRECATED_ENABLE_WARNING
-
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
     template <class PdeClass>
-    class [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]] GenericTimeSetter:public TridiagonalOperator::TimeSetter {
+    class GenericTimeSetter:public TridiagonalOperator::TimeSetter {
     public:
         template <class T>
         GenericTimeSetter(const Array &grid, T process) :
@@ -102,23 +86,17 @@ namespace QuantLib {
         PdeClass pde_;
     };
 
-    /*! \deprecated Part of the old FD framework; copy this function
-                    in your codebase if needed.
-                    Deprecated in version 1.37.
-    */
     template <class PdeClass>
-    class [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]] PdeOperator:public TridiagonalOperator {
+    class PdeOperator:public TridiagonalOperator {
     public:
         template <class T>
         PdeOperator(const Array& grid,
                     T process,
                     Time residualTime = 0.0) :
             TridiagonalOperator(grid.size()) {
-            QL_DEPRECATED_DISABLE_WARNING
             timeSetter_ =
                 ext::shared_ptr<GenericTimeSetter<PdeClass> >(
                      new GenericTimeSetter<PdeClass>(grid, process));
-            QL_DEPRECATED_ENABLE_WARNING
             setTime(residualTime);
         }
     };

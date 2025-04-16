@@ -362,6 +362,9 @@
     <ClCompile Include="rounding.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sampledcurve.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="schedule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -504,7 +507,7 @@
     <ClCompile Include="crosscurrencyratehelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="multipleresetscoupons.cpp">
+    <ClCompile Include="subperiodcoupons.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="zerocouponswap.cpp">

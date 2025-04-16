@@ -38,7 +38,8 @@
 namespace QuantLib {
 
     struct Pillar {
-        //! Alternatives ways of determining the pillar date
+        //! Enumeration for pillar determination alternatives
+        /*! These alternatives specify the determination of the pillar date. */
         enum Choice {
             MaturityDate,     //! instruments maturity date
             LastRelevantDate, //! last date relevant for instrument pricing
@@ -127,14 +128,12 @@ namespace QuantLib {
     template <class TS>
     class RelativeDateBootstrapHelper : public BootstrapHelper<TS> {
       public:
-        explicit RelativeDateBootstrapHelper(const Handle<Quote>& quote,
-                                             bool updateDates = true);
-        explicit RelativeDateBootstrapHelper(Real quote,
-                                             bool updateDates = true);
+        explicit RelativeDateBootstrapHelper(const Handle<Quote>& quote);
+        explicit RelativeDateBootstrapHelper(Real quote);
         //! \name Observer interface
         //@{
         void update() override {
-            if (updateDates_ && evaluationDate_ != Settings::instance().evaluationDate()) {
+            if (evaluationDate_ != Settings::instance().evaluationDate()) {
                 evaluationDate_ = Settings::instance().evaluationDate();
                 initializeDates();
             }
@@ -144,8 +143,6 @@ namespace QuantLib {
       protected:
         virtual void initializeDates() = 0;
         Date evaluationDate_;
-      private:
-        bool updateDates_;
     };
 
     // template definitions
@@ -213,22 +210,20 @@ namespace QuantLib {
             QL_FAIL("not a bootstrap-helper visitor");
     }
 
-
     template <class TS>
     RelativeDateBootstrapHelper<TS>::RelativeDateBootstrapHelper(
-        const Handle<Quote>& quote, bool updateDates)
-    : BootstrapHelper<TS>(quote), updateDates_(updateDates) {
-        if (updateDates) {
-            this->registerWith(Settings::instance().evaluationDate());
-            evaluationDate_ = Settings::instance().evaluationDate();
-        }
+                                                    const Handle<Quote>& quote)
+    : BootstrapHelper<TS>(quote) {
+        this->registerWith(Settings::instance().evaluationDate());
+        evaluationDate_ = Settings::instance().evaluationDate();
     }
 
     template <class TS>
-    RelativeDateBootstrapHelper<TS>::RelativeDateBootstrapHelper(
-        Real quote, bool updateDates)
-    : RelativeDateBootstrapHelper<TS>(makeQuoteHandle(quote), updateDates) {}
-
+    RelativeDateBootstrapHelper<TS>::RelativeDateBootstrapHelper(Real quote)
+    : BootstrapHelper<TS>(quote) {
+        this->registerWith(Settings::instance().evaluationDate());
+        evaluationDate_ = Settings::instance().evaluationDate();
+    }
 
     inline std::ostream& operator<<(std::ostream& out,
                                     Pillar::Choice t) {

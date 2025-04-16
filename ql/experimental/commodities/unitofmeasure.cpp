@@ -37,7 +37,8 @@ namespace QuantLib {
     UnitOfMeasure::UnitOfMeasure(const std::string& name,
                                  const std::string& code,
                                  UnitOfMeasure::Type unitType) {
-        auto i =
+        std::map<std::string,
+            ext::shared_ptr<UnitOfMeasure::Data> >::const_iterator i =
             unitsOfMeasure_.find(name);
         if (i != unitsOfMeasure_.end()) {
             data_ = i->second;

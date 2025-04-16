@@ -50,7 +50,7 @@ namespace QuantLib {
              "inconsistent number of points");
 
         Array xOffsets(nPoints);
-        const std::function<Real(Real)> emptyFct;
+        const ext::function<Real(Real)> emptyFct;
 
         for (const auto& iter : *mesher->layout()) {
             const auto ix = Integer(iter.coordinates()[direction]);

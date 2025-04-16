@@ -54,7 +54,7 @@ namespace QuantLib {
         Size direction, Side side)
     : bc_(ext::make_shared<FdmTimeDepDirichletBoundary>(
             mesher,
-            std::function<Real (Real)>(
+            ext::function<Real (Real)>(
                 DiscountedCashflowAtBoundary(
                     maturityTime, valueOnBoundary, rTS)),
             direction, side)) {

@@ -24,9 +24,10 @@
 #include <ql/experimental/math/fireflyalgorithm.hpp>
 #include <ql/experimental/math/hybridsimulatedannealing.hpp>
 #include <ql/experimental/math/particleswarmoptimization.hpp>
+#include <ql/functional.hpp>
 #include <ql/math/optimization/differentialevolution.hpp>
 #include <ql/math/optimization/simulatedannealing.hpp>
-#include <functional>
+#include <ql/tuple.hpp>
 #include <iomanip>
 #include <iostream>
 #include <utility>
@@ -131,8 +132,8 @@ Real printFunction(Problem& p, const Array& x) {
 
 class TestFunction : public CostFunction {
 public:
-    typedef std::function<Real(const Array&)> RealFunc;
-    typedef std::function<Array(const Array&)> ArrayFunc;
+    typedef ext::function<Real(const Array&)> RealFunc;
+    typedef ext::function<Array(const Array&)> ArrayFunc;
     explicit TestFunction(RealFunc f, ArrayFunc fs = ArrayFunc())
     : f_(std::move(f)), fs_(std::move(fs)) {}
     explicit TestFunction(Real (*f)(const Array&), Array (*fs)(const Array&) = nullptr)
