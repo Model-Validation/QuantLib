@@ -161,9 +161,10 @@ namespace QuantLib {
         BusinessDayConvention paymentConvention,
         DayCounter dayCounter,
         ext::shared_ptr<YoYInflationIndex> yii,
-        Handle<YieldTermStructure> nominalTermStructure)
+        Handle<YieldTermStructure> nominalTermStructure,
+        const Date& start)
     : YearOnYearInflationSwapHelper(quote, swapObsLag, maturity, std::move(calendar), paymentConvention,
-                                    std::move(dayCounter), std::move(yii), CPI::AsIndex, std::move(nominalTermStructure)) {}
+                                    std::move(dayCounter), std::move(yii), CPI::AsIndex, std::move(nominalTermStructure), start) {}
 
 
     Real YearOnYearInflationSwapHelper::impliedQuote() const {
