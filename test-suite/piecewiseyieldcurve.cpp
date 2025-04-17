@@ -563,7 +563,7 @@ void testBMACurveConsistency(CommonVars& vars,
     vars.calendar = JointCalendar(BMAIndex().fixingCalendar(),
                                   USDLibor(3*Months).fixingCalendar(),
                                   JoinHolidays);
-    vars.today = vars.calendar.adjust(Date::todaysDate());
+    vars.today = vars.calendar.adjust(Settings::instance().evaluationDate());
     Settings::instance().evaluationDate() = vars.today;
     vars.settlement =
         vars.calendar.advance(vars.today,vars.settlementDays,Days);
@@ -665,7 +665,7 @@ BOOST_AUTO_TEST_CASE(testLogLinearDiscountConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-log-linear discount curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<Discount,LogLinear,IterativeBootstrap>(vars);
     testBMACurveConsistency<Discount,LogLinear,IterativeBootstrap>(vars);
@@ -676,7 +676,7 @@ BOOST_AUTO_TEST_CASE(testLinearDiscountConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-linear discount curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<Discount,Linear,IterativeBootstrap>(vars);
     testBMACurveConsistency<Discount,Linear,IterativeBootstrap>(vars);
@@ -687,7 +687,7 @@ BOOST_AUTO_TEST_CASE(testLinearZeroConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-linear zero-yield curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<ZeroYield,Linear,IterativeBootstrap>(vars);
     testBMACurveConsistency<ZeroYield,Linear,IterativeBootstrap>(vars);
@@ -698,7 +698,7 @@ BOOST_AUTO_TEST_CASE(testSplineZeroConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-cubic zero-yield curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<ZeroYield,Cubic,IterativeBootstrap>(
                    vars,
@@ -717,7 +717,7 @@ BOOST_AUTO_TEST_CASE(testLinearForwardConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-linear forward-rate curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<ForwardRate,Linear,IterativeBootstrap>(vars);
     testBMACurveConsistency<ForwardRate,Linear,IterativeBootstrap>(vars);
@@ -728,7 +728,7 @@ BOOST_AUTO_TEST_CASE(testFlatForwardConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of piecewise-flat forward-rate curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
 
     testCurveConsistency<ForwardRate,BackwardFlat,IterativeBootstrap>(vars);
     testBMACurveConsistency<ForwardRate,BackwardFlat,IterativeBootstrap>(vars);
@@ -760,7 +760,7 @@ BOOST_AUTO_TEST_CASE(testConvexMonotoneForwardConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of convex monotone forward-rate curve...");
 
-    CommonVars vars;
+    CommonVars vars(Date(15, April, 2025));
     testCurveConsistency<ForwardRate,ConvexMonotone,IterativeBootstrap>(vars);
 
     testBMACurveConsistency<ForwardRate,ConvexMonotone,
@@ -771,9 +771,8 @@ BOOST_AUTO_TEST_CASE(testLocalBootstrapConsistency) {
     BOOST_TEST_MESSAGE(
         "Testing consistency of local-bootstrap algorithm...");
 
-    CommonVars vars;
-    testCurveConsistency<ForwardRate,ConvexMonotone,LocalBootstrap>(
-                                              vars, ConvexMonotone(), 1.0e-6);
+    CommonVars vars(Date(15, April, 2025));
+    testCurveConsistency<ForwardRate, ConvexMonotone, LocalBootstrap>(vars, ConvexMonotone(), 1.0e-6);
     testBMACurveConsistency<ForwardRate,ConvexMonotone,LocalBootstrap>(
                                               vars, ConvexMonotone(), 1.0e-7);
 }
