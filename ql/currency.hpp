@@ -123,6 +123,18 @@ namespace QuantLib {
              const Rounding& rounding,
              Currency triangulationCurrency = Currency(),
              std::set<std::string> minorUnitCodes = {});
+
+        friend class boost::serialization::access;
+        template <class Archive> void serialize(Archive& ar, const unsigned int version) {
+            ar & name;
+            ar & code;
+            ar & numeric;
+            ar & symbol;
+            ar & fractionSymbol;
+            ar & fractionsPerUnit;
+            ar & rounding;
+            ar & minorUnitCodes;
+        }
     };
 
 
