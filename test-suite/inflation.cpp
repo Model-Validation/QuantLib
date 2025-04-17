@@ -1881,7 +1881,7 @@ BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
 
     ext::shared_ptr<PiecewiseZeroInflationCurve<Linear> > pZITS =
         ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-            evaluationDate, baseDate, frequency, dc, helpers);
+            evaluationDate, baseDate, observationLag, frequency, dc, helpers);
     pZITS->enableExtrapolation();
 
     BOOST_CHECK_NO_THROW(pZITS->zeroRate(10.0));
@@ -1920,7 +1920,7 @@ BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     auto pYYTS =
         ext::make_shared<PiecewiseYoYInflationCurve<Linear>>(
                 evaluationDate, baseDate, baseYYRate,
-                yoy->frequency(), dc, yoyHelpers);
+                observationLag, yoy->frequency(), dc, yoyHelpers);
     pYYTS->enableExtrapolation();
 
     BOOST_CHECK_NO_THROW(pYYTS->yoyRate(10.0));
