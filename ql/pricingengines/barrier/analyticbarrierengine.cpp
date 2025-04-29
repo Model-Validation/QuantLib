@@ -56,7 +56,10 @@ namespace QuantLib {
         results_.additionalResults["dividendDiscount"] = dividendDiscount();
         results_.additionalResults["riskFreeDiscount"] = riskFreeDiscount();
         results_.additionalResults["strike"] = strike;
-        
+        results_.additionalResults["barrier"] = barrier();
+        results_.additionalResults["rebate"] = rebate();
+        results_.additionalResults["timeToExpiry"] = process_->time(arguments_.exercise->lastDate());
+
         switch (payoff->optionType()) {
           case Option::Call:
             switch (barrierType) {
@@ -65,24 +68,28 @@ namespace QuantLib {
                     results_.value = C(1,1) + E(1);
                 else
                     results_.value = A(1) - B(1) + D(1,1) + E(1);
+                results_.additionalResults["BarrierOptionType"] = std::string("CallDownAndIn");
                 break;
               case Barrier::UpIn:
                 if (strike >= barrier())
                     results_.value = A(1) + E(-1);
                 else
                     results_.value = B(1) - C(-1,1) + D(-1,1) + E(-1);
+                results_.additionalResults["BarrierOptionType"] = std::string("CallUpAndIn");
                 break;
               case Barrier::DownOut:
                 if (strike >= barrier())
                     results_.value = A(1) - C(1,1) + F(1);
                 else
                     results_.value = B(1) - D(1,1) + F(1);
+                results_.additionalResults["BarrierOptionType"] = std::string("CallDownAndOut");
                 break;
               case Barrier::UpOut:
                 if (strike >= barrier())
                     results_.value = F(-1);
                 else
                     results_.value = A(1) - B(1) + C(-1,1) - D(-1,1) + F(-1);
+                results_.additionalResults["BarrierOptionType"] = std::string("CallUpAndOut");
                 break;
             }
             break;
@@ -93,24 +100,28 @@ namespace QuantLib {
                     results_.value = B(-1) - C(1,-1) + D(1,-1) + E(1);
                 else
                     results_.value = A(-1) + E(1);
+                results_.additionalResults["BarrierOptionType"] = std::string("PutDownAndIn");
                 break;
               case Barrier::UpIn:
                 if (strike >= barrier())
                     results_.value = A(-1) - B(-1) + D(-1,-1) + E(-1);
                 else
                     results_.value = C(-1,-1) + E(-1);
+                results_.additionalResults["BarrierOptionType"] = std::string("PutUpAndIn");
                 break;
               case Barrier::DownOut:
                 if (strike >= barrier())
                     results_.value = A(-1) - B(-1) + C(1,-1) - D(1,-1) + F(1);
                 else
                     results_.value = F(1);
+                results_.additionalResults["BarrierOptionType"] = std::string("PutDownAndOut");
                 break;
               case Barrier::UpOut:
                 if (strike >= barrier())
                     results_.value = B(-1) - D(-1,-1) + F(-1);
                 else
                     results_.value = A(-1) - C(-1,-1) + F(-1);
+                results_.additionalResults["BarrierOptionType"] = std::string("PutUpAndOut");
                 break;
             }
             break;
@@ -177,7 +188,9 @@ namespace QuantLib {
 
     Rate AnalyticBarrierEngine::mu() const {
         Volatility vol = volatility();
-        return (riskFreeRate() - dividendYield())/(vol * vol) - 0.5;
+        Real mu_ = (riskFreeRate() - dividendYield())/(vol * vol) - 0.5;
+        results_.additionalResults["mu"] = mu_;
+        return mu_;
     }
 
     Real AnalyticBarrierEngine::muSigma() const {
@@ -189,9 +202,10 @@ namespace QuantLib {
             std::log(underlying()/strike())/stdDeviation() + muSigma();
         Real N1 = f_(phi*x1);
         Real N2 = f_(phi*(x1-stdDeviation()));
-
-        return phi*(underlying() * dividendDiscount() * N1
-                      - strike() * riskFreeDiscount() * N2);
+        Real A_ = phi * (underlying() * dividendDiscount() * N1 - strike() * riskFreeDiscount() * N2);
+        results_.additionalResults["Haug_A"] = A_;
+        results_.additionalResults["phi"] = phi;
+        return A_;
     }
 
     Real AnalyticBarrierEngine::B(Real phi) const {
@@ -199,8 +213,11 @@ namespace QuantLib {
             std::log(underlying()/barrier())/stdDeviation() + muSigma();
         Real N1 = f_(phi*x2);
         Real N2 = f_(phi*(x2-stdDeviation()));
-        return phi*(underlying() * dividendDiscount() * N1
+        Real B_ = phi*(underlying() * dividendDiscount() * N1
                       - strike() * riskFreeDiscount() * N2);
+        results_.additionalResults["Haug_B"] = B_;
+        results_.additionalResults["phi"] = phi;
+        return B_;
     }
 
     Real AnalyticBarrierEngine::C(Real eta, Real phi) const {
@@ -212,8 +229,12 @@ namespace QuantLib {
         Real N2 = f_(eta*(y1-stdDeviation()));
         // when N1 or N2 are zero, the corresponding powHS might
         // be infinity, resulting in a NaN for their products.  The limit should be 0.
-        return phi*(underlying() * dividendDiscount() * (N1 == 0.0 ? Real(0.0) : Real(powHS1 * N1))
+        Real C_ = phi*(underlying() * dividendDiscount() * (N1 == 0.0 ? Real(0.0) : Real(powHS1 * N1))
                       - strike() * riskFreeDiscount() * (N2 == 0.0 ? Real(0.0) : Real(powHS0 * N2)));
+        results_.additionalResults["Haug_C"] = C_;
+        results_.additionalResults["eta"] = eta;
+        results_.additionalResults["phi"] = phi;
+        return C_;
     }
 
     Real AnalyticBarrierEngine::D(Real eta, Real phi) const {
@@ -225,11 +246,16 @@ namespace QuantLib {
         Real N2 = f_(eta*(y2-stdDeviation()));
         // when N1 or N2 are zero, the corresponding powHS might
         // be infinity, resulting in a NaN for their products.  The limit should be 0.
-        return phi*(underlying() * dividendDiscount() * (N1 == 0.0 ? Real(0.0) : Real(powHS1 * N1))
+        Real D_ = phi*(underlying() * dividendDiscount() * (N1 == 0.0 ? Real(0.0) : Real(powHS1 * N1))
                       - strike() * riskFreeDiscount() * (N2 == 0.0 ? Real(0.0) : Real(powHS0 * N2)));
+        results_.additionalResults["Haug_D"] = D_;
+        results_.additionalResults["eta"] = eta;
+        results_.additionalResults["phi"] = phi;
+        return D_;
     }
 
     Real AnalyticBarrierEngine::E(Real eta) const {
+        Real E_;
         if (rebate() > 0) {
             Real powHS0 = std::pow(barrier()/underlying(), 2 * mu());
             Real x2 =
@@ -240,17 +266,22 @@ namespace QuantLib {
             Real N2 = f_(eta*(y2 - stdDeviation()));
             // when N2 is zero, powHS0 might be infinity, resulting in
             // a NaN for their product.  The limit should be 0.
-            return rebate() * riskFreeDiscount() * (N1 - (N2 == 0.0 ? Real(0.0) : Real(powHS0 * N2)));
+            E_ = rebate() * riskFreeDiscount() * (N1 - (N2 == 0.0 ? Real(0.0) : Real(powHS0 * N2)));
         } else {
-            return 0.0;
+            E_ = 0.0;
         }
+        results_.additionalResults["Haug_E"] = E_;
+        results_.additionalResults["eta"] = eta;
+        return E_;
     }
 
     Real AnalyticBarrierEngine::F(Real eta) const {
+        Real F_;
         if (rebate() > 0) {
             Rate m = mu();
             Volatility vol = volatility();
             Real lambda = std::sqrt(m*m + 2.0*riskFreeRate()/(vol * vol));
+            results_.additionalResults["lambda"] = lambda;
             Real HS = barrier()/underlying();
             Real powHSplus = std::pow(HS, m + lambda);
             Real powHSminus = std::pow(HS, m - lambda);
@@ -263,10 +294,13 @@ namespace QuantLib {
             Real N2 = f_(eta * (z - 2.0 * lambda * sigmaSqrtT));
             // when N1 or N2 are zero, the corresponding powHS might
             // be infinity, resulting in a NaN for their product.  The limit should be 0.
-            return rebate() * ((N1 == 0.0 ? Real(0.0) : Real(powHSplus * N1)) + (N2 == 0.0 ? Real(0.0) : Real(powHSminus * N2)));
+            F_ = rebate() * ((N1 == 0.0 ? Real(0.0) : Real(powHSplus * N1)) + (N2 == 0.0 ? Real(0.0) : Real(powHSminus * N2)));
         } else {
-            return 0.0;
+            F_ = 0.0;
         }
+        results_.additionalResults["Haug_F"] = F_;
+        results_.additionalResults["eta"] = eta;
+        return F_;
     }
 
 }
