@@ -93,6 +93,15 @@ namespace QuantLib {
         Real modelValue() const override;
         Real blackPrice(Volatility volatility) const override;
 
+        // populated in call to blackPrice():
+        Real timeToExpiry() const { return timeToExpiry_; }
+        Real swapLength() const { return swapLength_; }
+        Real strike() const { return strike_; }
+        Real atmForward() const { return atmForward_; }
+        Real annuity() const { return annuity_; };
+        Real vega() const { return vega_; }
+        Real stdDev() const { return stdDev_; }
+
         const ext::shared_ptr<FixedVsFloatingSwap>& underlying() const {
             calculate();
             return swap_;
@@ -126,8 +135,13 @@ namespace QuantLib {
         mutable Rate exerciseRate_;
         mutable ext::shared_ptr<FixedVsFloatingSwap> swap_;
         mutable ext::shared_ptr<Swaption> swaption_;
+        mutable Real timeToExpiry_ = Null<Real>();
+        mutable Real swapLength_ = Null<Real>();
+        mutable Real atmForward_ = Null<Real>();
+        mutable Real annuity_ = Null<Real>();
+        mutable Real vega_ = Null<Real>();
+        mutable Real stdDev_ = Null<Real>();
     };
-
 }
 
 #endif
