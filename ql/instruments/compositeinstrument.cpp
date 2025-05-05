@@ -88,6 +88,7 @@ namespace QuantLib {
                 additionalResults_[prefix + it->first] = it->second;
             }
             additionalResults_[prefix + "multiplier"] = i->second;
+            additionalResults_[prefix + "npv"] = i->first->NPV();
         }
     }
 
