@@ -418,7 +418,7 @@ namespace QuantLib {
                                              terminationDateConvention);
         }
 
-        if (*endOfMonth_ && calendar_.isEndOfMonth(seed) && endOfMonthConvention_.has_value()) {
+        if (*endOfMonth_ && calendar_.isEndOfMonth(seed)) {
             // adjust to end of month
             auto& eomConv = endOfMonthConvention_.get_value_or(convention);
             for (Size i = 1; i < dates_.size() - 1; ++i)
