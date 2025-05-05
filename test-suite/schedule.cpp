@@ -121,6 +121,7 @@ BOOST_AUTO_TEST_CASE(testEomAdjustment) {
                       .withCalendar(TARGET())
                       .withFrequency(Monthly)
                       .withConvention(Following)
+                      .withEndOfMonthConvention(Following)
                       .endOfMonth();
 
     check_dates(s2, {
