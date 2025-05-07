@@ -140,8 +140,7 @@ struct CommonVars {
             rpi->addFixing(rpiSchedule[i], fixData[i]);
         }
         // link from yoy index to yoy TS
-        bool interp = false;
-        iir = ext::make_shared<YoYInflationIndex>(rpi, interp, hy);
+        iir = ext::make_shared<YoYInflationIndex>(rpi, hy);
 
         ext::shared_ptr<YieldTermStructure> nominalFF(
                 new FlatForward(evaluationDate, 0.05, ActualActual(ActualActual::ISDA)));
@@ -374,7 +373,7 @@ BOOST_AUTO_TEST_CASE(testConsistency) {
         }
     } // pricer loop
     // remove circular refernce
-    vars.hy.linkTo(ext::shared_ptr<YoYInflationTermStructure>());
+    vars.hy.reset();
 }
 
 
@@ -447,7 +446,7 @@ BOOST_AUTO_TEST_CASE(testParity) {
         }
     }
     // remove circular refernce
-    vars.hy.linkTo(ext::shared_ptr<YoYInflationTermStructure>());
+    vars.hy.reset();
 }
 
 BOOST_AUTO_TEST_CASE(testCachedValue) {
@@ -519,7 +518,7 @@ BOOST_AUTO_TEST_CASE(testCachedValue) {
                         <<" diff was "<<(fabs(floor->NPV()-cachedFloorNPVbac)));
 
     // remove circular refernce
-    vars.hy.linkTo(ext::shared_ptr<YoYInflationTermStructure>());
+    vars.hy.reset();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -420,18 +420,11 @@ namespace QuantLib {
 
         if (*endOfMonth_ && calendar_.isEndOfMonth(seed)) {
             // adjust to end of month
-            if (endOfMonthConvention_) {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = calendar_.endOfMonth(dates_[i], endOfMonthConvention_);
-            } else if (convention == Unadjusted) {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = Date::endOfMonth(dates_[i]);
-            } else {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = calendar_.endOfMonth(dates_[i]);
-            }
+            auto& eomConv = endOfMonthConvention_.get_value_or(convention);
+            for (Size i = 1; i < dates_.size() - 1; ++i)
+                dates_[i] = calendar_.adjust(Date::endOfMonth(dates_[i]), eomConv);
         } else {
-            for (Size i=1; i<dates_.size()-1; ++i)
+            for (Size i = 1; i < dates_.size() - 1; ++i)
                 dates_[i] = calendar_.adjust(dates_[i], convention);
         }
 

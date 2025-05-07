@@ -171,14 +171,18 @@ void InterpolatedYoYOptionletStripper<Interpolator1D, Bootstrap>::initialize(
     BusinessDayConvention bdc = YoYCapFloorTermPriceSurface_->businessDayConvention();
     DayCounter dc = YoYCapFloorTermPriceSurface_->dayCounter();
 
-    // switch from caps to floors when out of floors
-    Rate maxFloor = YoYCapFloorTermPriceSurface_->floorStrikes().back();
-    YoYInflationCapFloor::Type useType = YoYInflationCapFloor::Floor;
-    Period TPmin = YoYCapFloorTermPriceSurface_->maturities().front();
-    // create a "fake index" based on Generic, this should work
-    // provided that the lag and frequency are correct
-    RelinkableHandle<YoYInflationTermStructure> hYoY(YoYCapFloorTermPriceSurface_->YoYTS());
-    ext::shared_ptr<YoYInflationIndex> anIndex(new YYGenericCPI(frequency_, false, false, lag_, Currency(), hYoY));
+        // switch from caps to floors when out of floors
+        Rate maxFloor = YoYCapFloorTermPriceSurface_->floorStrikes().back();
+        YoYInflationCapFloor::Type useType = YoYInflationCapFloor::Floor;
+        Period TPmin = YoYCapFloorTermPriceSurface_->maturities().front();
+        // create a "fake index" based on Generic, this should work
+        // provided that the lag and frequency are correct
+        RelinkableHandle<YoYInflationTermStructure> hYoY(
+                                       YoYCapFloorTermPriceSurface_->YoYTS());
+        ext::shared_ptr<YoYInflationIndex> anIndex(
+                                           new YYGenericCPI(frequency_,
+                                                            false, lag_,
+                                                            Currency(), hYoY));
 
     // strip each K separatly
     for (Size i = 0; i < YoYCapFloorTermPriceSurface_->strikes().size(); i++) {

@@ -185,17 +185,18 @@ namespace QuantLib {
         bootstrap_.calculate();
     }
 
+    template <class I, template <class> class B, class T>
+    Rate PiecewiseZeroInflationCurve<I,B,T>::zeroRateImpl(Time t) const {
+        calculate();
+        return base_curve::zeroRateImpl(t);
+    }
+
     template <class I, template<class> class B, class T>
     void PiecewiseZeroInflationCurve<I,B,T>::update() {
         base_curve::update();
         LazyObject::update();
     }
 
-    template <class I, template <class> class B, class T>
-    Rate PiecewiseZeroInflationCurve<I, B, T>::zeroRateImpl(Time t) const {
-        this->calculate();
-        return base_curve::zeroRateImpl(t);
-    }
 }
 
 #endif
