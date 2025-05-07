@@ -146,6 +146,14 @@ namespace QuantLib {
         }
         swaption_->setPricingEngine(engine);
         Real value = swaption_->NPV();
+
+        timeToExpiry_ = swaption_->result<Real>("timeToExpiry");
+        swapLength_ = swaption_->result<Real>("swapLength");
+        atmForward_ = swaption_->result<Real>("atmForward");
+        annuity_ = swaption_->result<Real>("annuity");
+        vega_ = swaption_->result<Real>("vega");
+        stdDev_ = swaption_->result<Real>("stdDev");
+
         swaption_->setPricingEngine(engine_);
         return value;
     }
