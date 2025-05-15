@@ -51,13 +51,6 @@ namespace QuantLib {
         return forecastFixing(d1, d2, t);
     }
 
-    Date IborIndex::maturityDate(const Date& valueDate) const {
-        return fixingCalendar().advance(valueDate,
-                                        tenor_,
-                                        convention_,
-                                        endOfMonth_);
-    }
-
     ext::shared_ptr<IborIndex> IborIndex::clone(
                                const Handle<YieldTermStructure>& h) const {
         return ext::make_shared<IborIndex>(
