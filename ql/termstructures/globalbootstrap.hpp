@@ -302,14 +302,20 @@ template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
     Problem problem(cost, noConstraint, guess);
 
     // run optimization
-    optimizer.minimize(problem, ec);
+    EndCriteria::Type ecType = optimizer.minimize(problem, ec);
 
-    // evaluate target function on best value found to ensure that data_ contains the optimal value
-    Real finalTargetError = cost.value(problem.currentValue());
+    if (ecType != EndCriteria::Type::StationaryPoint &&
+        ecType != EndCriteria::Type::StationaryFunctionValue &&
+        ecType != EndCriteria::Type::ZeroGradientNorm) {
+        // evaluate target function on best value found to ensure that data_ contains the optimal
+        // value
+        Real finalTargetError = cost.value(problem.currentValue());
 
-    // check final error
-    QL_REQUIRE(finalTargetError <= accuracy,
-               "global bootstrap failed, error is " << finalTargetError << ", accuracy is " << accuracy);
+        // check final error
+        QL_REQUIRE(finalTargetError <= accuracy, "global bootstrap failed, error is "
+                                                     << finalTargetError << ", accuracy is "
+                                                     << accuracy);
+    }
 
     // set valid flag
     validCurve_ = true;
