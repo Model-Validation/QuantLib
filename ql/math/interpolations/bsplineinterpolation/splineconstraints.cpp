@@ -41,14 +41,15 @@ namespace QuantLib {
         const std::vector<std::vector<double>>& A_constraints,
         const std::vector<double>& b_rhs,
         const std::vector<double>& c_linearForm,
-        const std::vector<ConstraintType>& constraintTypes
+        const std::vector<ConstraintType>& constraintTypes,
+        bool fitData
         // Size nParameters,
         // const std::vector<double>& parameters,
         // const std::vector<std::vector<double>>& B_parameterMatrix,
         // const std::vector<std::vector<double>>& C_parameterMatrix)
         )
     : numVariables_(numVariables), numEqualities_(0), numInequalities_(0), numParameters_(0),
-      scsDataIsUpToDate_(false), isSolved_(false) {
+      fitData_(fitData), scsDataIsUpToDate_(false), isSolved_(false) {
         if (!P_quadForm.empty()) {
             P_ = EigenUtilities::convertToEigenSparseMatrix(P_quadForm);
         } else {
@@ -80,8 +81,8 @@ namespace QuantLib {
                    "Vector c_linearForm must be empty or have length "
                        << numVariables << ". Provided: " << c_linearForm.size());
 
-        c_list_ = c_linearForm.empty() ? std::vector<double>(numVariables, 0.0) :
-                                         std::vector<double>(c_linearForm);
+        c_list_ = c_linearForm.empty() ? std::vector<Real>(numVariables, 0.0) :
+                                         std::vector<Real>(c_linearForm);
         c_ = Eigen::Map<Eigen::VectorXd>(c_list_.data(), c_list_.size());
 
         QL_REQUIRE(constraintTypes.size() == numConstraints_ || constraintTypes.empty(),
@@ -111,9 +112,10 @@ namespace QuantLib {
                                          const std::vector<Eigen::Triplet<double>>& A_triplets,
                                          const std::vector<double>& b_rhs,
                                          const std::vector<double>& c_linearForm,
-                                         const std::vector<ConstraintType>& constraintTypes)
+                                         const std::vector<ConstraintType>& constraintTypes,
+                                         bool fitData)
     : numVariables_(numVariables), numEqualities_(0), numInequalities_(0), numParameters_(0),
-      P_(P_quadForm), A_triplets_(A_triplets), b_list_(b_rhs),
+      P_(P_quadForm), A_triplets_(A_triplets), b_list_(b_rhs), fitData_(fitData),
       scsDataIsUpToDate_(false), isSolved_(false) {
 
         QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables && static_cast<Size>(P_.cols()) == numVariables,
@@ -274,14 +276,14 @@ namespace QuantLib {
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), numParameters_); // Zero initialized (Eigen::VectorXd::Zero(numParameters_)
         hasParameters_ = true;
 
-        QL_REQUIRE(static_cast<Size>(B_new.rows()) == numConstraints_ && static_cast<Size>(B_new.cols()) == nNewParameters,
-                   "Matrix B_new must be " << numConstraints_ << "x" << nNewParameters
-                                           << ". Provided: " << B_new.rows() << "x"
-                                           << B_new.cols());
+        //QL_REQUIRE(static_cast<Size>(B_new.rows()) == numConstraints_ && static_cast<Size>(B_new.cols()) == nNewParameters,
+        //           "Matrix B_new must be " << numConstraints_ << "x" << nNewParameters
+        //                                   << ". Provided: " << B_new.rows() << "x"
+        //                                   << B_new.cols());
 
-        QL_REQUIRE(static_cast<Size>(C_new.rows()) == numVariables_ && static_cast<Size>(C_new.cols()) == nNewParameters,
-                   "Matrix C_new must be " << numVariables_ << "x" << nNewParameters << ". Provided: "
-                                           << C_new.rows() << "x" << C_new.cols());
+        //QL_REQUIRE(static_cast<Size>(C_new.rows()) == numVariables_ && static_cast<Size>(C_new.cols()) == nNewParameters,
+        //           "Matrix C_new must be " << numVariables_ << "x" << nNewParameters << ". Provided: "
+        //                                   << C_new.rows() << "x" << C_new.cols());
 
 
         std::vector<Eigen::Triplet<double>> B_new_triplets =
@@ -324,6 +326,24 @@ namespace QuantLib {
             isOrdered_ = false;
             scsDataIsUpToDate_ = false;
         }
+    }
+
+    Eigen::SparseMatrix<Real> SplineConstraints::getSliceOfA(Integer firstRow, Integer lastRow) const {
+        std::vector<Eigen::Triplet<double>> subTriplets;
+
+        // Filter triplets for rows >= firstRow
+        Size nRows = 0;
+        for (const auto& triplet : A_triplets_) {
+            if (triplet.row() >= firstRow && triplet.row() < lastRow) {
+                subTriplets.emplace_back(triplet.row() - firstRow, // Adjust row index
+                                         triplet.col(), triplet.value());
+            }
+        }
+
+        // Create the sub-matrix
+        Eigen::SparseMatrix<double> subMatrix(lastRow - firstRow, numVariables_);
+        subMatrix.setFromTriplets(subTriplets.begin(), subTriplets.end());
+        return subMatrix;
     }
 
     //void SplineConstraints::setParameterMatrixC(

@@ -119,7 +119,7 @@ namespace PermutationIterators {
 namespace QuantLib {
 
     /*!
-     * \brief Class for managing spline constraints.
+     * \brief Class for managing spline constraints and objective forms
      */
     class SplineConstraints {
       public:
@@ -141,13 +141,15 @@ namespace QuantLib {
          * \param b_rhs Right-hand side vector.
          * \param c_linearForm Linear form vector.
          * \param constraintTypes Vector of constraint types.
+         * \param fitData Whether to fit data or set as constraints
          */
         SplineConstraints(Size numVariables,
                           const std::vector<std::vector<double>>& P_quadForm = {},
                           const std::vector<std::vector<double>>& A_constraints = {},
                           const std::vector<double>& b_rhs = {},
                           const std::vector<double>& c_linearForm = {},
-                          const std::vector<ConstraintType>& constraintTypes = {});
+                          const std::vector<ConstraintType>& constraintTypes = {},
+                          bool fitData = false);
 
         /*!
          * \brief Constructor for SplineConstraints with specified Eigen matrices and vectors.
@@ -157,13 +159,15 @@ namespace QuantLib {
          * \param b_rhs Right-hand side vector.
          * \param c_linearForm Linear form vector.
          * \param constraintTypes Vector of constraint types.
+         * \param fitData Whether to fit data or set as constraints
          */
         SplineConstraints(Size numVariables,
                           const Eigen::SparseMatrix<double>& P_quadForm,
                           const std::vector<Eigen::Triplet<double>>& A_triplets = {},
                           const std::vector<double>& b_rhs = {},
                           const std::vector<double>& c_linearForm = {},
-                          const std::vector<ConstraintType>& constraintTypes = {});
+                          const std::vector<ConstraintType>& constraintTypes = {},
+                          bool fitData = false);
 
         ///*!
         // * \brief Default destructor for SplineConstraints.
@@ -208,18 +212,24 @@ namespace QuantLib {
          * \return The number of variables.
          */
         Size getNumVariables() const;
+        // ReSharper disable once CppInconsistentNaming
+        Integer get_num_variables() const { return static_cast<Integer>(getNumVariables()); }
 
         /*!
          * \brief Get the number of constraints.
          * \return The number of constraints.
          */
         Size getNConstraints() const;
+        // ReSharper disable once CppInconsistentNaming
+        Integer get_num_constraints() const { return static_cast<Integer>(getNConstraints()); }
 
         /*!
          * \brief Get the number of parameters.
          * \return The number of parameters.
          */
         Size getNParameters() const;
+        // ReSharper disable once CppInconsistentNaming
+        Integer get_num_parameters() const { return static_cast<Integer>(getNParameters()); }
 
         /*!
          * \brief Update the right-hand side vector.
@@ -252,6 +262,71 @@ namespace QuantLib {
          * \brief Pop the state from the stack.
          */
         void pop();
+
+        /*!
+         * \brief Get a slice of matrix A, this is a hack to solve overdetermined problems.
+         */
+        Eigen::SparseMatrix<Real> getSliceOfA(Integer firstRow, Integer lastRow) const;
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<std::vector<Real>> get_p_matrix() const {
+            // Initialize the output vector
+            std::vector<std::vector<Real>> result(this->P_.rows(),
+                                                  std::vector<Real>(this->P_.cols(), 0.0));
+
+            // Convert the sparse matrix to a dense std::vector<std::vector<Real>>
+            for (int k = 0; k < this->P_.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<Real>::InnerIterator it(this->P_, k); it; ++it) {
+                    result[it.row()][it.col()] = it.value();
+                }
+            }
+
+            return result;
+        }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<std::vector<Real>> get_a_matrix() const {
+            // Initialize the output vector
+            std::vector<std::vector<Real>> result(this->A_.rows(),
+                                                  std::vector<Real>(this->A_.cols(), 0.0));
+
+            // Convert the sparse matrix to a dense std::vector<std::vector<Real>>
+            for (int k = 0; k < this->A_.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<Real>::InnerIterator it(this->A_, k); it; ++it) {
+                    result[it.row()][it.col()] = it.value();
+                }
+            }
+
+            return result;
+        }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<Real> get_b_vector() const {
+            return this->b_list_;
+        }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<Real> get_c_vector() const { return this->c_list_; }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<Real> get_parameters() const { return this->parameters_list_; }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<ConstraintType> get_constraint_types() const {
+            return this->constraintTypes_;
+        }
+        bool fitData_ = false; // TODO: Hack, should not be public like this
+
+        void setP(Eigen::SparseMatrix<Real>& P) {
+            P_ = P;
+            scsDataIsUpToDate_ = false;
+        }
+        void setCVector(Eigen::VectorXd& c) {
+            c_ = c;
+            c_list_ = std::vector<Real>(c_.data(), c_.data() + c_.size());
+
+            scsDataIsUpToDate_ = false;
+        }
 
       private:
         Size numVariables_, numConstraints_, numEqualities_, numInequalities_, numParameters_;
