@@ -18,6 +18,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+#include "ql/math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp"
 #include <ql/cashflows/fixedratecoupon.hpp>
 #include <ql/instruments/claim.hpp>
 #include <ql/math/interpolations/forwardflatinterpolation.hpp>
@@ -143,7 +144,15 @@ namespace QuantLib {
         ext::shared_ptr<FlatHazardRate> castC3 =
             ext::dynamic_pointer_cast<FlatHazardRate>(*probability_)) {
             // no dates to extract
-        } else{
+        } else if (ext::shared_ptr<InterpolatedHazardRateCurve<BSplineModel>> castC4 =
+                       ext::dynamic_pointer_cast<InterpolatedHazardRateCurve<BSplineModel>>(
+                           *probability_)) {
+            if (castC4->interpolator_.get_structure()->getSplineSegments()[0]->degree() == 0) { // TODO add method on InterpolatedCurve that gives maximum degree of all segments
+                cDates = castC4->dates();
+            } else {
+                QL_FAIL("BSpline method must be zero-th order");
+            }
+        } else {
             QL_FAIL("Credit curve must be flat forward interpolated");
         }
 
