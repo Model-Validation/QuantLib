@@ -27,18 +27,20 @@
 #ifndef ql_bootstrap_traits_hpp
 #define ql_bootstrap_traits_hpp
 
+#include "instantaneousforwardcurve.hpp"
+#include "termforwardcurve.hpp"
 #include <ql/termstructures/yield/discountcurve.hpp>
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/interpolatedsimplezerocurve.hpp>
 #include <ql/termstructures/yield/forwardcurve.hpp>
-#include <ql/termstructures/yield/rtcurve.hpp>
 #include <ql/termstructures/bootstraphelper.hpp>
+#include <optional>
 
 namespace QuantLib {
 
     namespace detail {
-        const Real avgRate = 0.05;
-        const Real maxRate = 1.0;
+        constexpr Real avgRate = 0.05;
+        constexpr Real maxRate = 1.0;
     }
 
     //! Discount-curve traits
@@ -50,6 +52,13 @@ namespace QuantLib {
         };
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
+
+        static std::string name() { return "Discount"; }
+
+        static DiscountFactor rate(const ext::shared_ptr<YieldTermStructure>& c, Time t,
+                const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            return c->discount(t);
+        }
 
         // start of curve data
         static Date initialDate(const YieldTermStructure* c) {
@@ -123,6 +132,15 @@ namespace QuantLib {
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
 
+        static std::string name() { return "ZeroYield"; }
+
+        static Rate
+        rate(const ext::shared_ptr<YieldTermStructure>& c,
+             Time t,
+             const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            return c->zeroRate(t, Continuous, Annual, true);
+        }
+
         // start of curve data
         static Date initialDate(const YieldTermStructure* c) {
             return c->referenceDate();
@@ -159,7 +177,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? Real(r*2.0) : Real(r/2.0);
+                return r<0.0 ? static_cast<Real>(r * 2.0) : static_cast<Real>(r / 2.0);
             }
             // no constraints.
             // We choose as min a value very unlikely to be exceeded.
@@ -173,7 +191,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
+                return r<0.0 ? static_cast<Real>(r / 2.0) : static_cast<Real>(r * 2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
@@ -203,6 +221,15 @@ namespace QuantLib {
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
 
+        static std::string name() { return "ForwardRate"; }
+
+        static Rate
+        rate(const ext::shared_ptr<YieldTermStructure>& c,
+             Time t,
+             const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            return c->forwardRate(t, t, Continuous, Annual, true);
+        }
+
         // start of curve data
         static Date initialDate(const YieldTermStructure* c) {
             return c->referenceDate();
@@ -227,8 +254,7 @@ namespace QuantLib {
 
             // extrapolate
             Date d = c->dates()[i];
-            return c->forwardRate(d, d, c->dayCounter(),
-                                  Continuous, Annual, true);
+            return c->forwardRate(d, d, c->dayCounter(), Continuous, Annual, true);
         }
 
         // possible constraints based on previous values
@@ -254,7 +280,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
+                return r<0.0 ? static_cast<Real>(r / 2.0) : static_cast<Real>(r * 2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
@@ -266,11 +292,69 @@ namespace QuantLib {
                                 Real forward,
                                 Size i) {
             data[i] = forward;
-            if (i==1)
-                data[0] = forward; // first point is updated as well
+            //if (i==1)
+            //    data[0] = forward; // first point is updated as well
         }
         // upper bound for convergence loop
         static Size maxIterations() { return 100; }
+    };
+
+    //! termed forward-curve traits
+    struct TermForwardRate: ForwardRate {
+        // interpolated curve type
+        template <class Interpolator>
+        struct curve {
+            typedef InterpolatedTermForwardCurve<Interpolator> type;
+        };
+
+        static std::string name() { return "TermForwardRate"; }
+
+        static Rate rate(const ext::shared_ptr<YieldTermStructure>& c,
+                         Time t,
+                         const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            if (index.has_value()) {
+                // Use index_
+                auto idx = index.value();
+                Integer days = static_cast<Integer>(
+                    std::round(t / idx->dayCounter().yearFraction(Date(367), Date(368))));
+                Date date1 = c->referenceDate() + days;
+                Date date2 = idx->advance(date1);
+
+                // Do something with index
+                return c->forwardRate(date1, date2, idx->dayCounter(), Simple,
+                                      NoFrequency, true);
+
+            }
+            return c->termForwardRate(t, true);
+        }
+
+        template <class C>
+        static Real guess(Size i,
+                          const C* c,
+                          bool validData,
+                          Size) // firstAliveHelper
+        {
+            if (validData) // previous iteration value
+                return c->data()[i];
+
+            if (i == 1) // first pillar
+                return detail::avgRate;
+
+            // extrapolate
+            Date d = c->dates()[i];
+            return c->termForwardRate(d, c->dayCounter(), Simple, NoFrequency, true);
+        }
+
+    };
+
+    struct InstantaneousForwardRate : ForwardRate {
+        // interpolated curve type
+        template <class Interpolator>
+        struct curve {
+            typedef InterpolatedInstantaneousForwardCurve<Interpolator> type;
+        };
+
+        static std::string name() { return "InstantaneousForwardRate"; }
     };
 
     struct RateTime {
@@ -282,6 +366,14 @@ namespace QuantLib {
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
 
+        static std::string name() { return "RateTime"; }
+
+        static Rate
+        rate(const ext::shared_ptr<YieldTermStructure>& c,
+             Time t,
+             const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            return c->zeroRate(t, Continuous, NoFrequency, true) * t;
+        }
 
         public:
         // start of curve data
@@ -342,6 +434,15 @@ namespace QuantLib {
         // helper class
         typedef BootstrapHelper<YieldTermStructure> helper;
 
+        static std::string name() { return "SimpleZeroYield"; }
+
+        static Rate
+        rate(const ext::shared_ptr<YieldTermStructure>& c,
+             Time t,
+             const std::optional<ext::shared_ptr<InterestRateIndex>>& index = std::nullopt) {
+            return c->zeroRate(t, Simple, NoFrequency, true);
+        }
+
         // start of curve data
         static Date initialDate(const YieldTermStructure* c) {
             return c->referenceDate();
@@ -366,8 +467,7 @@ namespace QuantLib {
 
             // extrapolate
             Date d = c->dates()[i];
-            return c->zeroRate(d, c->dayCounter(),
-                               Simple, Annual, true);
+            return c->zeroRate(d, c->dayCounter(), Simple, NoFrequency, true);
         }
 
         // possible constraints based on previous values
@@ -380,7 +480,7 @@ namespace QuantLib {
             Real result;
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                result = r<0.0 ? Real(r*2.0) : r/2.0;
+                result = r<0.0 ? static_cast<Real>(r*2.0) : r/2.0;
             } else {
                 // no constraints.
                 // We choose as min a value very unlikely to be exceeded.
@@ -397,7 +497,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? Real(r/2.0) : r*2.0;
+                return r < 0.0 ? static_cast<Real>(r / 2.0) : r * 2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
