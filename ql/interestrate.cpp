@@ -37,7 +37,7 @@ namespace QuantLib {
             freqMakesSense_ = true;
             QL_REQUIRE(freq!=Once && freq!=NoFrequency,
                        "frequency not allowed for this interest rate");
-            freq_ = Real(freq);
+            freq_ = static_cast<Real>(freq);
         }
     }
 
@@ -53,12 +53,12 @@ namespace QuantLib {
           case Continuous:
             return std::exp(r_*t);
           case SimpleThenCompounded:
-            if (t<=1.0/Real(freq_))
+            if (t<=1.0/static_cast<Real>(freq_))
                 return 1.0 + r_*t;
             else
                 return std::pow(1.0+r_/freq_, freq_*t);
           case CompoundedThenSimple:
-            if (t>1.0/Real(freq_))
+            if (t>1.0/static_cast<Real>(freq_))
                 return 1.0 + r_*t;
             else
                 return std::pow(1.0+r_/freq_, freq_*t);
@@ -86,29 +86,29 @@ namespace QuantLib {
                 r = (compound - 1.0)/t;
                 break;
               case Compounded:
-                r = (std::pow(compound, 1.0/(Real(freq)*t))-1.0)*Real(freq);
+                r = (std::pow(compound, 1.0/(static_cast<Real>(freq)*t))-1.0)*static_cast<Real>(freq);
                 break;
               case Continuous:
                 r = std::log(compound)/t;
                 break;
               case SimpleThenCompounded:
-                if (t<=1.0/Real(freq))
+                if (t<=1.0/static_cast<Real>(freq))
                     r = (compound - 1.0)/t;
                 else
-                    r = (std::pow(compound, 1.0/(Real(freq)*t))-1.0)*Real(freq);
+                    r = (std::pow(compound, 1.0/(static_cast<Real>(freq)*t))-1.0)*static_cast<Real>(freq);
                 break;
               case CompoundedThenSimple:
-                if (t>1.0/Real(freq))
+                if (t>1.0/static_cast<Real>(freq))
                     r = (compound - 1.0)/t;
                 else
-                    r = (std::pow(compound, 1.0/(Real(freq)*t))-1.0)*Real(freq);
+                    r = (std::pow(compound, 1.0/(static_cast<Real>(freq)*t))-1.0)*static_cast<Real>(freq);
                 break;
               default:
                 QL_FAIL("unknown compounding convention ("
-                        << Integer(comp) << ")");
+                        << static_cast<Integer>(comp) << ")");
             }
         }
-        return InterestRate(r, resultDC, comp, freq);
+        return {r, resultDC, comp, freq};
     }
 
 
@@ -142,7 +142,7 @@ namespace QuantLib {
                         "for this interest rate");
               default:
                 out << "simple compounding up to "
-                    << Integer(12/ir.frequency()) << " months, then "
+                    << static_cast<Integer>(12 / ir.frequency()) << " months, then "
                     << ir.frequency() << " compounding";
             }
             break;
@@ -154,13 +154,13 @@ namespace QuantLib {
                         "for this interest rate");
               default:
                 out << "compounding up to "
-                    << Integer(12/ir.frequency()) << " months, then "
+                    << static_cast<Integer>(12 / ir.frequency()) << " months, then "
                     << ir.frequency() << " simple compounding";
             }
             break;
           default:
             QL_FAIL("unknown compounding convention ("
-                    << Integer(ir.compounding()) << ")");
+                    << static_cast<Integer>(ir.compounding()) << ")");
         }
         return out;
     }

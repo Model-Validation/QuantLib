@@ -56,7 +56,7 @@ namespace QuantLib {
         const DayCounter& dayCounter() const { return dc_; }
         Compounding compounding() const { return comp_; }
         Frequency frequency() const {
-            return freqMakesSense_ ? Frequency(Integer(freq_)) : NoFrequency;
+            return freqMakesSense_ ? static_cast<Frequency>(static_cast<Integer>(freq_)) : NoFrequency;
         }
         //@}
 
@@ -155,6 +155,10 @@ namespace QuantLib {
         InterestRate equivalentRate(Compounding comp,
                                     Frequency freq,
                                     Time t) const {
+            if (t == 0.0 ) {
+                return {r_, dc_, comp, freq};
+            }
+
             return impliedRate(compoundFactor(t), dc_, comp, freq, t);
         }
 
@@ -174,6 +178,13 @@ namespace QuantLib {
                        "later than d2 (" << d2 << ")");
             Time t1 = dc_.yearFraction(d1, d2, refStart, refEnd);
             Time t2 = resultDC.yearFraction(d1, d2, refStart, refEnd);
+            if (t1 == 0.0 || t2 == 0.0) {
+                // There is a use case when both are 0, in case only one of them is, it makes less sense but this might be best
+                // but this seems more reasonable. We use 1/1/1901 to be sure we do not get 0s in any day count rule.
+                const Real conversion = dc_.yearFraction(Date(367), Date(368), refStart, refEnd) /
+                    resultDC.yearFraction(Date(367), Date(368), refStart, refEnd);
+                return {conversion * r_, resultDC, comp, freq};
+            }
             return impliedRate(compoundFactor(t1), resultDC, comp, freq, t2);
         }
         //@}
