@@ -31,19 +31,23 @@
 #include <vector>
 
 namespace QuantLib {
+    template <class Traits>
+    class SpreadedInterpolation;
 
     //! Helper class to build interpolated term structures
-    /*! Interpolated term structures can use proected or private
+    /*! Interpolated term structures can use protected or private
         inheritance from this class to obtain the relevant data
         members and implement correct copy behavior.
     */
     template <class Interpolator>
     class InterpolatedCurve {
+      template <class Traits>
+      friend class SpreadedInterpolation;
+        friend class IsdaCdsEngine;
+
       public:
         ~InterpolatedCurve() = default;
-        const Interpolation getInterpolation() const { return interpolation_; }
-       
-    friend class SpreadedInterpolation;
+        Interpolation getInterpolation() const { return interpolation_; }
 
       protected:
         //! \name Building
