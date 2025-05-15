@@ -41,7 +41,7 @@ namespace QuantLib {
       public:
         InterestRateIndex(std::string familyName,
                           const Period& tenor,
-                          Natural settlementDays,
+                          Natural fixingDays,
                           Currency currency,
                           Calendar fixingCalendar,
                           DayCounter dayCounter);
@@ -49,7 +49,16 @@ namespace QuantLib {
         //@{
         std::string name() const override;
         Calendar fixingCalendar() const override;
-        bool isValidFixingDate(const Date& fixingDate) const override;
+
+        //! Advances or adjusts dates based on the fixing calendar and additional settings in the
+        //! index
+        virtual Date advance(const Date& d) const {
+            return this->fixingCalendar().advance(d, this->tenor_);
+        }
+
+        virtual Date adjust(const Date& d) const { return this->fixingCalendar().adjust(d); }
+
+        bool isValidFixingDate(const Date& d) const override;
         Rate fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const override;
         //@}
         //! \name Observer interface
@@ -74,6 +83,7 @@ namespace QuantLib {
         */
         virtual Date valueDate(const Date& fixingDate) const;
         virtual Date maturityDate(const Date& valueDate) const = 0;
+
         //@}
         //! \name Fixing calculations
         //@{
@@ -120,7 +130,7 @@ namespace QuantLib {
     inline Date InterestRateIndex::valueDate(const Date& fixingDate) const {
         QL_REQUIRE(isValidFixingDate(fixingDate),
                    fixingDate << " is not a valid fixing date");
-        return fixingCalendar().advance(fixingDate, fixingDays_, Days);
+        return fixingCalendar().advance(fixingDate, static_cast<Integer>(fixingDays_), Days);
     }
 
     inline Rate InterestRateIndex::pastFixing(const Date& fixingDate) const {
