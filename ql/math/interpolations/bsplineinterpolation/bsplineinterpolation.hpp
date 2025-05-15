@@ -85,9 +85,7 @@ namespace QuantLib {
              * \return The interpolated value.
              */
             Real value(Real x) const override {
-                const Real xMin = splineStructure_->range().first;
-                const Real xMax = splineStructure_->range().second;
-                if (x < xMin || x > xMax) {
+                if (x < this->xMin() || x > this->xMax()) {
                     return this->extrapolate(x);
                 }
 
@@ -95,39 +93,39 @@ namespace QuantLib {
             }
 
             /*!
-             * \brief Get the primitive of the interpolation (not implemented).
+             * \brief Get the primitive of the interpolation.
              * \param x The point at which to get the primitive.
              * \return The primitive value.
              */
             Real primitive(Real x) const override {
-                QL_FAIL("Primitive calculation not implemented "
-                        "for B-spline interpolation");
+                if (x < this->xMin() || x > this->xMax()) {
+                    return this->extrapolate(x);
+                }
+                return splineStructure_->value(coefficients_, x, -1);
             }
 
             /*!
-             * \brief Get the first derivative of the interpolation (not implemented).
+             * \brief Get the first derivative of the interpolation.
              * \param x The point at which to get the derivative.
              * \return The first derivative value.
              */
             Real derivative(Real x) const override {
-                const Real xMin = this->xBegin_[0];
-                const Real xMax = this->xBegin_[xSize_ - 1];
-                if (x < xMin || x > xMax) {
+                if (x < this->xMin() || x > this->xMax()) {
                     return this->extrapolate(x);
                 }
-                //QL_FAIL("First derivative calculation not implemented for B-spline interpolation");
-                //splineStructure_->evaluateAll(x);
-                return 0.0;
+                return splineStructure_->value(coefficients_, x, 1);
             }
 
             /*!
-             * \brief Get the second derivative of the interpolation (not implemented).
+             * \brief Get the second derivative of the interpolation.
              * \param x The point at which to get the second derivative.
              * \return The second derivative value.
              */
             Real secondDerivative(Real x) const override {
-                QL_FAIL("Second derivative calculation not implemented "
-                        "for B-spline interpolation");
+                if (x < this->xMin() || x > this->xMax()) {
+                    return this->extrapolate(x);
+                }
+                return splineStructure_->value(coefficients_, x, 2);
             }
 
             /*!
@@ -141,6 +139,10 @@ namespace QuantLib {
              * \return The maximum x value.
              */
             Real xMax() const override { return splineStructure_->range().second; }
+
+            [[nodiscard]] std::vector<Real> getCoefficients() const override {
+                return {coefficients_.data(), coefficients_.data() + coefficients_.size()};
+            }
 
           private:
             Size xSize_; /*!< Size of the x values. */
@@ -162,6 +164,7 @@ namespace QuantLib {
         /*! \pre the \f$ x \f$ values must be sorted.
 
         */
+        BSplineInterpolation() = default;
 
         /*!
          * \brief Constructor for BSplineInterpolation with composite spline structure.
@@ -177,6 +180,8 @@ namespace QuantLib {
                              const I1& xEnd,
                              const I2& yBegin,
                              const ext::shared_ptr<BSplineStructure>& splineStructure) {
+            splineStructure_ = splineStructure;
+
             impl_ = ext::make_shared<detail::BSplineInterpolationImpl<I1, I2>>(xBegin, xEnd, yBegin,
                                                                                splineStructure);
             impl_->update();
@@ -193,11 +198,26 @@ namespace QuantLib {
                              const ext::shared_ptr<BSplineStructure>& splineStructure) {
             using ConstIterator = std::vector<double>::const_iterator;
 
+            splineStructure_ = splineStructure;
             impl_ =
                 ext::make_shared<detail::BSplineInterpolationImpl<ConstIterator, ConstIterator>>(
                     x.begin(), x.end(), y.begin(), splineStructure);
             impl_->update();
         }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] ext::shared_ptr<BSplineStructure> get_structure() const {
+            return splineStructure_;
+        }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] std::vector<Real> get_coefficients() const {
+            return impl_->getCoefficients();
+        }
+
+    private:
+        ext::shared_ptr<BSplineStructure> splineStructure_;
+
     };
 
     //! %BSplineModel interpolation factory and traits (unfortunately BSpline is taken)
@@ -208,7 +228,7 @@ namespace QuantLib {
          * \brief Constructor for BSplineModel.
          * \param splineStructure Shared pointer to the B-spline structure.
          */
-        BSplineModel(ext::shared_ptr<BSplineStructure> splineStructure)
+        BSplineModel(ext::shared_ptr<BSplineStructure> splineStructure = {})
         : splineStructure_(std::move(splineStructure)) {}
 
         /*!
@@ -221,8 +241,12 @@ namespace QuantLib {
          * \return Interpolation object.
          */
         template <class I1, class I2>
-        BSplineInterpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
-            return BSplineInterpolation(xBegin, xEnd, yBegin, splineStructure_);
+        [[nodiscard]] BSplineInterpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
+            return {xBegin, xEnd, yBegin, splineStructure_};
+        }
+
+        [[nodiscard]] ext::shared_ptr<BSplineInterpolation> interpolate(const std::vector<Real>& x, const std::vector<Real>& y) const {
+            return ext::make_shared<BSplineInterpolation>(x.begin(), x.end(), y.begin(), splineStructure_);
         }
 
         // ReSharper disable once CppVariableCanBeMadeConstexpr
@@ -234,13 +258,16 @@ namespace QuantLib {
          * \brief Get the start point of the spline structure.
          * \return The start point.
          */
-        Real getStartPoint() const { return splineStructure_->range().first; }
+        [[nodiscard]] Real getStartPoint() const { return splineStructure_->range().first; }
 
         /*!
          * \brief Get the end point of the spline structure.
          * \return The end point.
          */
-        Real getEndPoint() const { return splineStructure_->range().second; }
+        [[nodiscard]] Real getEndPoint() const { return splineStructure_->range().second; }
+
+        // ReSharper disable once CppInconsistentNaming
+        [[nodiscard]] ext::shared_ptr<BSplineStructure> get_structure() const { return splineStructure_;}
 
       private:
         ext::shared_ptr<BSplineStructure> splineStructure_; /*!< Shared pointer to the B-spline structure. */
