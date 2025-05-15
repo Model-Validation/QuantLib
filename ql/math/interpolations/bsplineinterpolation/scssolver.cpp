@@ -117,6 +117,9 @@ namespace SCS {
         scs_set_default_settings(&scs_settings_);
         // Disable verbose output
         scs_settings_.verbose = 0;
+        scs_settings_.eps_abs = 1e-12;
+        scs_settings_.eps_rel = 1e-12;
+        scs_settings_.eps_infeas = 1e-13;
 
         scs_work_ = scs_init(&scs_data_, &scs_cone_, &scs_settings_);
 
