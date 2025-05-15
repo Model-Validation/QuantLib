@@ -37,7 +37,7 @@ namespace QuantLib {
     template <class Interpolator>
     class InterpolatedDefaultDensityCurve
         : public DefaultDensityStructure,
-          protected InterpolatedCurve<Interpolator> {
+          public InterpolatedCurve<Interpolator> {
       public:
         InterpolatedDefaultDensityCurve(
             const std::vector<Date>& dates,
