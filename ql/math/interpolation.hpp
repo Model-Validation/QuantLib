@@ -68,6 +68,8 @@ namespace QuantLib {
             virtual Real primitive(Real) const = 0;
             virtual Real derivative(Real) const = 0;
             virtual Real secondDerivative(Real) const = 0;
+
+            virtual std::vector<QuantLib::Real> getCoefficients() const = 0;
         };
         ext::shared_ptr<Impl> impl_;
 
@@ -100,6 +102,8 @@ namespace QuantLib {
                 Real x1 = xMin(), x2 = xMax();
                 return (x >= x1 && x <= x2) || close(x, x1) || close(x, x2);
             }
+
+            std::vector<Real> getCoefficients() const override { return std::vector<Real>(0); }
 
           protected:
             Size locate(Real x) const {
