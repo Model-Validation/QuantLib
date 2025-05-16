@@ -47,7 +47,7 @@ namespace QuantLib {
     MakeCreditDefaultSwap::operator ext::shared_ptr<CreditDefaultSwap>() const {
 
         Date tradeDate = (tradeDate_ != Null<Date>()) ? tradeDate_ : Settings::instance().evaluationDate();
-        Date upfrontDate = WeekendsOnly().advance(tradeDate, cashSettlementDays_, Days);
+        Date upfrontDate = WeekendsOnly().advance(tradeDate, static_cast<Integer>(cashSettlementDays_), Days);
 
         Date protectionStart;
         if (rule_ == DateGeneration::CDS2015 || rule_ == DateGeneration::CDS) {
@@ -72,8 +72,8 @@ namespace QuantLib {
 
         ext::shared_ptr<CreditDefaultSwap> cds =
             ext::make_shared<CreditDefaultSwap>(
-                side_, nominal_, upfrontRate_, couponRate_, schedule, Following,
-                dayCounter_, true, true, protectionStart, upfrontDate,
+                side_, nominal_, upfrontRate_, couponRate_, schedule, Following, dayCounter_, true,
+            CreditDefaultSwap::atDefault, protectionStart, upfrontDate,
                 ext::shared_ptr<Claim>(), lastPeriodDayCounter_, true, tradeDate, cashSettlementDays_);
 
         cds->setPricingEngine(engine_);
