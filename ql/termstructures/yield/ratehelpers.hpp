@@ -46,6 +46,28 @@ namespace QuantLib {
     typedef BootstrapHelper<YieldTermStructure> RateHelper;
     typedef RelativeDateBootstrapHelper<YieldTermStructure>
                                                         RelativeDateRateHelper;
+    //! Rate helper for tha lets Bootstrapper add free interpolation points in order to control the curve more
+    // e.g. when that interpolation is underdetermined for the curve.
+    class NullRateHelper : public RateHelper {
+      public:
+        NullRateHelper(const Date& pillarDate) : RateHelper(0.0) {
+            earliestDate_ = latestDate_ = maturityDate_ = latestRelevantDate_ = pillarDate_ = pillarDate;
+        }
+        //! \name RateHelper interface
+        //@{
+        Real impliedQuote() const override { return 0.0; }
+        //@}
+        //! \name Visitability
+        //@{
+        void accept(AcyclicVisitor& v) override {
+            auto* v1 = dynamic_cast<Visitor<NullRateHelper>*>(&v);
+            if (v1 != nullptr)
+                v1->visit(*this);
+            else
+                RateHelper::accept(v);
+        };
+        //@}
+    };
 
     //! Rate helper for bootstrapping over IborIndex futures prices
     class FuturesRateHelper : public RateHelper {
