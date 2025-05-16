@@ -37,7 +37,7 @@ namespace QuantLib {
 
     namespace detail {
         const Real avgHazardRate = 0.01;
-        const Real maxHazardRate = 1.0;
+        const Real maxHazardRate = 3.0;
     }
 
     //! Survival-Probability-curve traits
