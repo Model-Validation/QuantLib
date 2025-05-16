@@ -120,7 +120,7 @@ namespace QuantLib {
 
         const Handle<YieldTermStructure>& rateCurve = index_->forwardingTermStructure();
 
-        if (rateCurve.empty()) {
+        if (rateCurve.empty() || !rateCurve.currentLink()->supportsDiscount()) {
             discount_ = Null<Real>(); // might not be needed, will be checked later
         } else {
             Date paymentDate = coupon_->date();
