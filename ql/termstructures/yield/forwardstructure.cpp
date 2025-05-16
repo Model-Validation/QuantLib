@@ -23,24 +23,22 @@
 
 namespace QuantLib {
 
-    ForwardRateStructure::ForwardRateStructure(const DayCounter& dc)
-    : YieldTermStructure(dc) {}
+    ForwardRateStructure::ForwardRateStructure(const DayCounter& dayCounter)
+    : YieldTermStructure(dayCounter) {}
 
-    ForwardRateStructure::ForwardRateStructure(
-                                    const Date& refDate,
-                                    const Calendar& cal,
-                                    const DayCounter& dc,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates)
-    : YieldTermStructure(refDate, cal, dc, jumps, jumpDates) {}
+    ForwardRateStructure::ForwardRateStructure(const Date& referenceDate,
+                                               const Calendar& cal,
+                                               const DayCounter& dayCounter,
+                                               const std::vector<Handle<Quote>>& jumps,
+                                               const std::vector<Date>& jumpDates)
+    : YieldTermStructure(referenceDate, cal, dayCounter, jumps, jumpDates) {}
 
-    ForwardRateStructure::ForwardRateStructure(
-                                    Natural settlDays,
-                                    const Calendar& cal,
-                                    const DayCounter& dc,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates)
-    : YieldTermStructure(settlDays, cal, dc, jumps, jumpDates) {}
+    ForwardRateStructure::ForwardRateStructure(Natural settlementDays,
+                                               const Calendar& calendar,
+                                               const DayCounter& dayCounter,
+                                               const std::vector<Handle<Quote>>& jumps,
+                                               const std::vector<Date>& jumpDates)
+    : YieldTermStructure(settlementDays, calendar, dayCounter, jumps, jumpDates) {}
 
     Rate ForwardRateStructure::zeroYieldImpl(Time t) const {
         if (t == 0.0)
@@ -48,11 +46,11 @@ namespace QuantLib {
         // implement smarter integration if plan to use the following code
         Rate sum = 0.5*forwardImpl(0.0);
         Size N = 1000;
-        Time dt = t/N;
+        Time dt = t/static_cast<Time>(N);
         for (Time i=dt; i<t; i+=dt)
             sum += forwardImpl(i);
         sum += 0.5*forwardImpl(t);
-        return Rate(sum*dt/t);
+        return static_cast<Rate>(sum * dt / t);
     }
 
 }
