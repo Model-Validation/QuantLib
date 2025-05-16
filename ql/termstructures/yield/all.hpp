@@ -19,6 +19,9 @@
 #include <ql/termstructures/yield/piecewisezerospreadedtermstructure.hpp>
 #include <ql/termstructures/yield/quantotermstructure.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
+#include <ql/termstructures/yield/instantaneousforwardcurve.hpp>
+#include <ql/termstructures/yield/termforwardcurve.hpp>
+#include <ql/termstructures/yield/termforwardratestructure.hpp>
 #include <ql/termstructures/yield/ultimateforwardtermstructure.hpp>
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/zerospreadedtermstructure.hpp>

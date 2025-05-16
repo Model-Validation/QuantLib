@@ -39,7 +39,7 @@ namespace QuantLib {
     const Date& TermStructure::referenceDate() const {
         if (!updated_) {
             Date today = Settings::instance().evaluationDate();
-            referenceDate_ = calendar().advance(today, settlementDays(), Days);
+            referenceDate_ = calendar().advance(today, static_cast<Integer>(settlementDays()), Days);
             updated_ = true;
         }
         return referenceDate_;

@@ -316,7 +316,7 @@ namespace detail {
 
                         // otherwise use Linear while the target
                         // interpolation is not usable yet
-                        std::cout << "Overriding interpolation, using Linear";
+                        std::cout << "Overriding interpolation, using Linear\n";
                         ts_->interpolation_ = Linear().interpolate(
                             times.begin(), times.begin()+i+1, data.begin());
                     }

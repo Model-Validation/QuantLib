@@ -71,7 +71,7 @@ namespace QuantLib {
         }
     }
 
-    Eigen::VectorXd BSplineEvaluator::evaluateAll(double x) const {
+    Eigen::VectorXd BSplineEvaluator::evaluateAll(Real x) const {
         Size mu = findKnotSpan(x); // So mu >= degree + 1
         Eigen::VectorXd B = Eigen::VectorXd::Zero(numBasisFunctions_);
 
@@ -115,14 +115,14 @@ namespace QuantLib {
     }
 
     // Pre: x is within domain of the spline
-    double BSplineEvaluator::value(const Eigen::VectorXd& coefficients, double x) const {
-        QL_REQUIRE(coefficients.size() == numBasisFunctions_,
+    Real BSplineEvaluator::value(const Eigen::VectorXd& coefficients, Real x) const {
+        QL_REQUIRE(static_cast<Size>(coefficients.size()) == this->numBasisFunctions_,
                    "The size of coefficients vector must match the number of basis functions.");
 
-        Size mu = findKnotSpan(x);
+        const Size mu = findKnotSpan(x);
         evaluate(tempB1_, x, mu);
 
         // Compute the inner product with only the relevant coefficients
-        return tempB1_.dot(coefficients.segment(mu - degree_ - 1, degree_ + 1));
+        return tempB1_.dot(coefficients.segment(mu - this->degree_ - 1, this->degree_ + 1));
     }
 } // namespace QuantLib

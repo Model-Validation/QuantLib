@@ -52,6 +52,7 @@ namespace QuantLib {
         virtual std::string name() const = 0;
         //! returns the calendar defining valid fixing dates
         virtual Calendar fixingCalendar() const = 0;
+
         //! returns TRUE if the fixing date is a valid one
         virtual bool isValidFixingDate(const Date& fixingDate) const = 0;
         //! returns whether a historical fixing was stored for the given date
@@ -138,6 +139,7 @@ namespace QuantLib {
     inline bool Index::hasHistoricalFixing(const Date& fixingDate) const {
         return IndexManager::instance().hasHistoricalFixing(name(), fixingDate);
     }
+
 
 }
 
