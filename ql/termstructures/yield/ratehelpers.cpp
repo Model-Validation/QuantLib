@@ -183,9 +183,18 @@ namespace QuantLib {
 
     Real FuturesRateHelper::impliedQuote() const {
         QL_REQUIRE(termStructure_ != nullptr, "term structure not set");
-        Rate forwardRate = (termStructure_->discount(earliestDate_) /
-            termStructure_->discount(maturityDate_) - 1.0) / yearFraction_;
-        // Convexity, as FRA/futures adjustment, has been used in the
+        Rate forwardRate;
+        if (termStructure_->isTermForward()) {
+            const Time t1 = termStructure_->timeFromReference(earliestDate_);
+            //const Time t2 = termStructure_->timeFromReference(maturityDate_);
+            forwardRate = termStructure_->termForwardRate(t1, Simple).rate();
+        } else {
+            forwardRate =
+                (termStructure_->discount(earliestDate_) / termStructure_->discount(maturityDate_) -
+                 1.0) /
+                yearFraction_;
+        }
+        //Convexity, as FRA/futures adjustment, has been used in the
         // past to take into account futures margining vs FRA.
         // Therefore, there's no requirement for it to be non-negative.
         Rate futureRate = forwardRate + convexityAdjustment();
@@ -457,11 +466,17 @@ namespace QuantLib {
         QL_REQUIRE(termStructure_ != nullptr, "term structure not set");
         if (useIndexedCoupon_)
             return iborIndex_->fixing(fixingDate_, true);
-        else
+        else {
+            if (termStructure_->isTermForward()) {
+                return termStructure_->termForwardRate(earliestDate_, iborIndex_->dayCounter(),
+                                                       Continuous);
+            }
             return (termStructure_->discount(earliestDate_) /
                         termStructure_->discount(maturityDate_) -
                     1.0) /
                    spanningTime_;
+            //  TODO Check this, should it be Simple not Continous?
+        }
     }
 
     void FraRateHelper::setTermStructure(YieldTermStructure* t) {

@@ -56,12 +56,13 @@ namespace QuantLib {
             const DayCounter& dayCounter = DayCounter(),
             const std::vector<Handle<Quote> >& jumps = {},
             const std::vector<Date>& jumpDates = {});
-        ForwardRateStructure(
-            Natural settlementDays,
-            const Calendar& cal,
-            const DayCounter& dayCounter = DayCounter(),
-            const std::vector<Handle<Quote> >& jumps = {},
-            const std::vector<Date>& jumpDates = {});
+
+        ForwardRateStructure(Natural settlementDays,
+                             const Calendar& calendar,
+                             const DayCounter& dayCounter = DayCounter(),
+                             const std::vector<Handle<Quote>>& jumps = {},
+                             const std::vector<Date>& jumpDates = {});
+        Rate zeroYieldImpl(Time t) const override;
         //@}
       protected:
         /*! \name Calculations
@@ -71,43 +72,22 @@ namespace QuantLib {
             range check has already been performed; therefore, they
             must assume that extrapolation is required.
         */
-        //@{
-        //! instantaneous forward-rate calculation
-        virtual Rate forwardImpl(Time) const = 0;
-        /*! Returns the zero yield rate for the given date calculating it
-            from the instantaneous forward rate \f$ f(t) \f$ as
-            \f[
-            z(t) = \int_0^t f(\tau) d\tau
-            \f]
-
-            \warning This default implementation uses an highly inefficient
-                     and possibly wildly inaccurate numerical integration.
-                     Derived classes should override it if a more efficient
-                     implementation is available.
-        */
-        virtual Rate zeroYieldImpl(Time) const;
-        //@}
 
         //! \name YieldTermStructure implementation
         //@{
         /*! Returns the discount factor for the given date calculating it
             from the zero rate as \f$ d(t) = \exp \left( -z(t) t \right) \f$
         */
-        DiscountFactor discountImpl(Time) const override;
+        DiscountFactor discountImpl(Time t) const override {
+            if (t == 0.0)   // this acts as a safe guard in cases where
+                return 1.0; // zeroYieldImpl(0.0) would throw.
+
+            Rate r = zeroYieldImpl(t);
+            return static_cast<DiscountFactor>(std::exp(-r * t));
+        }
+        //Rate zeroYieldImpl(Time t) const override;
         //@}
     };
-
-
-    // inline definitions
-
-    inline DiscountFactor ForwardRateStructure::discountImpl(Time t) const {
-        if (t == 0.0)     // this acts as a safe guard in cases where
-            return 1.0;   // zeroYieldImpl(0.0) would throw.
-
-        Rate r = zeroYieldImpl(t);
-        return DiscountFactor(std::exp(-r*t));
-    }
-
 }
 
 #endif

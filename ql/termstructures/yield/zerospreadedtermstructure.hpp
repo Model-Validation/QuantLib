@@ -69,7 +69,7 @@ namespace QuantLib {
         Rate zeroYieldImpl(Time) const override;
         //! returns the spreaded forward rate
         /* This method must disappear should the spread become a curve */
-        Rate forwardImpl(Time) const;
+        Rate forwardImpl(Time) const override;
       private:
         Handle<YieldTermStructure> originalCurve_;
         Handle<Quote> spread_;

@@ -45,7 +45,19 @@ namespace QuantLib {
                   Handle<YieldTermStructure> h = {});
         //! \name InterestRateIndex interface
         //@{
-        Date maturityDate(const Date& valueDate) const override;
+        Date advance(const Date& d) const override {
+            return this->fixingCalendar().advance(d, this->tenor(), this->businessDayConvention(),
+                                                  this->endOfMonth());
+        }
+
+        Date adjust(const Date& d) const override {
+            return this->fixingCalendar().adjust(d, this->businessDayConvention());
+        }
+
+        Date maturityDate(const Date& valueDate) const override {
+            return this->advance(valueDate);
+        }
+
         Rate forecastFixing(const Date& fixingDate) const override;
         // @}
         //! \name Inspectors
@@ -100,6 +112,7 @@ namespace QuantLib {
 
     // inline
 
+
     inline BusinessDayConvention IborIndex::businessDayConvention() const {
         return convention_;
     }
@@ -114,9 +127,17 @@ namespace QuantLib {
                                           Time t) const {
         QL_REQUIRE(!termStructure_.empty(),
                    "null term structure set to this instance of " << name());
+        if (termStructure_->isTermForward()) {
+            const Time t1 = termStructure_->timeFromReference(d1);
+            return termStructure_->termForwardRate(t1, true).rate();
+        }
         DiscountFactor disc1 = termStructure_->discount(d1);
         DiscountFactor disc2 = termStructure_->discount(d2);
-        return (disc1/disc2 - 1.0) / t;
+        return (disc1 / disc2 - 1.0) / t;
+        // Change to a form that also works when discount is not available, such a curves created in
+        // forward space
+        // TODO is it definitely correct to use Simple here
+        // Continuous seems more equivalent to the standard method that assumes discount is exp(-t * r)
     }
 
 }

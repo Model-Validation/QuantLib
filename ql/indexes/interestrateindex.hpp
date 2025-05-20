@@ -37,10 +37,10 @@ namespace QuantLib {
     //! base class for interest rate indexes
     /*! \todo add methods returning InterestRate */
     class InterestRateIndex : public Index {
-      public:
+    public:
         InterestRateIndex(std::string familyName,
                           const Period& tenor,
-                          Natural settlementDays,
+                          Natural fixingDays,
                           Currency currency,
                           Calendar fixingCalendar,
                           DayCounter dayCounter);
@@ -48,7 +48,15 @@ namespace QuantLib {
         //@{
         std::string name() const override;
         Calendar fixingCalendar() const override;
-        bool isValidFixingDate(const Date& fixingDate) const override;
+        //! Advances or adjusts dates based on the fixing calendar and additional settings in the
+        //! index
+        virtual Date advance(const Date& d) const {
+            return this->fixingCalendar().advance(d, this->tenor_);
+        }
+
+        virtual Date adjust(const Date& d) const { return this->fixingCalendar().adjust(d); }
+
+        bool isValidFixingDate(const Date& d) const override;
         Rate fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const override;
         //@}
         //! \name Inspectors
@@ -75,14 +83,15 @@ namespace QuantLib {
         //! It can be overridden to implement particular conventions
         virtual Rate forecastFixing(const Date& fixingDate) const = 0;
         // @}
-      protected:
+    protected:
         std::string familyName_;
         Period tenor_;
         Natural fixingDays_;
         Currency currency_;
         DayCounter dayCounter_;
         std::string name_;
-      private:
+
+    private:
         Calendar fixingCalendar_;
     };
 
@@ -103,14 +112,14 @@ namespace QuantLib {
 
     inline Date InterestRateIndex::fixingDate(const Date& valueDate) const {
         Date fixingDate = fixingCalendar().advance(valueDate,
-            -static_cast<Integer>(fixingDays_), Days);
+                                                   -static_cast<Integer>(fixingDays_), Days);
         return fixingDate;
     }
 
     inline Date InterestRateIndex::valueDate(const Date& fixingDate) const {
         QL_REQUIRE(isValidFixingDate(fixingDate),
                    fixingDate << " is not a valid fixing date");
-        return fixingCalendar().advance(fixingDate, fixingDays_, Days);
+        return fixingCalendar().advance(fixingDate, static_cast<Integer>(fixingDays_), Days);
     }
 }
 

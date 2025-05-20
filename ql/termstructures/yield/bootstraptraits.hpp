@@ -309,6 +309,41 @@ namespace QuantLib {
         static Size maxIterations() { return 100; }
     };
 
+    //! termed forward-curve traits
+    struct TermForwardRate: ForwardRate {
+        // interpolated curve type
+        template <class Interpolator>
+        struct curve {
+            typedef InterpolatedTermForwardCurve<Interpolator> type;
+        };
+
+        template <class C>
+        static Real guess(Size i,
+                          const C* c,
+                          bool validData,
+                          Size) // firstAliveHelper
+        {
+            if (validData) // previous iteration value
+                return c->data()[i];
+
+            if (i == 1) // first pillar
+                return detail::avgRate;
+
+            // extrapolate
+            Date d = c->dates()[i];
+            return c->termForwardRate(d, c->dayCounter(), Simple, NoFrequency, true);
+        }
+
+    };
+
+    struct InstantaneousForwardRate : ForwardRate {
+        // interpolated curve type
+        template <class Interpolator>
+        struct curve {
+            typedef InterpolatedInstantaneousForwardCurve<Interpolator> type;
+        };
+    };
+
     //! Simple Zero-curve traits
     struct SimpleZeroYield {
         // interpolated curve type
