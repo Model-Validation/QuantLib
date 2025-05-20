@@ -32,6 +32,13 @@
 #warning QL_FORCE_NONINLINE is not implemented on this platform
 #endif
 
+#ifndef QL_BUILD_USER
+#    define QL_BUILD_USER "UnknownUser"
+#endif
+
+#ifndef QL_BUILD_MACHINE
+#    define QL_BUILD_MACHINE "UnknownMachine"
+#endif
 
 namespace QuantLib {
 
@@ -39,5 +46,11 @@ namespace QuantLib {
     {
         return static_cast<std::size_t>(BOOST_VERSION);
     }
+
+    std::string quantlibBuildInfo() {
+        return std::string("QuantLib compiled on [") + __DATE__ + "] at [" + __TIME__ +
+               "] by user [" + QL_BUILD_USER + "] on machine [" + QL_BUILD_MACHINE + "]";
+    }
+
 
 }
