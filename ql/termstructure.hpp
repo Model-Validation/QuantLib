@@ -97,10 +97,10 @@ namespace QuantLib {
       protected:
         //! date-range check
         void checkRange(const Date& d,
-                        bool extrapolate) const;
+                                bool extrapolate) const;
         //! time-range check
         void checkRange(Time t,
-                        bool extrapolate) const;
+                                bool extrapolate) const;
         bool moving_ = false;
         mutable bool updated_ = true;
         Calendar calendar_;

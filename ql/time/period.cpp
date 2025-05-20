@@ -62,7 +62,7 @@ namespace QuantLib {
           case OtherFrequency:
             QL_FAIL("unknown frequency");  // no point in showing 999...
           default:
-            QL_FAIL("unknown frequency (" << Integer(f) << ")");
+            QL_FAIL("unknown frequency (" << static_cast<Integer>(f) << ")");
         }
     }
 
@@ -83,7 +83,7 @@ namespace QuantLib {
                 return OtherFrequency;
           case Months:
             if (12%length == 0 && length <= 12)
-                return Frequency(12/length);
+                return static_cast<Frequency>(12 / length);
             else
                 return OtherFrequency;
           case Weeks:
@@ -101,7 +101,7 @@ namespace QuantLib {
             else
                 return OtherFrequency;
           default:
-            QL_FAIL("unknown time unit (" << Integer(units_) << ")");
+            QL_FAIL("unknown time unit (" << static_cast<Integer>(units_) << ")");
         }
     }
 
@@ -126,7 +126,7 @@ namespace QuantLib {
               case Years:
                 break;
               default:
-                QL_FAIL("unknown time unit (" << Integer(units_) << ")");
+                QL_FAIL("unknown time unit (" << static_cast<Integer>(units_) << ")");
             }
         }
     }
@@ -155,7 +155,7 @@ namespace QuantLib {
                                " and " << p);
                     break;
                   default:
-                    QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+                    QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
                 }
                 break;
 
@@ -171,7 +171,7 @@ namespace QuantLib {
                                " and " << p);
                     break;
                   default:
-                    QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+                    QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
                 }
                 break;
 
@@ -188,7 +188,7 @@ namespace QuantLib {
                                " and " << p);
                     break;
                   default:
-                    QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+                    QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
                 }
                 break;
 
@@ -204,12 +204,12 @@ namespace QuantLib {
                                " and " << p);
                     break;
                   default:
-                    QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+                    QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
                 }
                 break;
 
               default:
-                QL_FAIL("unknown time unit (" << Integer(units_) << ")");
+                QL_FAIL("unknown time unit (" << static_cast<Integer>(units_) << ")");
             }
         }
 
@@ -270,7 +270,7 @@ namespace QuantLib {
               case Years:
                 return std::make_pair(365*p.length(), 366*p.length());
               default:
-                QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+                QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
             }
         }
 
@@ -289,7 +289,7 @@ namespace QuantLib {
           case Years:
               return p.length();
           default:
-            QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+            QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
         }
     }
 
@@ -306,7 +306,7 @@ namespace QuantLib {
           case Years:
               return p.length()*12.0;
           default:
-            QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+            QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
         }
     }
 
@@ -323,7 +323,7 @@ namespace QuantLib {
           case Years:
             QL_FAIL("cannot convert Years into Weeks");
           default:
-            QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+            QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
         }
     }
 
@@ -340,7 +340,7 @@ namespace QuantLib {
           case Years:
             QL_FAIL("cannot convert Years into Days");
           default:
-            QL_FAIL("unknown time unit (" << Integer(p.units()) << ")");
+            QL_FAIL("unknown time unit (" << static_cast<Integer>(p.units()) << ")");
         }
     }
 
@@ -414,7 +414,7 @@ namespace QuantLib {
               case Years:
                 return out << n << (n == 1 ? " year" : " years");
               default:
-                QL_FAIL("unknown time unit (" << Integer(holder.p.units()) << ")");
+                QL_FAIL("unknown time unit (" << static_cast<Integer>(holder.p.units()) << ")");
             }
         }
 
@@ -431,7 +431,7 @@ namespace QuantLib {
               case Years:
                 return out << n << "Y";
               default:
-                QL_FAIL("unknown time unit (" << Integer(holder.p.units()) << ")");
+                QL_FAIL("unknown time unit (" << static_cast<Integer>(holder.p.units()) << ")");
             }
         }
 

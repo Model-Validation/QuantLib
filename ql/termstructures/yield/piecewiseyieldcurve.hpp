@@ -91,8 +91,7 @@ namespace QuantLib {
                             const DayCounter& dayCounter,
                             const Interpolator& i,
                             bootstrap_type bootstrap = bootstrap_type())
-        : base_curve(
-              referenceDate, dayCounter, {}, {}, i),
+        : base_curve(referenceDate, dayCounter, {}, {}, i),
           instruments_(std::move(instruments)), accuracy_(1.0e-12),
           bootstrap_(std::move(bootstrap)) {
             bootstrap_.setup(this);

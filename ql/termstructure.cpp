@@ -39,7 +39,7 @@ namespace QuantLib {
     const Date& TermStructure::referenceDate() const {
         if (!updated_) {
             Date today = Settings::instance().evaluationDate();
-            referenceDate_ = calendar().advance(today, settlementDays(), Days);
+            referenceDate_ = calendar().advance(today, static_cast<Integer>(settlementDays()), Days);
             updated_ = true;
         }
         return referenceDate_;
@@ -65,6 +65,7 @@ namespace QuantLib {
                                    bool extrapolate) const {
         QL_REQUIRE(t >= 0.0,
                    "negative time (" << t << ") given");
+
         QL_REQUIRE(extrapolate || allowsExtrapolation()
                    || t <= maxTime() || close_enough(t, maxTime()),
                    "time (" << t << ") is past max curve time ("

@@ -220,31 +220,30 @@ namespace QuantLib {
                                std::max(Size(Interpolator1::requiredPoints),
                                         Size(Interpolator2::requiredPoints))),
               n_(n) {
-
                 xBegin2_ = this->xBegin_ + n_;
                 yBegin2_ = this->yBegin_ + n_;
 
-                QL_REQUIRE(xBegin2_<this->xEnd_,
+                QL_REQUIRE(xBegin2_ < this->xEnd_,
                            "too large n (" << n << ") for " <<
                            this->xEnd_-this->xBegin_ << "-element x sequence");
 
                 switch (behavior) {
-                  case MixedInterpolation::ShareRanges:
-                    interpolation1_ = factory1.interpolate(this->xBegin_,
-                                                           this->xEnd_,
-                                                           this->yBegin_);
-                    interpolation2_ = factory2.interpolate(this->xBegin_,
-                                                           this->xEnd_,
-                                                           this->yBegin_);
-                    break;
-                  case MixedInterpolation::SplitRanges:
-                    interpolation1_ = factory1.interpolate(this->xBegin_,
-                                                           this->xBegin2_+1,
-                                                           this->yBegin_);
-                    interpolation2_ = factory2.interpolate(this->xBegin2_,
-                                                           this->xEnd_,
-                                                           this->yBegin2_);
-                    break;
+                    case MixedInterpolation::ShareRanges:
+                        interpolation1_ =
+                            factory1.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        interpolation2_ =
+                            factory2.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        break;
+                    case MixedInterpolation::SplitRanges:
+                        if (this->xEnd_ < xBegin2_ + 1) {
+                            interpolation1_ =
+                                factory1.interpolate(this->xBegin_, this->xEnd_, this->yBegin_);
+                        } else {
+                            interpolation1_ =
+                                factory1.interpolate(this->xBegin_, xBegin2_ + 1, this->yBegin_);
+                            interpolation2_ = factory2.interpolate(xBegin2_, this->xEnd_, yBegin2_);
+                        }
+                        break;
                   default:
                     QL_FAIL("unknown mixed-interpolation behavior: " << behavior);
                 }
