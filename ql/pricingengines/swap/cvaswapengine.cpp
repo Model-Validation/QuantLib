@@ -115,13 +115,16 @@ namespace QuantLib {
     QL_REQUIRE(!swaptionletEngine_.empty(),
                  "no swap option engine set");
 
+    QL_REQUIRE(arguments_.nominal != Null<Real>(),
+               "non-constant nominals are not supported yet");
+
     Date priceDate = defaultTS_->referenceDate();
 
     Real cumOptVal = 0., 
         cumPutVal = 0.;
     // Vanilla swap so 0 leg is floater
 
-    std::vector<Date>::const_iterator nextFD = 
+    auto nextFD = 
       arguments_.fixedPayDates.begin();
     Date swapletStart = priceDate;
     while (*nextFD < priceDate) ++nextFD;

@@ -38,27 +38,29 @@ namespace QuantLib {
               const Handle<ZeroInflationTermStructure>& ts = {})
         : ZeroInflationIndex(
               "CPI", AustraliaRegion(), revised, frequency, Period(1, Months), AUDCurrency(), ts) {}
-        // QL1.29 MergeConflict ours
-        // Period(1, Months)
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        AUCPI(Frequency frequency,
-              bool revised,
-              bool interpolated,
-              const Handle<ZeroInflationTermStructure>& ts = {})
-        : AUCPI(frequency, revised, ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
 
     //! Quoted year-on-year AU CPI (i.e. not a ratio)
     class YYAUCPI : public YoYInflationIndex {
       public:
+        YYAUCPI(Frequency frequency,
+                bool revised,
+                const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_CPI",
+                            AustraliaRegion(),
+                            revised,
+                            frequency,
+                            Period(2, Months),
+                            AUDCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         YYAUCPI(Frequency frequency,
                 bool revised,
                 bool interpolated,
@@ -71,33 +73,10 @@ namespace QuantLib {
                             Period(1, Months),
                             AUDCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
-
-    QL_DEPRECATED_DISABLE_WARNING
-
-    //! Year-on-year AUCPI (i.e. a ratio)
-    /*! \deprecated Pass the AUCPI index to YoYInflationIndex instead.
-                    Deprecated in version 1.31.
-    */
-    class [[deprecated("Pass the AUCPI index to YoYInflationIndex instead")]] YYAUCPIr : public YoYInflationIndex {
-      public:
-        YYAUCPIr(Frequency frequency,
-                 bool revised,
-                 bool interpolated,
-                 const Handle<YoYInflationTermStructure>& ts = {})
-        : YoYInflationIndex("YYR_CPI",
-                            AustraliaRegion(),
-                            revised,
-                            interpolated,
-                            true,
-                            frequency,
-                            Period(1, Months),
-                            AUDCurrency(),
-                            ts) {}
-    };
-
-    QL_DEPRECATED_ENABLE_WARNING
 }
 
 #endif

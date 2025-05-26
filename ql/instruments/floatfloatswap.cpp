@@ -37,10 +37,10 @@ namespace QuantLib {
     FloatFloatSwap::FloatFloatSwap(const Swap::Type type,
                                    const Real nominal1,
                                    const Real nominal2,
-                                   const Schedule& schedule1,
+                                   Schedule schedule1,
                                    ext::shared_ptr<InterestRateIndex> index1,
                                    DayCounter dayCount1,
-                                   const Schedule& schedule2,
+                                   Schedule schedule2,
                                    ext::shared_ptr<InterestRateIndex> index2,
                                    DayCounter dayCount2,
                                    const bool intermediateCapitalExchange,
@@ -56,16 +56,17 @@ namespace QuantLib {
                                    const ext::optional<BusinessDayConvention>& paymentConvention1,
                                    const ext::optional<BusinessDayConvention>& paymentConvention2)
     : Swap(2), type_(type), nominal1_(std::vector<Real>(schedule1.size() - 1, nominal1)),
-      nominal2_(std::vector<Real>(schedule2.size() - 1, nominal2)), schedule1_(schedule1),
-      schedule2_(schedule2), index1_(std::move(index1)), index2_(std::move(index2)),
-      gearing1_(std::vector<Real>(schedule1.size() - 1, gearing1)),
-      gearing2_(std::vector<Real>(schedule2.size() - 1, gearing2)),
-      spread1_(std::vector<Real>(schedule1.size() - 1, spread1)),
-      spread2_(std::vector<Real>(schedule2.size() - 1, spread2)),
-      cappedRate1_(std::vector<Real>(schedule1.size() - 1, cappedRate1)),
-      flooredRate1_(std::vector<Real>(schedule1.size() - 1, flooredRate1)),
-      cappedRate2_(std::vector<Real>(schedule2.size() - 1, cappedRate2)),
-      flooredRate2_(std::vector<Real>(schedule2.size() - 1, flooredRate2)),
+      nominal2_(std::vector<Real>(schedule2.size() - 1, nominal2)),
+      schedule1_(std::move(schedule1)), schedule2_(std::move(schedule2)),
+      index1_(std::move(index1)), index2_(std::move(index2)),
+      gearing1_(std::vector<Real>(schedule1_.size() - 1, gearing1)),
+      gearing2_(std::vector<Real>(schedule2_.size() - 1, gearing2)),
+      spread1_(std::vector<Real>(schedule1_.size() - 1, spread1)),
+      spread2_(std::vector<Real>(schedule2_.size() - 1, spread2)),
+      cappedRate1_(std::vector<Real>(schedule1_.size() - 1, cappedRate1)),
+      flooredRate1_(std::vector<Real>(schedule1_.size() - 1, flooredRate1)),
+      cappedRate2_(std::vector<Real>(schedule2_.size() - 1, cappedRate2)),
+      flooredRate2_(std::vector<Real>(schedule2_.size() - 1, flooredRate2)),
       dayCount1_(std::move(dayCount1)), dayCount2_(std::move(dayCount2)),
       intermediateCapitalExchange_(intermediateCapitalExchange),
       finalCapitalExchange_(finalCapitalExchange) {
@@ -367,10 +368,10 @@ namespace QuantLib {
             nominal2_.push_back(nominal2_.back());
         }
 
-        for (Leg::const_iterator i = legs_[0].begin(); i < legs_[0].end(); ++i)
+        for (auto i = legs_[0].begin(); i < legs_[0].end(); ++i)
             registerWith(*i);
 
-        for (Leg::const_iterator i = legs_[1].begin(); i < legs_[1].end(); ++i)
+        for (auto i = legs_[1].begin(); i < legs_[1].end(); ++i)
             registerWith(*i);
 
         switch (type_) {
@@ -456,7 +457,7 @@ namespace QuantLib {
             } else {
                 ext::shared_ptr<CashFlow> cashflow =
                     ext::dynamic_pointer_cast<CashFlow>(leg1Coupons[i]);
-                std::vector<Date>::const_iterator j =
+                auto j =
                     std::find(arguments->leg1PayDates.begin(),
                               arguments->leg1PayDates.end(), cashflow->date());
                 QL_REQUIRE(j != arguments->leg1PayDates.end(),
@@ -502,7 +503,7 @@ namespace QuantLib {
             } else {
                 ext::shared_ptr<CashFlow> cashflow =
                     ext::dynamic_pointer_cast<CashFlow>(leg2Coupons[i]);
-                std::vector<Date>::const_iterator j =
+                auto j =
                     std::find(arguments->leg2PayDates.begin(),
                               arguments->leg2PayDates.end(), cashflow->date());
                 QL_REQUIRE(j != arguments->leg2PayDates.end(),

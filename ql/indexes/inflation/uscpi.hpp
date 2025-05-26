@@ -41,25 +41,27 @@ namespace QuantLib {
                              Period(1, Months), // availability
                              USDCurrency(),
                              ts) {}
-
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        explicit USCPI(
-            bool interpolated,
-            const Handle<ZeroInflationTermStructure>& ts = {})
-        : USCPI(ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
 
     //! Quoted year-on-year US CPI (i.e. not a ratio of US CPI)
     class YYUSCPI : public YoYInflationIndex {
       public:
+        explicit YYUSCPI(const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_CPI",
+                            USRegion(),
+                            false,
+                            Monthly,
+                            Period(1, Months),
+                            USDCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         explicit YYUSCPI(
             bool interpolated,
             const Handle<YoYInflationTermStructure>& ts = {})
@@ -71,32 +73,10 @@ namespace QuantLib {
                             Period(1, Months),
                             USDCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
-
-    QL_DEPRECATED_DISABLE_WARNING
-
-    //! Year-on-year US CPI (i.e. a ratio of US CPI)
-    /*! \deprecated Pass the USCPI index to YoYInflationIndex instead.
-                    Deprecated in version 1.31.
-    */
-    class [[deprecated("Pass the USCPI index to YoYInflationIndex instead")]] YYUSCPIr : public YoYInflationIndex {
-      public:
-        explicit YYUSCPIr(
-            bool interpolated,
-            const Handle<YoYInflationTermStructure>& ts = {})
-        : YoYInflationIndex("YYR_CPI",
-                            USRegion(),
-                            false,
-                            interpolated,
-                            true,
-                            Monthly,
-                            Period(1, Months),
-                            USDCurrency(),
-                            ts) {}
-    };
-
-    QL_DEPRECATED_ENABLE_WARNING
 }
 
 

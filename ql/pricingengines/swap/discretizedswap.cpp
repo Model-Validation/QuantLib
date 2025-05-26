@@ -59,7 +59,7 @@ namespace QuantLib {
 
         // NOLINTNEXTLINE(readability-implicit-bool-conversion)
         auto includeTodaysCashFlows = Settings::instance().includeTodaysCashFlows() &&
-                                      *Settings::instance().includeTodaysCashFlows();
+                                      *Settings::instance().includeTodaysCashFlows(); // NOLINT(bugprone-unchecked-optional-access)
 
         auto nrOfFixedCoupons = args.fixedResetDates.size();
         fixedResetTimes_.resize(nrOfFixedCoupons);
@@ -200,6 +200,9 @@ namespace QuantLib {
         DiscretizedDiscountBond bond;
         bond.initialize(method(), floatingPayTimes_[i]);
         bond.rollback(time_);
+
+        QL_REQUIRE(arguments_.nominal != Null<Real>(),
+                   "non-constant nominals are not supported yet");
 
         Real nominal = arguments_.nominal;
         Time T = arguments_.floatingAccrualTimes[i];

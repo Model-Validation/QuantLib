@@ -46,30 +46,27 @@ namespace QuantLib {
     */
     class BlackVarianceCurve : public BlackVarianceTermStructure {
       public:
-        BlackVarianceCurve(const Date& referenceDate,
-                           const std::vector<Date>& dates,
-                           const std::vector<Volatility>& blackVolCurve,
-                           DayCounter dayCounter,
-                           bool forceMonotoneVariance = true);
-        //! \name TermStructure interface
-        //@{
-        DayCounter dayCounter() const override { return dayCounter_; }
-        Date maxDate() const override;
-        //@}
-        //! \name VolatilityTermStructure interface
-        //@{
-        Real minStrike() const override;
-        Real maxStrike() const override;
-        //@}
-        //! \name Modifiers
-        //@{
-        template <class Interpolator>
-        void setInterpolation(const Interpolator& i = Interpolator()) {
-            varianceCurve_ = i.interpolate(times_.begin(), times_.end(),
-                                           variances_.begin());
-            varianceCurve_.update();
-            notifyObservers();
-        }
+          BlackVarianceCurve(const Date& referenceDate, const std::vector<Date>& dates,
+                             const std::vector<Volatility>& blackVolCurve, DayCounter dayCounter,
+                             bool forceMonotoneVariance = true, 
+                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility);
+          //! \name TermStructure interface
+          //@{
+          DayCounter dayCounter() const override { return dayCounter_; }
+          Date maxDate() const override;
+          //@}
+          //! \name VolatilityTermStructure interface
+          //@{
+          Real minStrike() const override;
+          Real maxStrike() const override;
+          //@}
+          //! \name Modifiers
+          //@{
+          template <class Interpolator> void setInterpolation(const Interpolator& i = Interpolator()) {
+              varianceCurve_ = i.interpolate(times_.begin(), times_.end(), variances_.begin());
+              varianceCurve_.update();
+              notifyObservers();
+          }
         //@}
         //! \name Visitability
         //@{
@@ -84,8 +81,8 @@ namespace QuantLib {
         std::vector<Time> times_;
         std::vector<Real> variances_;
         Interpolation varianceCurve_;
+        BlackVolTimeExtrapolation timeExtrapolation_;
     };
-
 
     // inline definitions
 

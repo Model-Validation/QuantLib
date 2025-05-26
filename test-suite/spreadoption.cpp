@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "spreadoption.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/experimental/exoticoptions/kirkspreadoptionengine.hpp>
 #include <ql/exercise.hpp>
@@ -27,6 +27,10 @@
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(SpreadOptionTests)
 
 #undef REPORT_FAILURE
 #define REPORT_FAILURE( \
@@ -60,8 +64,10 @@ struct Case {
     Real theta;
 };
 
-void SpreadOptionTest::testKirkEngine() {
+BOOST_AUTO_TEST_CASE(testKirkEngine) {
     BOOST_TEST_MESSAGE("Testing Kirk approximation for spread options...");
+
+    QL_DEPRECATED_DISABLE_WARNING
 
     /* The example data below are from "complete guide to option
        pricing formulas", Espen Gaarder Haug, p 60
@@ -161,13 +167,11 @@ void SpreadOptionTest::testKirkEngine() {
             REPORT_FAILURE("theta", payoff, exercise, i.theta, theta, tolerance);
         }
     }
+
+    QL_DEPRECATED_ENABLE_WARNING
+
 }
 
-test_suite* SpreadOptionTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Spread option tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(&SpreadOptionTest::testKirkEngine));
-
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

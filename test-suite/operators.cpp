@@ -18,13 +18,13 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "operators.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/methods/finitedifferences/dzero.hpp>
 #include <ql/methods/finitedifferences/dplusdminus.hpp>
 #include <ql/methods/finitedifferences/bsmoperator.hpp>
-#include <ql/methods/finitedifferences/bsmtermoperator.hpp>
+#include <ql/methods/finitedifferences/pdebsm.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/utilities/dataformatters.hpp>
@@ -32,8 +32,11 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-void OperatorTest::testTridiagonal() {
+BOOST_AUTO_TEST_SUITE(OperatorTests)
+
+BOOST_AUTO_TEST_CASE(testTridiagonal) {
 
     BOOST_TEST_MESSAGE("Testing tridiagonal operator...");
 
@@ -115,7 +118,7 @@ void OperatorTest::testTridiagonal() {
                    "\n                  tolerance: " << tolerance);
 }
 
-void OperatorTest::testConsistency() {
+BOOST_AUTO_TEST_CASE(testConsistency) {
 
     BOOST_TEST_MESSAGE("Testing differential operators...");
 
@@ -162,8 +165,10 @@ void OperatorTest::testConsistency() {
     }
 }
 
-void OperatorTest::testBSMOperatorConsistency() {
+BOOST_AUTO_TEST_CASE(testBSMOperatorConsistency) {
     BOOST_TEST_MESSAGE("Testing consistency of BSM operators...");
+
+    QL_DEPRECATED_DISABLE_WARNING
 
     Array grid(10);
     Real price = 20.0;
@@ -195,7 +200,8 @@ void OperatorTest::testBSMOperatorConsistency() {
                                        Handle<YieldTermStructure>(qTS),
                                        Handle<YieldTermStructure>(rTS),
                                        Handle<BlackVolTermStructure>(volTS)));
-    BSMTermOperator op2(grid, stochProcess, residualTime);
+
+    PdeOperator<PdeBSM> op2(grid, stochProcess, residualTime);
 
     Real tolerance = 1.0e-6;
 
@@ -219,14 +225,11 @@ void OperatorTest::testBSMOperatorConsistency() {
                        << op2.upperDiagonal()[i]);
         }
     }
+
+    QL_DEPRECATED_ENABLE_WARNING
+
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* OperatorTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Operator tests");
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testTridiagonal));
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testConsistency));
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testBSMOperatorConsistency));
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

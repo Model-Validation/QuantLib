@@ -23,28 +23,12 @@
 #include <ql/settings.hpp>
 #include <ql/time/imm.hpp>
 #include <ql/time/schedule.hpp>
+#include <algorithm>
 #include <utility>
 
 namespace QuantLib {
 
     namespace {
-
-        Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
-            Date result = Date(20, d.month(), d.year());
-            if (result < d)
-                result += 1*Months;
-            if (rule == DateGeneration::TwentiethIMM ||
-                rule == DateGeneration::OldCDS ||
-                rule == DateGeneration::CDS ||
-                rule == DateGeneration::CDS2015) {
-                Month m = result.month();
-                if (m % 3 != 0) { // not a main IMM nmonth
-                    Integer skip = 3 - m%3;
-                    result += skip*Months;
-                }
-            }
-            return result;
-        }
 
         bool allowsEndOfMonth(const Period& tenor) {
             return (tenor.units() == Months || tenor.units() == Years)
@@ -225,13 +209,10 @@ namespace QuantLib {
 
             seed = terminationDate;
             if (nextToLastDate_ != Date()) {
-                dates_.insert(dates_.begin(), nextToLastDate_);
+                dates_.push_back(nextToLastDate_);
                 Date temp = nullCalendar.advance(seed,
                     -periods*(*tenor_), convention, *endOfMonth_, endOfMonthConvention_);
-                if (temp!=nextToLastDate_)
-                    isRegular_.insert(isRegular_.begin(), false);
-                else
-                    isRegular_.insert(isRegular_.begin(), true);
+                isRegular_.push_back(temp == nextToLastDate_);
                 seed = nextToLastDate_;
             }
 
@@ -244,29 +225,31 @@ namespace QuantLib {
                     -periods*(*tenor_), convention, *endOfMonth_, endOfMonthConvention_);
                 if (temp < exitDate) {
                     if (firstDate_ != Date() &&
-                        (calendar_.adjust(dates_.front(),convention)!=
+                        (calendar_.adjust(dates_.back(),convention)!=
                          calendar_.adjust(firstDate_,convention))) {
-                        dates_.insert(dates_.begin(), firstDate_);
-                        isRegular_.insert(isRegular_.begin(), false);
+                        dates_.push_back(firstDate_);
+                        isRegular_.push_back(false);
                     }
                     break;
                 } else {
                     // skip dates that would result in duplicates
                     // after adjustment
-                    if (calendar_.adjust(dates_.front(),convention)!=
+                    if (calendar_.adjust(dates_.back(),convention)!=
                         calendar_.adjust(temp,convention)) {
-                        dates_.insert(dates_.begin(), temp);
-                        isRegular_.insert(isRegular_.begin(), true);
+                        dates_.push_back(temp);
+                        isRegular_.push_back(true);
                     }
                     ++periods;
                 }
             }
 
-            if (calendar_.adjust(dates_.front(),convention)!=
+            if (calendar_.adjust(dates_.back(),convention)!=
                 calendar_.adjust(effectiveDate,convention)) {
-                dates_.insert(dates_.begin(), effectiveDate);
-                isRegular_.insert(isRegular_.begin(), false);
+                dates_.push_back(effectiveDate);
+                isRegular_.push_back(false);
             }
+	        std::reverse(dates_.begin(), dates_.end());
+	        std::reverse(isRegular_.begin(), isRegular_.end());
             break;
 
           case DateGeneration::Twentieth:
@@ -284,7 +267,7 @@ namespace QuantLib {
             QL_REQUIRE(!*endOfMonth_,
                        "endOfMonth convention incompatible with " << *rule_ <<
                        " date generation rule");
-          // fall through
+            [[fallthrough]];
           case DateGeneration::Forward:
 
             if (*rule_ == DateGeneration::CDS || *rule_ == DateGeneration::CDS2015) {
@@ -437,18 +420,11 @@ namespace QuantLib {
 
         if (*endOfMonth_ && calendar_.isEndOfMonth(seed)) {
             // adjust to end of month
-            if (endOfMonthConvention_) {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = calendar_.endOfMonth(dates_[i], endOfMonthConvention_);
-            } else if (convention == Unadjusted) {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = Date::endOfMonth(dates_[i]);
-            } else {
-                for (Size i=1; i<dates_.size()-1; ++i)
-                    dates_[i] = calendar_.endOfMonth(dates_[i]);
-            }
+            auto& eomConv = endOfMonthConvention_.get_value_or(convention);
+            for (Size i = 1; i < dates_.size() - 1; ++i)
+                dates_[i] = calendar_.adjust(Date::endOfMonth(dates_[i]), eomConv);
         } else {
-            for (Size i=1; i<dates_.size()-1; ++i)
+            for (Size i = 1; i < dates_.size() - 1; ++i)
                 dates_[i] = calendar_.adjust(dates_[i], convention);
         }
 
@@ -740,7 +716,21 @@ namespace QuantLib {
 
         return maturity;
     }
-    
+
+
+    Schedule removeCDSPeriodsBeforeStartDate(const Schedule& cdsSchedule, const Date& protectionStartDate){
+        
+        // Schedule should be build from protection start date, if not provided use TradeDate + 1, otherwise assume
+        // first schedule date is correct
+        if (!cdsSchedule.empty() && protectionStartDate != Date()) {
+            auto it = std::upper_bound(cdsSchedule.dates().begin(), cdsSchedule.dates().end(), protectionStartDate);
+            if (it != cdsSchedule.dates().end() && it != cdsSchedule.dates().begin()) {
+                return cdsSchedule.after(*std::prev(it));
+            }
+        }
+        return cdsSchedule;
+    }
+
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule) {
         Date result = Date(20, d.month(), d.year());
         if (result > d)
@@ -758,4 +748,18 @@ namespace QuantLib {
         return result;
     }
 
+    Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
+        Date result = Date(20, d.month(), d.year());
+        if (result < d)
+            result += 1 * Months;
+        if (rule == DateGeneration::TwentiethIMM || rule == DateGeneration::OldCDS || rule == DateGeneration::CDS ||
+            rule == DateGeneration::CDS2015) {
+            Month m = result.month();
+            if (m % 3 != 0) { // not a main IMM nmonth
+                Integer skip = 3 - m % 3;
+                result += skip * Months;
+            }
+        }
+        return result;
+    }
 }

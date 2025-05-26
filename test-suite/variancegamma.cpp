@@ -18,7 +18,7 @@ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "variancegamma.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/time/daycounters/thirty360.hpp>
@@ -32,6 +32,10 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(VarianceGammaTests)
 
 #undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, payoff, exercise, s, q, r, today, sigma, \
@@ -54,27 +58,24 @@ using namespace boost::unit_test_framework;
     << "    error:            " << error << "\n" \
     << "    tolerance:        " << tolerance);
 
-namespace {
+struct VarianceGammaProcessData {
+    Real s;        // spot
+    Rate q;        // dividend
+    Rate r;        // risk-free rate
+    Real sigma;
+    Real nu;
+    Real theta;
 
-    struct VarianceGammaProcessData {
-        Real s;        // spot
-        Rate q;        // dividend
-        Rate r;        // risk-free rate
-        Real sigma;
-        Real nu;
-        Real theta;
+};
 
-    };
-
-    struct VarianceGammaOptionData {
-        Option::Type type;
-        Real strike;
-        Time t;        // time to maturity
-    };
-}
+struct VarianceGammaOptionData {
+    Option::Type type;
+    Real strike;
+    Time t;        // time to maturity
+};
 
 
-void VarianceGammaTest::testVarianceGamma() {
+BOOST_AUTO_TEST_CASE(testVarianceGamma) {
 
     BOOST_TEST_MESSAGE("Testing variance-gamma model for European options...");
 
@@ -110,7 +111,7 @@ void VarianceGammaTest::testVarianceGamma() {
         { Option::Put,  5550, 1.0}
     };
 
-    Real results[LENGTH(processes)][LENGTH(options)] = {
+    Real results[std::size(processes)][std::size(options)] = {
         {
             955.1637, 922.7529, 890.9872, 859.8739, 829.4197, 799.6303, 770.5104, 742.0640,
             714.2943, 687.2032, 660.7921, 635.0613, 610.0103, 585.6379, 561.9416, 538.9186,
@@ -128,7 +129,7 @@ void VarianceGammaTest::testVarianceGamma() {
     DayCounter dc = Actual360();
     Date today = Date::todaysDate();
 
-    for (Size i=0; i<LENGTH(processes); i++) {
+    for (Size i=0; i<std::size(processes); i++) {
         ext::shared_ptr<SimpleQuote> spot(new SimpleQuote(processes[i].s));
         ext::shared_ptr<SimpleQuote> qRate(new SimpleQuote(processes[i].q));
         ext::shared_ptr<YieldTermStructure> qTS = flatRate(today, qRate, dc);
@@ -155,7 +156,7 @@ void VarianceGammaTest::testVarianceGamma() {
         std::vector<ext::shared_ptr<Instrument> > optionList;
 
         std::vector<ext::shared_ptr<StrikedTypePayoff> > payoffs;
-        for (Size j=0; j<LENGTH(options); j++)
+        for (Size j=0; j<std::size(options); j++)
         {
             Date exDate = today + timeToDays(options[j].t);
             ext::shared_ptr<Exercise> exercise(new EuropeanExercise(exDate));
@@ -185,7 +186,7 @@ void VarianceGammaTest::testVarianceGamma() {
         // Test FFT engine
         // FFT engine is extremely efficient when sent a list of options to calculate first
         fftEngine->precalculate(optionList);
-        for (Size j=0; j<LENGTH(options); j++)
+        for (Size j=0; j<std::size(options); j++)
         {
             ext::shared_ptr<VanillaOption> option = ext::static_pointer_cast<VanillaOption>(optionList[j]);
             option->setPricingEngine(fftEngine);
@@ -206,7 +207,7 @@ void VarianceGammaTest::testVarianceGamma() {
     }
 }
 
-void VarianceGammaTest::testSingularityAtZero() {
+BOOST_AUTO_TEST_CASE(testSingularityAtZero) {
 
     BOOST_TEST_MESSAGE(
         "Testing variance-gamma model integration around zero...");
@@ -245,11 +246,6 @@ void VarianceGammaTest::testSingularityAtZero() {
     option.NPV();
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* VarianceGammaTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Variance Gamma tests");
-
-    suite->add(QUANTLIB_TEST_CASE(&VarianceGammaTest::testVarianceGamma));
-    suite->add(QUANTLIB_TEST_CASE(&VarianceGammaTest::testSingularityAtZero));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

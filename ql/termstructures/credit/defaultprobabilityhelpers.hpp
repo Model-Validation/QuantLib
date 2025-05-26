@@ -175,6 +175,7 @@ namespace QuantLib {
                   CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
 
         void setTermStructure(DefaultProbabilityTermStructure*) override;
+        // NOLINTNEXTLINE(cppcoreguidelines-noexcept-swap,performance-noexcept-swap)
         ext::shared_ptr<CreditDefaultSwap> swap() const {
             return swap_;
         }
@@ -183,6 +184,7 @@ namespace QuantLib {
       protected:
         void initializeDates() override;
         virtual void resetEngine() = 0;
+        Date firstAccrualPeriodStartDate() const;
         Period tenor_;
         Integer settlementDays_;
         Calendar calendar_;

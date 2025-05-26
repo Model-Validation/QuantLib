@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "assetswap.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/time/schedule.hpp>
 #include <ql/instruments/assetswap.hpp>
@@ -36,6 +36,7 @@
 #include <ql/time/daycounters/actualactual.hpp>
 #include <ql/time/daycounters/simpledaycounter.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
+#include <ql/indexes/ibor/estr.hpp>
 #include <ql/indexes/swapindex.hpp>
 #include <ql/cashflows/fixedratecoupon.hpp>
 #include <ql/cashflows/iborcoupon.hpp>
@@ -57,66 +58,62 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace asset_swap_test {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    struct CommonVars {
-        // common data
-        ext::shared_ptr<IborIndex> iborIndex;
-        ext::shared_ptr<SwapIndex> swapIndex;
-        ext::shared_ptr<IborCouponPricer> pricer;
-        ext::shared_ptr<CmsCouponPricer> cmspricer;
-        Spread spread;
-        Spread nonnullspread;
-        Real faceAmount;
-        Compounding compounding;
-        RelinkableHandle<YieldTermStructure> termStructure;
+BOOST_AUTO_TEST_SUITE(AssetSwapTests)
 
-        // initial setup
-        CommonVars() {
-            Natural swapSettlementDays = 2;
-            faceAmount = 100.0;
-            BusinessDayConvention fixedConvention = Unadjusted;
-            compounding = Continuous;
-            Frequency fixedFrequency = Annual;
-            Frequency floatingFrequency = Semiannual;
-            iborIndex = ext::shared_ptr<IborIndex>(
+struct CommonVars {
+    // common data
+    ext::shared_ptr<IborIndex> iborIndex;
+    ext::shared_ptr<SwapIndex> swapIndex;
+    ext::shared_ptr<IborCouponPricer> pricer;
+    ext::shared_ptr<CmsCouponPricer> cmspricer;
+    Spread spread;
+    Spread nonnullspread;
+    Real faceAmount;
+    Compounding compounding;
+    RelinkableHandle<YieldTermStructure> termStructure;
+
+    // initial setup
+    CommonVars() {
+        Natural swapSettlementDays = 2;
+        faceAmount = 100.0;
+        BusinessDayConvention fixedConvention = Unadjusted;
+        compounding = Continuous;
+        Frequency fixedFrequency = Annual;
+        Frequency floatingFrequency = Semiannual;
+        iborIndex = ext::shared_ptr<IborIndex>(
                      new Euribor(Period(floatingFrequency), termStructure));
-            Calendar calendar = iborIndex->fixingCalendar();
-            swapIndex= ext::make_shared<SwapIndex>(
+        Calendar calendar = iborIndex->fixingCalendar();
+        swapIndex = ext::make_shared<SwapIndex>(
                 "EuriborSwapIsdaFixA", 10*Years, swapSettlementDays,
                               iborIndex->currency(), calendar,
                               Period(fixedFrequency), fixedConvention,
                               iborIndex->dayCounter(), iborIndex);
-            spread = 0.0;
-            nonnullspread = 0.003;
-            Date today(24,April,2007);
-            Settings::instance().evaluationDate() = today;
+        spread = 0.0;
+        nonnullspread = 0.003;
+        Date today(24,April,2007);
+        Settings::instance().evaluationDate() = today;
 
-            //Date today = Settings::instance().evaluationDate();
-
-            termStructure.linkTo(flatRate(today, 0.05, Actual365Fixed()));
-            pricer = ext::shared_ptr<IborCouponPricer>(new
-                                                        BlackIborCouponPricer);
-            Handle<SwaptionVolatilityStructure> swaptionVolatilityStructure(
+        termStructure.linkTo(flatRate(today, 0.05, Actual365Fixed()));
+        pricer = ext::shared_ptr<IborCouponPricer>(new BlackIborCouponPricer);
+        Handle<SwaptionVolatilityStructure> swaptionVolatilityStructure(
                 ext::shared_ptr<SwaptionVolatilityStructure>(new
                     ConstantSwaptionVolatility(today, NullCalendar(),Following,
                                                0.2, Actual365Fixed())));
-            Handle<Quote> meanReversionQuote(ext::shared_ptr<Quote>(new
+        Handle<Quote> meanReversionQuote(ext::shared_ptr<Quote>(new
                 SimpleQuote(0.01)));
-            cmspricer = ext::shared_ptr<CmsCouponPricer>(new
+        cmspricer = ext::shared_ptr<CmsCouponPricer>(new
                 AnalyticHaganPricer(swaptionVolatilityStructure,
                                     GFunctionFactory::Standard,
                                     meanReversionQuote));
-        }
-    };
+    }
+};
 
-}
 
-void AssetSwapTest::testConsistency() {
+BOOST_AUTO_TEST_CASE(testConsistency) {
     BOOST_TEST_MESSAGE(
                  "Testing consistency between fair price and fair spread...");
-
-    using namespace asset_swap_test;
 
     CommonVars vars;
 
@@ -318,11 +315,104 @@ void AssetSwapTest::testConsistency() {
                    "\n  tolerance:    " << tolerance);
     }
 
+    // using overnight index
 
+    auto overnight = ext::make_shared<Estr>(vars.termStructure);
+    Schedule overnightSchedule(bond->settlementDate(),
+                               bond->maturityDate(),
+                               6 * Months,
+                               overnight->fixingCalendar(),
+                               overnight->businessDayConvention(),
+                               overnight->businessDayConvention(),
+                               DateGeneration::Backward,
+                               false);
 
+    parAssetSwap = AssetSwap(payFixedRate,
+                             bond, bondPrice,
+                             overnight, vars.spread,
+                             overnightSchedule,
+                             overnight->dayCounter(),
+                             isPar);
+
+    swapEngine = ext::make_shared<DiscountingSwapEngine>(
+                              vars.termStructure,
+                              true,
+                              bond->settlementDate(),
+                              Settings::instance().evaluationDate());
+
+    parAssetSwap.setPricingEngine(swapEngine);
+    fairCleanPrice = parAssetSwap.fairCleanPrice();
+    fairSpread = parAssetSwap.fairSpread();
+
+    assetSwap2 = AssetSwap(payFixedRate,
+                           bond, fairCleanPrice,
+                           overnight, vars.spread,
+                           overnightSchedule,
+                           overnight->dayCounter(),
+                           isPar);
+    assetSwap2.setPricingEngine(swapEngine);
+    if (std::fabs(assetSwap2.NPV())>tolerance) {
+        BOOST_FAIL("\npar asset swap fair clean price doesn't zero the NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  clean price:      " << bondPrice <<
+                   "\n  fair clean price: " << fairCleanPrice <<
+                   "\n  NPV:              " << assetSwap2.NPV() <<
+                   "\n  tolerance:        " << tolerance);
+    }
+    if (std::fabs(assetSwap2.fairCleanPrice() - fairCleanPrice)>tolerance) {
+        BOOST_FAIL("\npar asset swap fair clean price doesn't equal input "
+                   "clean price at zero NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  input clean price: " << fairCleanPrice <<
+                   "\n  fair clean price:  " << assetSwap2.fairCleanPrice() <<
+                   "\n  NPV:               " << assetSwap2.NPV() <<
+                   "\n  tolerance:         " << tolerance);
+    }
+    if (std::fabs(assetSwap2.fairSpread() - vars.spread)>tolerance) {
+        BOOST_FAIL("\npar asset swap fair spread doesn't equal input spread "
+                   "at zero NPV: " << std::fixed << std::setprecision(4) <<
+                   "\n  input spread: " << vars.spread <<
+                   "\n  fair spread:  " << assetSwap2.fairSpread() <<
+                   "\n  NPV:          " << assetSwap2.NPV() <<
+                   "\n  tolerance:    " << tolerance);
+    }
+
+    assetSwap3 = AssetSwap(payFixedRate,
+                           bond, bondPrice,
+                           overnight, fairSpread,
+                           overnightSchedule,
+                           overnight->dayCounter(),
+                           isPar);
+    assetSwap3.setPricingEngine(swapEngine);
+    if (std::fabs(assetSwap3.NPV())>tolerance) {
+        BOOST_FAIL("\npar asset swap fair spread doesn't zero the NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  spread:      " << vars.spread <<
+                   "\n  fair spread: " << fairSpread <<
+                   "\n  NPV:         " << assetSwap3.NPV() <<
+                   "\n  tolerance:   " << tolerance);
+    }
+    if (std::fabs(assetSwap3.fairCleanPrice() - bondPrice)>tolerance) {
+        BOOST_FAIL("\npar asset swap fair clean price doesn't equal input "
+                   "clean price at zero NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  input clean price: " << bondPrice <<
+                   "\n  fair clean price:  " << assetSwap3.fairCleanPrice() <<
+                   "\n  NPV:               " << assetSwap3.NPV() <<
+                   "\n  tolerance:         " << tolerance);
+    }
+    if (std::fabs(assetSwap3.fairSpread() - fairSpread)>tolerance) {
+        BOOST_FAIL("\npar asset swap fair spread doesn't equal input spread at"
+                   " zero NPV: " << std::fixed << std::setprecision(4) <<
+                   "\n  input spread: " << fairSpread <<
+                   "\n  fair spread:  " << assetSwap3.fairSpread() <<
+                   "\n  NPV:          " << assetSwap3.NPV() <<
+                   "\n  tolerance:    " << tolerance);
+    }
 
 
     // now market asset swap
+
     isPar = false;
     AssetSwap mktAssetSwap(payFixedRate,
                            bond, bondPrice,
@@ -497,14 +587,96 @@ void AssetSwapTest::testConsistency() {
                    "\n  tolerance:    " << tolerance);
     }
 
+    // using overnight index
+
+    mktAssetSwap = AssetSwap(payFixedRate,
+                             bond, bondPrice,
+                             overnight, vars.spread,
+                             overnightSchedule,
+                             overnight->dayCounter(),
+                             isPar);
+
+    swapEngine = ext::make_shared<DiscountingSwapEngine>(
+                              vars.termStructure,
+                              true,
+                              bond->settlementDate(),
+                              Settings::instance().evaluationDate());
+
+    mktAssetSwap.setPricingEngine(swapEngine);
+    fairCleanPrice = mktAssetSwap.fairCleanPrice();
+    fairSpread = mktAssetSwap.fairSpread();
+
+    assetSwap4 = AssetSwap(payFixedRate,
+                           bond, fairCleanPrice,
+                           overnight, vars.spread,
+                           overnightSchedule,
+                           overnight->dayCounter(),
+                           isPar);
+    assetSwap4.setPricingEngine(swapEngine);
+    if (std::fabs(assetSwap4.NPV())>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair clean price doesn't zero the NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  clean price:      " << bondPrice <<
+                   "\n  fair clean price: " << fairCleanPrice <<
+                   "\n  NPV:              " << assetSwap4.NPV() <<
+                   "\n  tolerance:        " << tolerance);
+    }
+    if (std::fabs(assetSwap4.fairCleanPrice() - fairCleanPrice)>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair clean price doesn't equal input "
+                   "clean price at zero NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  input clean price: " << fairCleanPrice <<
+                   "\n  fair clean price:  " << assetSwap4.fairCleanPrice() <<
+                   "\n  NPV:               " << assetSwap4.NPV() <<
+                   "\n  tolerance:         " << tolerance);
+    }
+    if (std::fabs(assetSwap4.fairSpread() - vars.spread)>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair spread doesn't equal input spread"
+                   " at zero NPV: " << std::fixed << std::setprecision(4) <<
+                   "\n  input spread: " << vars.spread <<
+                   "\n  fair spread:  " << assetSwap4.fairSpread() <<
+                   "\n  NPV:          " << assetSwap4.NPV() <<
+                   "\n  tolerance:    " << tolerance);
+    }
+
+    assetSwap5 = AssetSwap(payFixedRate,
+                           bond, bondPrice,
+                           overnight, fairSpread,
+                           overnightSchedule,
+                           overnight->dayCounter(),
+                           isPar);
+    assetSwap5.setPricingEngine(swapEngine);
+    if (std::fabs(assetSwap5.NPV())>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair spread doesn't zero the NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  spread:      " << vars.spread <<
+                   "\n  fair spread: " << fairSpread <<
+                   "\n  NPV:         " << assetSwap5.NPV() <<
+                   "\n  tolerance:   " << tolerance);
+    }
+    if (std::fabs(assetSwap5.fairCleanPrice() - bondPrice)>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair clean price doesn't equal input "
+                   "clean price at zero NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  input clean price: " << bondPrice <<
+                   "\n  fair clean price:  " << assetSwap5.fairCleanPrice() <<
+                   "\n  NPV:               " << assetSwap5.NPV() <<
+                   "\n  tolerance:         " << tolerance);
+    }
+    if (std::fabs(assetSwap5.fairSpread() - fairSpread)>tolerance) {
+        BOOST_FAIL("\nmarket asset swap fair spread doesn't equal input spread at zero NPV: " <<
+                   std::fixed << std::setprecision(4) <<
+                   "\n  input spread: " << fairSpread <<
+                   "\n  fair spread:  " << assetSwap5.fairSpread() <<
+                   "\n  NPV:          " << assetSwap5.NPV() <<
+                   "\n  tolerance:    " << tolerance);
+    }
 }
 
-void AssetSwapTest::testImpliedValue() {
+BOOST_AUTO_TEST_CASE(testImpliedValue) {
 
     BOOST_TEST_MESSAGE("Testing implied bond value against asset-swap fair"
                        " price with null spread...");
-
-    using namespace asset_swap_test;
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -867,12 +1039,10 @@ void AssetSwapTest::testImpliedValue() {
 }
 
 
-void AssetSwapTest::testMarketASWSpread() {
+BOOST_AUTO_TEST_CASE(testMarketASWSpread) {
 
     BOOST_TEST_MESSAGE("Testing relationship between market asset swap"
                        " and par asset swap...");
-
-    using namespace asset_swap_test;
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -1307,12 +1477,10 @@ void AssetSwapTest::testMarketASWSpread() {
 }
 
 
-void AssetSwapTest::testZSpread() {
+BOOST_AUTO_TEST_CASE(testZSpread) {
 
     BOOST_TEST_MESSAGE("Testing clean and dirty price with null Z-spread "
                        "against theoretical prices...");
-
-    using namespace asset_swap_test;
 
     CommonVars vars;
 
@@ -1629,12 +1797,10 @@ void AssetSwapTest::testZSpread() {
 }
 
 
-void AssetSwapTest::testGenericBondImplied() {
+BOOST_AUTO_TEST_CASE(testGenericBondImplied) {
 
     BOOST_TEST_MESSAGE("Testing implied generic-bond value against"
                        " asset-swap fair price with null spread...");
-
-    using namespace asset_swap_test;
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -2019,13 +2185,10 @@ void AssetSwapTest::testGenericBondImplied() {
     }
 }
 
-
-void AssetSwapTest::testMASWWithGenericBond() {
+BOOST_AUTO_TEST_CASE(testMASWWithGenericBond) {
 
     BOOST_TEST_MESSAGE("Testing market asset swap against par asset swap "
                        "with generic bond...");
-
-    using namespace asset_swap_test;
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -2495,12 +2658,10 @@ void AssetSwapTest::testMASWWithGenericBond() {
 }
 
 
-void AssetSwapTest::testZSpreadWithGenericBond() {
+BOOST_AUTO_TEST_CASE(testZSpreadWithGenericBond) {
 
     BOOST_TEST_MESSAGE("Testing clean and dirty price with null Z-spread "
                        "against theoretical prices...");
-
-    using namespace asset_swap_test;
 
     CommonVars vars;
 
@@ -2861,13 +3022,10 @@ void AssetSwapTest::testZSpreadWithGenericBond() {
     }
 }
 
-
-void AssetSwapTest::testSpecializedBondVsGenericBond() {
+BOOST_AUTO_TEST_CASE(testSpecializedBondVsGenericBond) {
 
     BOOST_TEST_MESSAGE("Testing clean and dirty prices for specialized bond"
                        " against equivalent generic bond...");
-
-    using namespace asset_swap_test;
 
     CommonVars vars;
 
@@ -3423,12 +3581,10 @@ void AssetSwapTest::testSpecializedBondVsGenericBond() {
 }
 
 
-void AssetSwapTest::testSpecializedBondVsGenericBondUsingAsw() {
+BOOST_AUTO_TEST_CASE(testSpecializedBondVsGenericBondUsingAsw) {
 
     BOOST_TEST_MESSAGE("Testing asset-swap prices and spreads for specialized"
                        " bond against equivalent generic bond...");
-
-    using namespace asset_swap_test;
 
     CommonVars vars;
 
@@ -4252,20 +4408,6 @@ void AssetSwapTest::testSpecializedBondVsGenericBondUsingAsw() {
     }
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* AssetSwapTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("AssetSwap tests");
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testConsistency));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testImpliedValue));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testMarketASWSpread));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testZSpread));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testGenericBondImplied));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testMASWWithGenericBond));
-    suite->add(QUANTLIB_TEST_CASE(&AssetSwapTest::testZSpreadWithGenericBond));
-    suite->add(QUANTLIB_TEST_CASE(
-                           &AssetSwapTest::testSpecializedBondVsGenericBond));
-    suite->add(QUANTLIB_TEST_CASE(
-                   &AssetSwapTest::testSpecializedBondVsGenericBondUsingAsw));
-
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

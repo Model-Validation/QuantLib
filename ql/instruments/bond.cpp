@@ -30,6 +30,7 @@
 #include <ql/math/solvers1d/brent.hpp>
 #include <ql/pricingengines/bond/bondfunctions.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
+#include <ql/shared_ptr.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -148,7 +149,7 @@ namespace QuantLib {
     }
 
     Date Bond::maturityDate() const {
-        if (maturityDate_!=Null<Date>())
+        if (maturityDate_ != Date())
             return maturityDate_;
         else
             return BondFunctions::maturityDate(*this);
@@ -206,12 +207,12 @@ namespace QuantLib {
         if (currentNotional == 0.0)
             return 0.0;
 
-        Real price = priceType == Bond::Price::Clean ? cleanPrice() : dirtyPrice();
+        Bond::Price price(priceType == Bond::Price::Clean ? cleanPrice() : dirtyPrice(), priceType);
 
         return BondFunctions::yield(*this, price, dc, comp, freq,
                                     settlementDate(),
                                     accuracy, maxEvaluations,
-                                    guess, priceType);
+                                    guess);
     }
 
     Real Bond::cleanPrice(Rate y,
@@ -244,13 +245,24 @@ namespace QuantLib {
                      Size maxEvaluations,
                      Real guess,
                      Bond::Price::Type priceType) const {
+        return yield({price, priceType}, dc, comp, freq, settlement, accuracy,
+                     maxEvaluations, guess);
+    }
+    Rate Bond::yield(Bond::Price price,
+                     const DayCounter& dc,
+                     Compounding comp,
+                     Frequency freq,
+                     Date settlement,
+                     Real accuracy,
+                     Size maxEvaluations,
+                     Real guess) const {
         Real currentNotional = notional(settlement);
         if (currentNotional == 0.0)
             return 0.0;
 
         return BondFunctions::yield(*this, price, dc, comp, freq,
                                     settlement, accuracy, maxEvaluations,
-                                    guess, priceType);
+                                    guess);
     }
 
     Real Bond::accruedAmount(Date settlement) const {
@@ -315,10 +327,10 @@ namespace QuantLib {
             Real amount = (R/100.0)*(notionals_[i-1]-notionals_[i]);
             ext::shared_ptr<CashFlow> payment;
             if (i < notionalSchedule_.size()-1)
-                payment.reset(new AmortizingPayment(amount,
-                                                    notionalSchedule_[i]));
+                payment = ext::make_shared<AmortizingPayment>(amount,
+                                                    notionalSchedule_[i]);
             else
-                payment.reset(new Redemption(amount, notionalSchedule_[i]));
+                payment = ext::make_shared<Redemption>(amount, notionalSchedule_[i]);
             cashflows_.push_back(payment);
             redemptions_.push_back(payment);
         }
@@ -364,9 +376,7 @@ namespace QuantLib {
 
     void Bond::deepUpdate() {
         for (auto& cashflow : cashflows_) {
-            if(auto lazy = ext::dynamic_pointer_cast<LazyObject>(cashflow)) {
-                lazy->deepUpdate();
-            }
+            cashflow->deepUpdate();
         }
         update();
     }

@@ -36,13 +36,12 @@ namespace QuantLib {
                          std::string fractionSymbol,
                          Integer fractionsPerUnit,
                          const Rounding& rounding,
-                         std::string formatString,
                          Currency triangulationCurrency,
                          std::set<std::string> minorUnitCodes)
     : name(std::move(name)), code(std::move(code)), numeric(numericCode), symbol(std::move(symbol)),
       fractionSymbol(std::move(fractionSymbol)), fractionsPerUnit(fractionsPerUnit),
       rounding(rounding), triangulated(std::move(triangulationCurrency)),
-      formatString(std::move(formatString)), minorUnitCodes(std::move(minorUnitCodes)) {}
+      minorUnitCodes(std::move(minorUnitCodes)) {}
 
     Currency::Currency(const std::string& name,
                        const std::string& code,
@@ -51,7 +50,6 @@ namespace QuantLib {
                        const std::string& fractionSymbol,
                        Integer fractionsPerUnit,
                        const Rounding& rounding,
-                       const std::string& formatString,
                        const Currency& triangulationCurrency,
                        const std::set<std::string>& minorUnitCodes)
     : data_(ext::make_shared<Currency::Data>(name,
@@ -61,8 +59,7 @@ namespace QuantLib {
                                              fractionSymbol,
                                              fractionsPerUnit,
                                              rounding,
-                                             formatString,
                                              triangulationCurrency,
                                              minorUnitCodes)) {}
-}
 
+}

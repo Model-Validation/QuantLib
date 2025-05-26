@@ -45,8 +45,7 @@ namespace QuantLib {
             Position::Type putPosition = Position::Long,
             bool isPutATMIncluded = false,
             Rate putDigitalPayoff = Null<Rate>(),
-            const ext::shared_ptr<DigitalReplication> &replication =
-                ext::shared_ptr<DigitalReplication>(new DigitalReplication),
+            const ext::shared_ptr<DigitalReplication>& replication = {},
             bool nakedOption = false);
 
         //! \name Visitability
@@ -83,9 +82,7 @@ namespace QuantLib {
         DigitalCmsLeg& withPutATM(bool flag = true);
         DigitalCmsLeg& withPutPayoffs(Rate payoff);
         DigitalCmsLeg& withPutPayoffs(const std::vector<Rate>& payoffs);
-        DigitalCmsLeg& withReplication(
-            const ext::shared_ptr<DigitalReplication> &replication =
-                ext::shared_ptr<DigitalReplication>(new DigitalReplication));
+        DigitalCmsLeg& withReplication(const ext::shared_ptr<DigitalReplication>&);
         DigitalCmsLeg& withNakedOption(bool nakedOption = true);
 
         operator Leg() const;

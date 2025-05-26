@@ -176,16 +176,6 @@
 #define QL_MAX_REAL            ((std::numeric_limits<QL_REAL>::max)())
 #define QL_MIN_POSITIVE_REAL   ((std::numeric_limits<QL_REAL>::min)())
 #define QL_EPSILON             ((std::numeric_limits<QL_REAL>::epsilon)())
-/*! \def QL_NULL_INTEGER
-    \deprecated Don't use this macro.
-                Deprecated in version 1.27.
-*/
-#define QL_NULL_INTEGER        ((std::numeric_limits<int>::max)())
-/*! \def QL_NULL_REAL
-    \deprecated Don't use this macro.
-                Deprecated in version 1.27.
-*/
-#define QL_NULL_REAL           ((std::numeric_limits<float>::max)())
 /*! @} */
 
 /*! @}  */
@@ -206,13 +196,6 @@
         __pragma(warning(disable : 4996))
 #    define QL_DEPRECATED_ENABLE_WARNING \
         __pragma(warning(pop))
-#elif defined(__GNUC__)
-#    define QL_DEPRECATED __attribute__((deprecated))
-#    define QL_DEPRECATED_DISABLE_WARNING                               \
-        _Pragma("GCC diagnostic push")                                  \
-        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
-#    define QL_DEPRECATED_ENABLE_WARNING \
-        _Pragma("GCC diagnostic pop")
 #elif defined(__clang__)
 #    define QL_DEPRECATED __attribute__((deprecated))
 #    define QL_DEPRECATED_DISABLE_WARNING                                 \
@@ -220,6 +203,13 @@
         _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 #    define QL_DEPRECATED_ENABLE_WARNING \
         _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+#    define QL_DEPRECATED __attribute__((deprecated))
+#    define QL_DEPRECATED_DISABLE_WARNING                               \
+        _Pragma("GCC diagnostic push")                                  \
+        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#    define QL_DEPRECATED_ENABLE_WARNING \
+        _Pragma("GCC diagnostic pop")
 #else
 // we don't know how to enable it, just define the macros away
 #    define QL_DEPRECATED
@@ -227,22 +217,5 @@
 #    define QL_DEPRECATED_ENABLE_WARNING
 #endif
 // clang-format on
-
-/*! \deprecated Use the noexcept keyword instead.
-                Deprecated in version 1.27.
-*/
-#define QL_NOEXCEPT noexcept
-
-/*! \deprecated Use the constexpr keyword instead.
-                Deprecated in version 1.27.
-*/
-#define QL_CONSTEXPR constexpr
-
-/*! \deprecated Do not check; always use std::unique_ptr.
-                Deprecated in version 1.27
-*/
-#ifndef QL_USE_STD_UNIQUE_PTR
-#define QL_USE_STD_UNIQUE_PTR 1
-#endif
 
 #endif

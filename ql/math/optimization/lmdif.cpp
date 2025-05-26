@@ -65,8 +65,7 @@ or guarantee.
 #include <cmath>
 #include <cstdio>
 
-namespace QuantLib {
-  namespace MINPACK {
+namespace QuantLib::MINPACK {
 #define BUG 0
 /* resolution of arithmetic */
 double MACHEP = 1.2e-16;
@@ -1375,9 +1374,9 @@ L30:
 *    calculate the jacobian matrix.
 */
 iflag = 2;
-if (jacFcn == QL_NULL_FUNCTION) // use user supplied jacobian calculation
+if (!jacFcn)
     fdjac2(m,n,x,fvec,fjac,ldfjac,&iflag,epsfcn,wa4, fcn);
-else
+else // use user supplied jacobian calculation
     jacFcn(m,n,x,fjac,&iflag);
 *nfev += n;
 if(iflag < 0)
@@ -1666,7 +1665,6 @@ if(nprint > 0)
 /*
       last card of subroutine lmdif.
 */
-}
 }
 }
 

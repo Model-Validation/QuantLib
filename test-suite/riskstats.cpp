@@ -18,7 +18,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "riskstats.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/math/statistics/riskstatistics.hpp>
 #include <ql/math/statistics/incrementalstatistics.hpp>
@@ -29,7 +29,11 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-void RiskStatisticsTest::testResults() {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(RiskStatisticsTests)
+
+BOOST_AUTO_TEST_CASE(testResults) {
 
     BOOST_TEST_MESSAGE("Testing risk measures...");
 
@@ -43,8 +47,8 @@ void RiskStatisticsTest::testResults() {
     Real dataMin, dataMax;
     std::vector<Real> data(N), weights(N);
 
-    for (i=0; i<LENGTH(averages); i++) {
-        for (j=0; j<LENGTH(sigmas); j++) {
+    for (i=0; i<std::size(averages); i++) {
+        for (j=0; j<std::size(sigmas); j++) {
 
             NormalDistribution normal(averages[i],sigmas[j]);
             CumulativeNormalDistribution cumulative(averages[i],sigmas[j]);
@@ -603,10 +607,6 @@ void RiskStatisticsTest::testResults() {
     }
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* RiskStatisticsTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Risk statistics tests");
-    suite->add(QUANTLIB_TEST_CASE(&RiskStatisticsTest::testResults));
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

@@ -197,19 +197,6 @@ namespace QuantLib {
                                             Date settlementDate = Date(),
                                             Date npvDate = Date());
 
-        //! NPV and BPS of the cash flows.
-        /*! \deprecated Use the overload returning a pair of Reals.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        static void npvbps(const Leg& leg,
-                           const YieldTermStructure& discountCurve,
-                           bool includeSettlementDateFlows,
-                           Date settlementDate,
-                           Date npvDate,
-                           Real& npv,
-                           Real& bps);
-
         //! At-the-money rate of the cash flows.
         /*! The result is the fixed rate for which a fixed rate cash flow
             vector, equivalent to the input vector, has the required NPV
@@ -438,7 +425,10 @@ namespace QuantLib {
                               Real accuracy = 1.0e-10,
                               Size maxIterations = 100,
                               Rate guess = 0.0);
-        //! deprecated implied Z-spread.
+        /*! \deprecated Use the other overload.
+                        Deprecated in version 1.35.
+        */
+        [[deprecated("Use the other overload")]]
         static Spread zSpread(const Leg& leg,
                               const ext::shared_ptr<YieldTermStructure>& d,
                               Real npv,

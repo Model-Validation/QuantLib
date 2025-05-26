@@ -62,6 +62,9 @@ namespace QuantLib {
 
         //! returns whether the instrument might have value greater than zero.
         virtual bool isExpired() const = 0;
+
+        //! returns pricing engine associated to instrument
+        ext::shared_ptr<PricingEngine> pricingEngine() const { return engine_; }
         //@}
         //! \name Modifiers
         //@{
@@ -187,7 +190,7 @@ namespace QuantLib {
     template <class T>
     inline T Instrument::result(const std::string& tag) const {
         calculate();
-        std::map<std::string, ext::any>::const_iterator value =
+        auto value =
             additionalResults_.find(tag);
         QL_REQUIRE(value != additionalResults_.end(),
                    tag << " not provided");

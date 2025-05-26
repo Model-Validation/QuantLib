@@ -20,7 +20,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "matrices.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/experimental/math/moorepenroseinverse.hpp>
 #include <ql/math/matrix.hpp>
@@ -28,6 +28,7 @@
 #include <ql/math/matrixutilities/bicgstab.hpp>
 #include <ql/math/matrixutilities/choleskydecomposition.hpp>
 #include <ql/math/matrixutilities/gmres.hpp>
+#include <ql/math/matrixutilities/householder.hpp>
 #include <ql/math/matrixutilities/pseudosqrt.hpp>
 #include <ql/math/matrixutilities/qrdecomposition.hpp>
 #include <ql/math/matrixutilities/svd.hpp>
@@ -44,6 +45,10 @@ using namespace boost::unit_test_framework;
 
 using std::fabs;
 
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(MatricesTests)
+
 #ifdef __cpp_concepts
 static_assert(std::random_access_iterator<Matrix::column_iterator>);
 static_assert(std::random_access_iterator<Matrix::const_column_iterator>);
@@ -51,77 +56,86 @@ static_assert(std::random_access_iterator<Matrix::reverse_column_iterator>);
 static_assert(std::random_access_iterator<Matrix::const_reverse_column_iterator>);
 #endif
 
-namespace matrices_test {
+Size N;
+Matrix M1, M2, M3, M4, M5, M6, M7, I;
 
-    Size N;
-    Matrix M1, M2, M3, M4, M5, M6, M7, I;
+Real norm(const Array& v) {
+    return std::sqrt(DotProduct(v,v));
+}
 
-    Real norm(const Array& v) {
-        return std::sqrt(DotProduct(v,v));
+Real norm(const Matrix& m) {
+    Real sum = 0.0;
+    for (Size i=0; i<m.rows(); i++)
+        for (Size j=0; j<m.columns(); j++)
+            sum += m[i][j]*m[i][j];
+    return std::sqrt(sum);
+}
+
+void setup() {
+
+    N = 3;
+    M1 = M2 = I = Matrix(N,N);
+    M3 = Matrix(3,4);
+    M4 = Matrix(4,3);
+    M5 = Matrix(4, 4, 0.0);
+    M6 = Matrix(4, 4, 0.0);
+
+    M1[0][0] = 1.0;  M1[0][1] = 0.9;  M1[0][2] = 0.7;
+    M1[1][0] = 0.9;  M1[1][1] = 1.0;  M1[1][2] = 0.4;
+    M1[2][0] = 0.7;  M1[2][1] = 0.4;  M1[2][2] = 1.0;
+
+    M2[0][0] = 1.0;  M2[0][1] = 0.9;  M2[0][2] = 0.7;
+    M2[1][0] = 0.9;  M2[1][1] = 1.0;  M2[1][2] = 0.3;
+    M2[2][0] = 0.7;  M2[2][1] = 0.3;  M2[2][2] = 1.0;
+
+    I[0][0] = 1.0;  I[0][1] = 0.0;  I[0][2] = 0.0;
+    I[1][0] = 0.0;  I[1][1] = 1.0;  I[1][2] = 0.0;
+    I[2][0] = 0.0;  I[2][1] = 0.0;  I[2][2] = 1.0;
+
+    M3[0][0] = 1; M3[0][1] = 2; M3[0][2] = 3; M3[0][3] = 4;
+    M3[1][0] = 2; M3[1][1] = 0; M3[1][2] = 2; M3[1][3] = 1;
+    M3[2][0] = 0; M3[2][1] = 1; M3[2][2] = 0; M3[2][3] = 0;
+
+    M4[0][0] = 1;  M4[0][1] = 2;  M4[0][2] = 400;
+    M4[1][0] = 2;  M4[1][1] = 0;  M4[1][2] = 1;
+    M4[2][0] = 30; M4[2][1] = 2;  M4[2][2] = 0;
+    M4[3][0] = 2;  M4[3][1] = 0;  M4[3][2] = 1.05;
+
+    // from Higham - nearest correlation matrix
+    M5[0][0] = 2;   M5[0][1] = -1;  M5[0][2] = 0.0; M5[0][3] = 0.0;
+    M5[1][0] = M5[0][1];  M5[1][1] = 2;   M5[1][2] = -1;  M5[1][3] = 0.0;
+    M5[2][0] = M5[0][2]; M5[2][1] = M5[1][2];  M5[2][2] = 2;   M5[2][3] = -1;
+    M5[3][0] = M5[0][3]; M5[3][1] = M5[1][3]; M5[3][2] = M5[2][3];  M5[3][3] = 2;
+
+    // from Higham - nearest correlation matrix to M5
+    M6[0][0] = 1;        M6[0][1] = -0.8084124981;  M6[0][2] = 0.1915875019;   M6[0][3] = 0.106775049;
+    M6[1][0] = M6[0][1]; M6[1][1] = 1;        M6[1][2] = -0.6562326948;  M6[1][3] = M6[0][2];
+    M6[2][0] = M6[0][2]; M6[2][1] = M6[1][2]; M6[2][2] = 1;        M6[2][3] = M6[0][1];
+    M6[3][0] = M6[0][3]; M6[3][1] = M6[1][3]; M6[3][2] = M6[2][3]; M6[3][3] = 1;
+
+    M7 = M1;
+    M7[0][1] = 0.3; M7[0][2] = 0.2; M7[2][1] = 1.2;
+}
+
+class MatrixMult {
+  public:
+    explicit MatrixMult(Matrix m) : m_(std::move(m)) {}
+    Array operator()(const Array& x) const {
+        return m_ * x;
     }
 
-    Real norm(const Matrix& m) {
-        Real sum = 0.0;
-        for (Size i=0; i<m.rows(); i++)
-            for (Size j=0; j<m.columns(); j++)
-                sum += m[i][j]*m[i][j];
-        return std::sqrt(sum);
-    }
+  private:
+    const Matrix m_;
+};
 
-    void setup() {
-
-        N = 3;
-        M1 = M2 = I = Matrix(N,N);
-        M3 = Matrix(3,4);
-        M4 = Matrix(4,3);
-        M5 = Matrix(4, 4, 0.0);
-        M6 = Matrix(4, 4, 0.0);
-
-        M1[0][0] = 1.0;  M1[0][1] = 0.9;  M1[0][2] = 0.7;
-        M1[1][0] = 0.9;  M1[1][1] = 1.0;  M1[1][2] = 0.4;
-        M1[2][0] = 0.7;  M1[2][1] = 0.4;  M1[2][2] = 1.0;
-
-        M2[0][0] = 1.0;  M2[0][1] = 0.9;  M2[0][2] = 0.7;
-        M2[1][0] = 0.9;  M2[1][1] = 1.0;  M2[1][2] = 0.3;
-        M2[2][0] = 0.7;  M2[2][1] = 0.3;  M2[2][2] = 1.0;
-
-        I[0][0] = 1.0;  I[0][1] = 0.0;  I[0][2] = 0.0;
-        I[1][0] = 0.0;  I[1][1] = 1.0;  I[1][2] = 0.0;
-        I[2][0] = 0.0;  I[2][1] = 0.0;  I[2][2] = 1.0;
-
-        M3[0][0] = 1; M3[0][1] = 2; M3[0][2] = 3; M3[0][3] = 4;
-        M3[1][0] = 2; M3[1][1] = 0; M3[1][2] = 2; M3[1][3] = 1;
-        M3[2][0] = 0; M3[2][1] = 1; M3[2][2] = 0; M3[2][3] = 0;
-
-        M4[0][0] = 1;  M4[0][1] = 2;  M4[0][2] = 400;
-        M4[1][0] = 2;  M4[1][1] = 0;  M4[1][2] = 1;
-        M4[2][0] = 30; M4[2][1] = 2;  M4[2][2] = 0;
-        M4[3][0] = 2;  M4[3][1] = 0;  M4[3][2] = 1.05;
-
-        // from Higham - nearest correlation matrix
-        M5[0][0] = 2;   M5[0][1] = -1;  M5[0][2] = 0.0; M5[0][3] = 0.0;
-        M5[1][0] = M5[0][1];  M5[1][1] = 2;   M5[1][2] = -1;  M5[1][3] = 0.0;
-        M5[2][0] = M5[0][2]; M5[2][1] = M5[1][2];  M5[2][2] = 2;   M5[2][3] = -1;
-        M5[3][0] = M5[0][3]; M5[3][1] = M5[1][3]; M5[3][2] = M5[2][3];  M5[3][3] = 2;
-
-        // from Higham - nearest correlation matrix to M5
-        M6[0][0] = 1;        M6[0][1] = -0.8084124981;  M6[0][2] = 0.1915875019;   M6[0][3] = 0.106775049;
-        M6[1][0] = M6[0][1]; M6[1][1] = 1;        M6[1][2] = -0.6562326948;  M6[1][3] = M6[0][2];
-        M6[2][0] = M6[0][2]; M6[2][1] = M6[1][2]; M6[2][2] = 1;        M6[2][3] = M6[0][1];
-        M6[3][0] = M6[0][3]; M6[3][1] = M6[1][3]; M6[3][2] = M6[2][3]; M6[3][3] = 1;
-
-        M7 = M1;
-        M7[0][1] = 0.3; M7[0][2] = 0.2; M7[2][1] = 1.2;
-    }
-
+Real norm2(const Array& x) {
+    return std::sqrt(DotProduct(x,x));
 }
 
 
-void MatricesTest::testEigenvectors() {
+BOOST_AUTO_TEST_CASE(testEigenvectors) {
 
     BOOST_TEST_MESSAGE("Testing eigenvalues and eigenvectors calculation...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -157,11 +171,9 @@ void MatricesTest::testEigenvectors() {
     }
 }
 
-void MatricesTest::testSqrt() {
+BOOST_AUTO_TEST_CASE(testSqrt) {
 
     BOOST_TEST_MESSAGE("Testing matricial square root...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -179,10 +191,8 @@ void MatricesTest::testSqrt() {
     }
 }
 
-void MatricesTest::testHighamSqrt() {
+BOOST_AUTO_TEST_CASE(testHighamSqrt) {
     BOOST_TEST_MESSAGE("Testing Higham matricial square root...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -200,11 +210,9 @@ void MatricesTest::testHighamSqrt() {
     }
 }
 
-void MatricesTest::testSVD() {
+BOOST_AUTO_TEST_CASE(testSVD) {
 
     BOOST_TEST_MESSAGE("Testing singular value decomposition...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -246,11 +254,9 @@ void MatricesTest::testSVD() {
     }
 }
 
-void MatricesTest::testQRDecomposition() {
+BOOST_AUTO_TEST_CASE(testQRDecomposition) {
 
     BOOST_TEST_MESSAGE("Testing QR decomposition...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -283,11 +289,9 @@ void MatricesTest::testQRDecomposition() {
     }
 }
 
-void MatricesTest::testQRSolve() {
+BOOST_AUTO_TEST_CASE(testQRSolve) {
 
     BOOST_TEST_MESSAGE("Testing QR solve...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -355,11 +359,9 @@ void MatricesTest::testQRSolve() {
     }
 }
 
-void MatricesTest::testInverse() {
+BOOST_AUTO_TEST_CASE(testInverse) {
 
     BOOST_TEST_MESSAGE("Testing LU inverse calculation...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -385,11 +387,9 @@ void MatricesTest::testInverse() {
     }
 }
 
-void MatricesTest::testDeterminant() {
+BOOST_AUTO_TEST_CASE(testDeterminant) {
 
     BOOST_TEST_MESSAGE("Testing LU determinant calculation...");
-
-    using namespace matrices_test;
 
     setup();
     Real tol = 1e-10;
@@ -398,7 +398,7 @@ void MatricesTest::testDeterminant() {
     // expected results calculated with octave
     Real expected[] = { 0.044, -0.012, 5.0, 5.7621e-11, 1.0};
 
-    for (Size j=0; j<LENGTH(testMatrices); ++j) {
+    for (Size j=0; j<std::size(testMatrices); ++j) {
         const Real calculated = determinant(testMatrices[j]);
         if (std::fabs(expected[j] - calculated) > tol)
             BOOST_FAIL("determinant calculation failed "
@@ -440,7 +440,7 @@ void MatricesTest::testDeterminant() {
     }
 }
 
-void MatricesTest::testOrthogonalProjection() {
+BOOST_AUTO_TEST_CASE(testOrthogonalProjection) {
     BOOST_TEST_MESSAGE("Testing orthogonal projections...");
 
     Size dimension = 1000;
@@ -506,7 +506,7 @@ void MatricesTest::testOrthogonalProjection() {
 
 }
 
-void MatricesTest::testCholeskyDecomposition() {
+BOOST_AUTO_TEST_CASE(testCholeskyDecomposition) {
 
     BOOST_TEST_MESSAGE("Testing Cholesky Decomposition...");
 
@@ -577,7 +577,7 @@ void MatricesTest::testCholeskyDecomposition() {
     }
 }
 
-void MatricesTest::testMoorePenroseInverse() {
+BOOST_AUTO_TEST_CASE(testMoorePenroseInverse) {
 
     BOOST_TEST_MESSAGE("Testing Moore-Penrose inverse...");
 
@@ -626,28 +626,8 @@ void MatricesTest::testMoorePenroseInverse() {
 
 }
 
-
-namespace matrices_test {
-    class MatrixMult {
-      public:
-        explicit MatrixMult(Matrix m) : m_(std::move(m)) {}
-        Array operator()(const Array& x) const {
-            return m_ * x;
-        }
-
-      private:
-        const Matrix m_;
-    };
-
-    Real norm2(const Array& x) {
-        return std::sqrt(DotProduct(x,x));
-    }
-}
-
-void MatricesTest::testIterativeSolvers() {
+BOOST_AUTO_TEST_CASE(testIterativeSolvers) {
     BOOST_TEST_MESSAGE("Testing iterative solvers...");
-
-    using namespace matrices_test;
 
     setup();
 
@@ -703,7 +683,7 @@ void MatricesTest::testIterativeSolvers() {
     }
 }
 
-void MatricesTest::testInitializers() {
+BOOST_AUTO_TEST_CASE(testInitializers) {
     BOOST_TEST_MESSAGE("Testing matrix initializers...");
 
     Matrix m1 = {};
@@ -725,27 +705,24 @@ void MatricesTest::testInitializers() {
 }
 
 
-namespace {
-
-    typedef std::pair< std::pair< std::vector<Size>, std::vector<Size> >,
+typedef std::pair< std::pair< std::vector<Size>, std::vector<Size> >,
                    std::vector<Real> > coordinate_tuple;
 
-    coordinate_tuple sparseMatrixToCoordinateTuple(const SparseMatrix& m) {
-        std::vector<Size> row_idx, col_idx;
-        std::vector<Real> data;
-        for (auto iter1 = m.begin1(); iter1 != m.end1(); ++iter1)
-            for (auto iter2 = iter1.begin(); iter2 != iter1.end(); ++iter2) {
-                row_idx.push_back(iter1.index1());
-                col_idx.push_back(iter2.index2());
-                data.push_back(*iter2);
-            }
+coordinate_tuple sparseMatrixToCoordinateTuple(const SparseMatrix& m) {
+    std::vector<Size> row_idx, col_idx;
+    std::vector<Real> data;
+    for (auto iter1 = m.begin1(); iter1 != m.end1(); ++iter1)
+        for (auto iter2 = iter1.begin(); iter2 != iter1.end(); ++iter2) {
+            row_idx.push_back(iter1.index1());
+            col_idx.push_back(iter2.index2());
+            data.push_back(*iter2);
+        }
 
-        return std::make_pair(std::make_pair(row_idx, col_idx), data);
-    }
-
+    return std::make_pair(std::make_pair(row_idx, col_idx), data);
 }
 
-void MatricesTest::testSparseMatrixMemory() {
+
+BOOST_AUTO_TEST_CASE(testSparseMatrixMemory) {
 
     BOOST_TEST_MESSAGE("Testing sparse matrix memory layout...");
 
@@ -799,16 +776,21 @@ void MatricesTest::testSparseMatrixMemory() {
 
 }
 
-#define QL_CHECK_CLOSE_MATRIX(actual, expected)                             \
+#define QL_CHECK_CLOSE_MATRIX_TOL(actual, expected, tol)                    \
     BOOST_REQUIRE(actual.rows() == expected.rows() &&                       \
                   actual.columns() == expected.columns());                  \
     for (auto i = 0u; i < actual.rows(); i++) {                             \
         for (auto j = 0u; j < actual.columns(); j++) {                      \
-            QL_CHECK_CLOSE(actual(i, j), expected(i, j), 100 * QL_EPSILON); \
+            QL_CHECK_CLOSE(actual(i, j), expected(i, j), tol);              \
         }                                                                   \
     }                                                                       \
 
-void MatricesTest::testOperators() {
+
+#define QL_CHECK_CLOSE_MATRIX(actual, expected)                             \
+        QL_CHECK_CLOSE_MATRIX_TOL(actual, expected, 100 * QL_EPSILON)       \
+
+
+BOOST_AUTO_TEST_CASE(testOperators) {
 
     BOOST_TEST_MESSAGE("Testing matrix operators...");
 
@@ -866,24 +848,159 @@ void MatricesTest::testOperators() {
     QL_CHECK_CLOSE_MATRIX(rvalue_real_quotient, scalar_quotient);
 }
 
-test_suite* MatricesTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Matrix tests");
+namespace MatrixTests {
+    Matrix createTestCorrelationMatrix(Size n) {
+        Matrix rho(n, n);
+        for (Size i=0; i < n; ++i)
+            for (Size j=i; j < n; ++j)
+                rho[i][j] = rho[j][i] =
+                    std::exp(-0.1*std::abs(Real(i)-Real(j)) - ((i!=j) ? 0.02*(i+j): 0.0));
 
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testOrthogonalProjection));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testEigenvectors));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testSqrt));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testSVD));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testHighamSqrt));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testQRDecomposition));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testQRSolve));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testInverse));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testDeterminant));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testSparseMatrixMemory));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testCholeskyDecomposition));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testMoorePenroseInverse));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testIterativeSolvers));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testInitializers));
-    suite->add(QUANTLIB_TEST_CASE(&MatricesTest::testOperators));
-    return suite;
+        return rho;
+    }
 }
 
+BOOST_AUTO_TEST_CASE(testPrincipalMatrixSqrt) {
+    BOOST_TEST_MESSAGE("Testing principal matrix pseudo sqrt...");
+
+    std::vector<Size> dims = {1, 4, 10, 40};
+    for (Size n: dims) {
+        const Matrix rho = MatrixTests::createTestCorrelationMatrix(n);
+        const Matrix sqrtRho = pseudoSqrt(rho, SalvagingAlgorithm::Principal);
+
+        // matrix is symmetric
+        QL_CHECK_CLOSE_MATRIX_TOL(sqrtRho, transpose(sqrtRho), 1e3*QL_EPSILON);
+
+        // matrix is square root of original matrix
+        QL_CHECK_CLOSE_MATRIX_TOL((sqrtRho*sqrtRho), rho, 1e5*QL_EPSILON);
+    }
+}
+
+
+BOOST_AUTO_TEST_CASE(testCholeskySolverFor) {
+    BOOST_TEST_MESSAGE("Testing CholeskySolverFor...");
+
+    MersenneTwisterUniformRng rng(1234);
+
+    std::vector<Size> dims = {1, 4, 10, 25, 50};
+    for (Size n: dims) {
+
+        Array b(n);
+        for (Size i=0; i < n; ++i)
+            b[i] = rng.nextReal();
+
+        const Matrix rho = MatrixTests::createTestCorrelationMatrix(n);
+        const Array x = CholeskySolveFor(CholeskyDecomposition(rho), b);
+
+        const Array diff = Abs(rho*x - b);
+
+        QL_CHECK_SMALL(std::sqrt(DotProduct(diff, diff)), 20*std::sqrt(n)*QL_EPSILON);
+    }
+}
+
+
+BOOST_AUTO_TEST_CASE(testCholeskySolverForIncomplete) {
+    BOOST_TEST_MESSAGE("Testing CholeskySolverFor with incomplete matrix...");
+
+    const Size n = 4;
+
+    Matrix rho(n, n, 0.0);
+    rho[0][0] = rho[1][1] = Real(1);
+    rho[0][1] = rho[1][0] = 0.9;
+
+    const Matrix L = CholeskyDecomposition(rho, true);
+    QL_CHECK_CLOSE_MATRIX((L*transpose(L)), rho);
+}
+
+namespace {
+    void QL_CHECK_CLOSE_ARRAY_TOL(
+        const Array& actual, const Array& expected, Real tol) {
+        BOOST_REQUIRE(actual.size() == expected.size());
+        for (auto i = 0U; i < actual.size(); i++) {
+            QL_CHECK_SMALL(actual[i] - expected[i], tol);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testHouseholderTransformation) {
+    BOOST_TEST_MESSAGE("Testing Householder Transformation...");
+
+    MersenneTwisterUniformRng rng(1234);
+
+    const auto I = [](Size i) -> Matrix {
+        Matrix id(i, i, 0.0);
+        for (Size j=0; j < i; ++j)
+            id[j][j] = 1.0;
+
+        return id;
+    };
+
+    for (Size i=1; i < 10; ++i) {
+        Array v(i), x(i);
+        for (Size j=0; j < i; ++j) {
+            v[j] = rng.nextReal()-0.5;
+            x[j] = rng.nextReal()-0.5;
+        }
+
+        const Array expected = (I(i)- 2.0*outerProduct(v, v))*x;
+        const Array calculated = HouseholderTransformation(v)(x);
+        QL_CHECK_CLOSE_ARRAY_TOL(calculated, expected, 1e4*QL_EPSILON);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testHouseholderReflection) {
+    BOOST_TEST_MESSAGE("Testing Householder Reflection...");
+
+    constexpr double tol = 1e4*QL_EPSILON;
+
+    const auto e = [](Size n, Size m=0) -> Array {
+        Array e(n, 0.0);
+        e[m] = 1.0;
+        return e;
+    };
+
+    for (Size i=0; i < 5; ++i) {
+        QL_CHECK_CLOSE_ARRAY_TOL(
+            HouseholderReflection(e(5))(e(5, i)), e(5), tol);
+        QL_CHECK_CLOSE_ARRAY_TOL(
+            HouseholderReflection(e(5))(M_PI*e(5, i)), M_PI*e(5), tol);
+        QL_CHECK_CLOSE_ARRAY_TOL(
+            HouseholderReflection(e(5))(
+                e(5, i) + e(5)),
+                ((i==0)? 2.0 : M_SQRT2)*e(5), tol);
+    }
+
+    // limits
+    for (Real x=10; x > 1e-50; x*=0.1) {
+        QL_CHECK_CLOSE_ARRAY_TOL(
+            HouseholderReflection(e(3))(
+                Array({10.0, x, 0})),
+                std::sqrt(10.0*10.0+x*x)*e(3), tol
+        );
+
+        QL_CHECK_CLOSE_ARRAY_TOL(
+            HouseholderReflection(e(3))(
+                Array({10.0, x, 1e-3})),
+                std::sqrt(10.0*10.0+x*x+1e-3*1e-3)*e(3), tol
+        );
+    }
+
+    MersenneTwisterUniformRng rng(1234);
+
+    for (Size i=0; i < 100; ++i) {
+        const Array v = Array({rng.nextReal(), rng.nextReal(), rng.nextReal()}) - 0.5;
+        const Matrix u = HouseholderTransformation(v / Norm2(v)).getMatrix();
+
+        const Array eu = u*e(3, i%3);
+        const Array a = Array({rng.nextReal(), rng.nextReal(), rng.nextReal()}) - 0.5;
+
+        const Matrix H = HouseholderTransformation(
+            HouseholderReflection(eu).reflectionVector(a)).getMatrix();
+
+        QL_CHECK_CLOSE_ARRAY_TOL(u*H*a, Norm2(a)*e(3, i%3), tol);
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

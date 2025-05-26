@@ -42,19 +42,6 @@ namespace QuantLib {
                              Period(1, Months), // availability
                              EURCurrency(),
                              ts) {}
-
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        explicit EUHICP(
-            bool interpolated,
-            const Handle<ZeroInflationTermStructure>& ts = {})
-        : EUHICP(ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
     //! EU HICPXT index
@@ -68,25 +55,27 @@ namespace QuantLib {
                              Period(1, Months), // availability
                              EURCurrency(),
                              ts) {}
-
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        explicit EUHICPXT(
-            bool interpolated,
-            const Handle<ZeroInflationTermStructure>& ts = {})
-        : EUHICPXT(ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
 
     //! Quoted year-on-year EU HICP (i.e. not a ratio of EU HICP)
     class YYEUHICP : public YoYInflationIndex {
       public:
+        explicit YYEUHICP(const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_HICP",
+                            EURegion(),
+                            false,
+                            Monthly,
+                            Period(1, Months),
+                            EURCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         explicit YYEUHICP(
             bool interpolated,
             const Handle<YoYInflationTermStructure>& ts = {})
@@ -98,11 +87,28 @@ namespace QuantLib {
                             Period(1, Months),
                             EURCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
     //! Quoted year-on-year EU HICPXT
     class YYEUHICPXT : public YoYInflationIndex {
       public:
+        explicit YYEUHICPXT(const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_HICPXT",
+                            EURegion(),
+                            false,
+                            Monthly,
+                            Period(1, Months),
+                            EURCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         explicit YYEUHICPXT(
             bool interpolated,
             const Handle<YoYInflationTermStructure>& ts = {})
@@ -114,32 +120,10 @@ namespace QuantLib {
                             Period(1, Months),
                             EURCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
-
-    QL_DEPRECATED_DISABLE_WARNING
-
-    //! Year-on-year EU HICP (i.e. a ratio of EU HICP)
-    /*! \deprecated Pass the EUHICP index to YoYInflationIndex instead.
-                    Deprecated in version 1.31.
-    */
-    class [[deprecated("Pass the EUHICP index to YoYInflationIndex instead")]] YYEUHICPr : public YoYInflationIndex {
-      public:
-        explicit YYEUHICPr(
-            bool interpolated,
-            const Handle<YoYInflationTermStructure>& ts = {})
-        : YoYInflationIndex("YYR_HICP",
-                            EURegion(),
-                            false,
-                            interpolated,
-                            true,
-                            Monthly,
-                            Period(1, Months),
-                            EURCurrency(),
-                            ts) {}
-    };
-
-    QL_DEPRECATED_ENABLE_WARNING
 }
 
 

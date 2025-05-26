@@ -49,7 +49,7 @@ namespace QuantLib {
         }
 
         template <typename IndexType, typename LegType>
-        Leg createInterestLeg(const Schedule& schedule,
+        Leg createInterestLeg(Schedule schedule,
                               const ext::shared_ptr<IndexType>& interestRateIndex,
                               Real nominal,
                               const DayCounter& dayCounter,
@@ -58,7 +58,7 @@ namespace QuantLib {
                               const Calendar& paymentCalendar,
                               BusinessDayConvention paymentConvention,
                               Natural paymentDelay) {
-            return LegType(schedule, interestRateIndex)
+            return LegType(std::move(schedule), interestRateIndex)
                 .withNotionals(nominal)
                 .withPaymentDayCounter(dayCounter)
                 .withSpreads(margin)
@@ -91,7 +91,7 @@ namespace QuantLib {
 
         legs_[0].push_back(createEquityCashFlow(schedule_, equityIndex_, nominal_, paymentCalendar_,
                                                 paymentConvention_, paymentDelay_));
-        for (Leg::const_iterator i = legs_[0].begin(); i < legs_[0].end(); ++i)
+        for (auto i = legs_[0].begin(); i < legs_[0].end(); ++i)
             registerWith(*i);
 
         switch (type_) {
@@ -121,19 +121,19 @@ namespace QuantLib {
                                                  Natural paymentDelay)
     : EquityTotalReturnSwap(std::move(equityIndex),
                             interestRateIndex,
-                            type, 
-                            nominal, 
-                            std::move(schedule), 
+                            type,
+                            nominal,
+                            std::move(schedule),
                             std::move(dayCounter),
                             margin,
                             gearing,
                             std::move(paymentCalendar),
-                            paymentConvention, 
+                            paymentConvention,
                             paymentDelay) {
         legs_[1] = createInterestLeg<IborIndex, IborLeg>(
             schedule_, interestRateIndex, nominal_, dayCounter_, margin_, gearing_,
             paymentCalendar_, paymentConvention_, paymentDelay_);
-        for (Leg::const_iterator i = legs_[1].begin(); i < legs_[1].end(); ++i)
+        for (auto i = legs_[1].begin(); i < legs_[1].end(); ++i)
             registerWith(*i);
     }
 
@@ -150,19 +150,19 @@ namespace QuantLib {
                                                  Natural paymentDelay)
     : EquityTotalReturnSwap(std::move(equityIndex),
                             interestRateIndex,
-                            type, 
-                            nominal, 
-                            std::move(schedule), 
+                            type,
+                            nominal,
+                            std::move(schedule),
                             std::move(dayCounter),
                             margin,
                             gearing,
                             std::move(paymentCalendar),
-                            paymentConvention, 
+                            paymentConvention,
                             paymentDelay) {
         legs_[1] = createInterestLeg<OvernightIndex, OvernightLeg>(
             schedule_, interestRateIndex, nominal_, dayCounter_, margin_, gearing_,
             paymentCalendar_, paymentConvention_, paymentDelay_);
-        for (Leg::const_iterator i = legs_[1].begin(); i < legs_[1].end(); ++i)
+        for (auto i = legs_[1].begin(); i < legs_[1].end(); ++i)
             registerWith(*i);
     }
 

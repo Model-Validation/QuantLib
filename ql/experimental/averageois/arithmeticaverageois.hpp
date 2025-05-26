@@ -32,27 +32,29 @@ namespace QuantLib {
     class Schedule;
     class OvernightIndex;
 
-    //! Arithemtic Average OIS: fix vs arithmetic average of overnight rate
-    class ArithmeticAverageOIS : public Swap {
+    /*! \deprecated Use OvernightIndexedSwap instead.
+                        Deprecated in version 1.36.
+    */
+    class [[deprecated("Use OvernightIndexedSwap instead")]] ArithmeticAverageOIS : public Swap {
       public:
         ArithmeticAverageOIS(Type type,
                              Real nominal,
-                             const Schedule& fixedLegSchedule,
+                             Schedule fixedLegSchedule,
                              Rate fixedRate,
                              DayCounter fixedDC,
                              ext::shared_ptr<OvernightIndex> overnightIndex,
-                             const Schedule& overnightLegSchedule,
+                             Schedule overnightLegSchedule,
                              Spread spread = 0.0,
                              Real meanReversionSpeed = 0.03,
                              Real volatility = 0.00, // NO convexity adjustment by default
                              bool byApprox = false); // TRUE to use Katsumi Takada approximation
         ArithmeticAverageOIS(Type type,
                              std::vector<Real> nominals,
-                             const Schedule& fixedLegSchedule,
+                             Schedule fixedLegSchedule,
                              Rate fixedRate,
                              DayCounter fixedDC,
                              ext::shared_ptr<OvernightIndex> overnightIndex,
-                             const Schedule& overnightLegSchedule,
+                             Schedule overnightLegSchedule,
                              Spread spread = 0.0,
                              Real meanReversionSpeed = 0.03,
                              Real volatility = 0.00, // NO convexity adjustment by default
@@ -60,7 +62,10 @@ namespace QuantLib {
         //! \name Inspectors
         //@{
         Type type() const { return type_; }
-        Real nominal() const;
+        Real nominal() const {
+            QL_REQUIRE(nominals_.size()==1, "varying nominals");
+            return nominals_[0];
+        }
         std::vector<Real> nominals() const { return nominals_; }
 
         //const Schedule& schedule() { return schedule_; }
@@ -88,8 +93,7 @@ namespace QuantLib {
         Spread fairSpread() const;
         //@}
       private:
-        void initialize(const Schedule& fixedLegSchedule,
-                        const Schedule& overnightLegSchedule);
+        void initialize(Schedule fixedLegSchedule, Schedule overnightLegSchedule);
         Type type_;
         std::vector<Real> nominals_;
 
@@ -107,14 +111,6 @@ namespace QuantLib {
         Real mrs_;
         Real vol_;
     };
-
-
-    // inline
-
-    inline Real ArithmeticAverageOIS::nominal() const {
-        QL_REQUIRE(nominals_.size()==1, "varying nominals");
-        return nominals_[0];
-    }
 
 }
 

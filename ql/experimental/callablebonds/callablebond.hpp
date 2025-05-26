@@ -79,20 +79,6 @@ namespace QuantLib {
                               Volatility minVol,
                               Volatility maxVol) const;
 
-        /*! \warning This version of the method takes an NPV as target, not a price.
-
-            \deprecated Use the other overload.
-                        Deprecated in version 1.28.
-        */
-        QL_DEPRECATED
-        Volatility impliedVolatility(
-                              Real targetValue,
-                              const Handle<YieldTermStructure>& discountCurve,
-                              Real accuracy,
-                              Size maxEvaluations,
-                              Volatility minVol,
-                              Volatility maxVol) const;
-
         //! Calculate the Option Adjusted Spread (OAS)
         /*! Calculates the spread that needs to be added to the
             reference curve so that the theoretical model value
@@ -214,7 +200,7 @@ namespace QuantLib {
       public:
         CallableFixedRateBond(Natural settlementDays,
                               Real faceAmount,
-                              const Schedule& schedule,
+                              Schedule schedule,
                               const std::vector<Rate>& coupons,
                               const DayCounter& accrualDayCounter,
                               BusinessDayConvention paymentConvention = Following,

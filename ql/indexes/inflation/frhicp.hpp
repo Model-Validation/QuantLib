@@ -36,25 +36,27 @@ namespace QuantLib {
         explicit FRHICP(const Handle<ZeroInflationTermStructure>& ts = {})
         : ZeroInflationIndex(
               "HICP", FranceRegion(), false, Monthly, Period(1, Months), EURCurrency(), ts) {}
-
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        explicit FRHICP(
-            bool interpolated,
-            const Handle<ZeroInflationTermStructure>& ts = {})
-        : FRHICP(ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
 
     //! Quoted year-on-year FR HICP (i.e. not a ratio)
     class YYFRHICP : public YoYInflationIndex {
       public:
+        explicit YYFRHICP(const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_HICP",
+                            FranceRegion(),
+                            false,
+                            Monthly,
+                            Period(1, Months),
+                            EURCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         explicit YYFRHICP(
             bool interpolated,
             const Handle<YoYInflationTermStructure>& ts = {})
@@ -66,32 +68,10 @@ namespace QuantLib {
                             Period(1, Months),
                             EURCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
-
-    QL_DEPRECATED_DISABLE_WARNING
-
-    //! Year-on-year FR HICP (i.e. a ratio)
-    /*! \deprecated Pass the FRHICP index to YoYInflationIndex instead.
-                    Deprecated in version 1.31.
-    */
-    class [[deprecated("Pass the FRHICP index to YoYInflationIndex instead")]] YYFRHICPr : public YoYInflationIndex {
-      public:
-        explicit YYFRHICPr(
-            bool interpolated,
-            const Handle<YoYInflationTermStructure>& ts = {})
-        : YoYInflationIndex("YYR_HICP",
-                            FranceRegion(),
-                            false,
-                            interpolated,
-                            true,
-                            Monthly,
-                            Period(1, Months),
-                            EURCurrency(),
-                            ts) {}
-    };
-
-    QL_DEPRECATED_ENABLE_WARNING
 }
 
 #endif

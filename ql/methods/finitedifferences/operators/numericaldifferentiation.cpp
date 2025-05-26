@@ -69,7 +69,9 @@ namespace QuantLib {
             QL_REQUIRE(N > M, "number of points must be greater "
                                "than the order of the derivative");
 
+            QL_DEPRECATED_DISABLE_WARNING
             boost::multi_array<Real, 3>  d(boost::extents[M+1][N][N]);
+            QL_DEPRECATED_ENABLE_WARNING
             d[0][0][0] = 1.0;
             Real c1 = 1.0;
 
@@ -101,14 +103,14 @@ namespace QuantLib {
         }
     }
 
-    NumericalDifferentiation::NumericalDifferentiation(ext::function<Real(Real)> f,
+    NumericalDifferentiation::NumericalDifferentiation(std::function<Real(Real)> f,
                                                        Size orderOfDerivative,
                                                        Array x_offsets)
     : offsets_(std::move(x_offsets)), w_(calcWeights(offsets_, orderOfDerivative)),
       f_(std::move(f)) {}
 
 
-    NumericalDifferentiation::NumericalDifferentiation(ext::function<Real(Real)> f,
+    NumericalDifferentiation::NumericalDifferentiation(std::function<Real(Real)> f,
                                                        Size orderOfDerivative,
                                                        Real stepSize,
                                                        Size steps,

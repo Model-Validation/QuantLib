@@ -52,6 +52,34 @@ namespace QuantLib {
         //@{
         PiecewiseZeroInflationCurve(
             const Date& referenceDate,
+            Date baseDate,
+            const Period& lag,
+            Frequency frequency,
+            const DayCounter& dayCounter,
+            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
+            const ext::shared_ptr<Seasonality>& seasonality = {},
+            Real accuracy = 1.0e-14,
+            const Interpolator& i = Interpolator())
+        : base_curve(referenceDate,
+                     baseDate,
+                     lag,
+                     frequency,
+                     dayCounter,
+                     seasonality,
+                     i),
+          instruments_(std::move(instruments)), accuracy_(accuracy) {
+            bootstrap_.setup(this);
+        }
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the other overload and pass the base date directly
+                        instead of using a lag. A base rate is not needed.
+                        Deprecated in version 1.34.
+        */
+        QL_DEPRECATED
+        PiecewiseZeroInflationCurve(
+            const Date& referenceDate,
             const Calendar& calendar,
             const DayCounter& dayCounter,
             const Period& lag,
@@ -70,6 +98,8 @@ namespace QuantLib {
           instruments_(std::move(instruments)), accuracy_(accuracy) {
             bootstrap_.setup(this);
         }
+
+        QL_DEPRECATED_ENABLE_WARNING
         //@}
 
         //! \name Inflation interface
@@ -79,15 +109,18 @@ namespace QuantLib {
         //@
         //! \name Inspectors
         //@{
-        const std::vector<Time>& times() const;
-        const std::vector<Date>& dates() const;
-        const std::vector<Real>& data() const;
-        std::vector<std::pair<Date, Real> > nodes() const;
+        const std::vector<Time>& times() const override;
+        const std::vector<Date>& dates() const override;
+        const std::vector<Real>& data() const override;
+        const std::vector<Rate>& rates() const override;
+        std::vector<std::pair<Date, Real> > nodes() const override;
         //@}
         //! \name Observer interface
         //@{
         void update() override;
         //@}
+      protected:
+        Rate zeroRateImpl(Time t) const override;
       private:
         // methods
         void performCalculations() const override;
@@ -105,7 +138,8 @@ namespace QuantLib {
 
     template <class I, template <class> class B, class T>
     inline Date PiecewiseZeroInflationCurve<I,B,T>::baseDate() const {
-        this->calculate();
+        if (!this->hasExplicitBaseDate())
+            this->calculate();
         return base_curve::baseDate();
     }
 
@@ -117,32 +151,44 @@ namespace QuantLib {
 
     template <class I, template <class> class B, class T>
     const std::vector<Time>& PiecewiseZeroInflationCurve<I,B,T>::times() const {
-        calculate();
+        this->calculate();
         return base_curve::times();
     }
 
     template <class I, template <class> class B, class T>
     const std::vector<Date>& PiecewiseZeroInflationCurve<I,B,T>::dates() const {
-        calculate();
+        this->calculate();
         return base_curve::dates();
     }
 
     template <class I, template <class> class B, class T>
     const std::vector<Real>& PiecewiseZeroInflationCurve<I,B,T>::data() const {
-        calculate();
+        this->calculate();
+        return base_curve::rates();
+    }
+
+    template <class I, template <class> class B, class T>
+    const std::vector<Real>& PiecewiseZeroInflationCurve<I, B, T>::rates() const {
+        this->calculate();
         return base_curve::rates();
     }
 
     template <class I, template <class> class B, class T>
     std::vector<std::pair<Date, Real> >
     PiecewiseZeroInflationCurve<I,B,T>::nodes() const {
-        calculate();
+        this->calculate();
         return base_curve::nodes();
     }
 
     template <class I, template <class> class B, class T>
     void PiecewiseZeroInflationCurve<I,B,T>::performCalculations() const {
         bootstrap_.calculate();
+    }
+
+    template <class I, template <class> class B, class T>
+    Rate PiecewiseZeroInflationCurve<I,B,T>::zeroRateImpl(Time t) const {
+        calculate();
+        return base_curve::zeroRateImpl(t);
     }
 
     template <class I, template<class> class B, class T>

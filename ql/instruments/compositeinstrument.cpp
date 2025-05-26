@@ -60,8 +60,8 @@ namespace QuantLib {
     }
 
     void CompositeInstrument::deepUpdate() {
-        for (const_iterator i=components_.begin(); i!=components_.end(); ++i) {
-            i->first->deepUpdate();
+        for (auto & component : components_) {
+            component.first->deepUpdate();
         }
         update();
     }
@@ -88,6 +88,7 @@ namespace QuantLib {
                 additionalResults_[prefix + it->first] = it->second;
             }
             additionalResults_[prefix + "multiplier"] = i->second;
+            additionalResults_[prefix + "npv"] = i->first->NPV();
         }
     }
 

@@ -31,10 +31,17 @@ namespace QuantLib {
       eps_(avoidCriticalPoints ? (1.0 + QL_EPSILON) : 1.0) {
 
         std::sort(criticalPoints_.begin(), criticalPoints_.end());
-        std::vector<Real>::const_iterator end =
+        auto end =
             std::unique(criticalPoints_.begin(), criticalPoints_.end(),
                         static_cast<bool (*)(Real, Real)>(close_enough));
         criticalPoints_.resize(end - criticalPoints_.begin());
+    }
+
+    ext::shared_ptr<Integrator> unwrapPiecewiseIntegrator(ext::shared_ptr<Integrator> integrator) {
+        while (auto p = ext::dynamic_pointer_cast<PiecewiseIntegral>(integrator)) {
+            integrator = p->integrator();
+        }
+        return integrator;
     }
 
 } // namespace QuantLib

@@ -9,6 +9,7 @@
 #include <ql/math/bspline.hpp>
 #include <ql/math/comparison.hpp>
 #include <ql/math/errorfunction.hpp>
+#include <ql/math/expm1.hpp>
 #include <ql/math/factorial.hpp>
 #include <ql/math/fastfouriertransform.hpp>
 #include <ql/math/functional.hpp>
@@ -25,7 +26,6 @@
 #include <ql/math/quadratic.hpp>
 #include <ql/math/rounding.hpp>
 #include <ql/math/richardsonextrapolation.hpp>
-#include <ql/math/sampledcurve.hpp>
 #include <ql/math/solver1d.hpp>
 #include <ql/math/transformedgrid.hpp>
 

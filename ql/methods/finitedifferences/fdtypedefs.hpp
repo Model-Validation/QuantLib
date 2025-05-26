@@ -24,25 +24,8 @@
 #ifndef quantlib_fd_typedefs_hpp
 #define quantlib_fd_typedefs_hpp
 
-#include <ql/methods/finitedifferences/cranknicolson.hpp>
-#include <ql/methods/finitedifferences/parallelevolver.hpp>
-
-namespace QuantLib {
-
-    //! default choice for finite-difference model
-    typedef FiniteDifferenceModel<
-                    CrankNicolson<TridiagonalOperator>  >
-                                  StandardFiniteDifferenceModel;
-
-    //! default choice for parallel finite-difference model
-    typedef FiniteDifferenceModel<ParallelEvolver<
-                    CrankNicolson<TridiagonalOperator> > >
-                                  StandardSystemFiniteDifferenceModel;
-
-    //! default choice for step condition
-    typedef StepCondition<Array> StandardStepCondition;
-
-}
+// Deprecated in version 1.37
+#pragma message("Warning: this file is empty and will disappear in a future release; do not include it.")
 
 
 #endif

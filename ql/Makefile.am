@@ -23,7 +23,6 @@ this_includedir=${includedir}/${subdir}
 this_include_HEADERS = \
 	any.hpp \
 	auto_link.hpp \
-	auto_ptr.hpp \
 	cashflow.hpp \
 	compounding.hpp \
 	config.hpp \
@@ -76,7 +75,6 @@ cpp_files = \
     instrument.cpp \
     interestrate.cpp \
     money.cpp \
-    optional.cpp \
     position.cpp \
     prices.cpp \
 	rebatedexercise.cpp \
@@ -104,7 +102,7 @@ else
 
 libQuantLib_la_SOURCES = $(cpp_files)
 
-EXTRA_DIST = 
+EXTRA_DIST =
 
 endif
 
@@ -152,7 +150,6 @@ quantlib.hpp: Makefile.am
 	for i in $(this_include_HEADERS); do \
 		case $$i in \
 			auto_link.hpp)     continue;; \
-			auto_ptr.hpp)      continue;; \
 			config.hpp)        continue;; \
 			mathconstants.hpp) continue;; \
 			qldefines.hpp)     continue;; \
@@ -182,4 +179,3 @@ install-data-hook:
 	rm .config.hpp
 depend:
 	makedepend $(INCLUDES) -- $(CFLAGS) -- $(SOURCES)
-

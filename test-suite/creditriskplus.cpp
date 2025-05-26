@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "creditriskplus.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/experimental/risk/creditriskplus.hpp>
 #include <ql/math/comparison.hpp>
@@ -25,7 +25,13 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-void CreditRiskPlusTest::testReferenceValues() {
+QL_DEPRECATED_DISABLE_WARNING
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(CreditRiskPlusTests)
+
+BOOST_AUTO_TEST_CASE(testReferenceValues) {
 
     BOOST_TEST_MESSAGE(
         "Testing extended credit risk plus model against reference values...");
@@ -119,8 +125,8 @@ void CreditRiskPlusTest::testReferenceValues() {
                    << cr.lossQuantile(0.99) << ", should be 250)");
 }
 
-test_suite *CreditRiskPlusTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Credit risk plus tests");
-    suite->add(QUANTLIB_TEST_CASE(&CreditRiskPlusTest::testReferenceValues));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()
+
+QL_DEPRECATED_ENABLE_WARNING

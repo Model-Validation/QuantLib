@@ -61,12 +61,6 @@ namespace QuantLib {
         ext::shared_ptr<SmileSection> smile_;
     };
 
-    /*! \deprecated Renamed to MarketQuotedOptionPricer.
-         Deprecated in version 1.31.
-    */
-    [[deprecated("Renamed to MarketQuotedOptionPricer")]]
-    typedef MarketQuotedOptionPricer BlackVanillaOptionPricer;
-
     class GFunction {
       public:
         virtual ~GFunction() = default;
@@ -268,17 +262,6 @@ namespace QuantLib {
         // private:
         class Function {
           public:
-            /*! \deprecated Use `auto` or `decltype` instead.
-                            Deprecated in version 1.29.
-            */
-            QL_DEPRECATED
-            typedef Real argument_type;
-
-            /*! \deprecated Use `auto` or `decltype` instead.
-                            Deprecated in version 1.29.
-            */
-            QL_DEPRECATED
-            typedef Real result_type;
             virtual ~Function() = default;
             virtual Real operator()(Real x) const = 0;
         };

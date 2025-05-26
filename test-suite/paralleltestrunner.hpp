@@ -19,8 +19,8 @@
 /*
  Examples:
   1. Start with 12 worker processes
-     ./quantlib-test-suite --nProc=12 --log_level=message --report_level=short
-                           --build_info=yes
+    ./quantlib-test-suite --log_level=message --report_level=short
+                           --build_info=yes -- --nProc=12
   2. If parameter "--nProc" is omitted then the number
      of worker processes will be equal to the number of CPU cores.
  */
@@ -36,6 +36,15 @@
 #    undef VERSION
 #endif
 
+#if BOOST_VERSION >= 108800
+#include <boost/process/v1/system.hpp>
+#include <boost/process/v1/args.hpp>
+namespace bp = boost::process::v1;
+#else
+#include <boost/process.hpp>
+namespace bp = boost::process;
+#endif
+#include <boost/algorithm/string.hpp>
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
@@ -64,6 +73,7 @@ using boost::unit_test::test_results;
 using namespace boost::interprocess;
 using namespace boost::unit_test_framework;
 
+
 namespace {
     int worker(std::string cmd) {
         return std::system(cmd.c_str());
@@ -79,6 +89,7 @@ namespace {
 
         bool visit(test_unit const& tu) override {
             if (tu.p_parent_id == framework::master_test_suite().p_id) {
+                BOOST_TEST_MESSAGE(tu.p_name.get());
                 testSuiteId_ = tu.p_id;
             } else if (tu.p_type == test_unit_type::TUT_SUITE && tu.p_parent_id == testSuiteId_ &&
                        tu.is_enabled()) {

@@ -111,6 +111,18 @@ namespace QuantLib {
         return c1.name() == c2.name();
     }
 
+    inline const CommodityType& CommodityCurve::commodityType() const {
+        return commodityType_;
+    }
+
+    inline const UnitOfMeasure& CommodityCurve::unitOfMeasure() const {
+        return unitOfMeasure_;
+    }
+
+    inline const Currency& CommodityCurve::currency() const {
+        return currency_;
+    }
+
     inline const std::string& CommodityCurve::name() const {
         return name_;
     }
@@ -177,7 +189,7 @@ namespace QuantLib {
                 const ext::shared_ptr<ExchangeContracts>& exchangeContracts,
                 Integer nearbyOffset) const {
         QL_REQUIRE(nearbyOffset > 0, "nearby offset must be > 0");
-        ExchangeContracts::const_iterator ic =
+        auto ic =
             exchangeContracts->lower_bound(date);
         if (ic != exchangeContracts->end()) {
             for (int i = 0; i < nearbyOffset-1 && ic!=exchangeContracts->end(); ++i)

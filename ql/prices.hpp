@@ -50,15 +50,19 @@ namespace QuantLib {
 
     /*! return the MidEquivalent price, i.e. the mid if available,
         or a suitable substitute if the proper mid is not available
+        \test different combinations are tested
     */
     Real midEquivalent(Real bid, Real ask, Real last, Real close);
 
     /*! return the MidSafe price, i.e. the mid only if
         both bid and ask prices are available
+        \test different combinations are tested
     */
     Real midSafe(Real bid, Real ask);
 
     //! interval price
+    /*! \test Inspectors, Modifiers, and Helper functions are tested.
+    */
     class IntervalPrice {
       public:
         enum Type { Open, Close, High, Low };
@@ -94,33 +98,11 @@ namespace QuantLib {
                                           IntervalPrice::Type);
         static TimeSeries<Real> extractComponent(
                                           const TimeSeries<IntervalPrice>&,
-                                          enum IntervalPrice::Type);
+                                          IntervalPrice::Type);
         //@}
       private:
         Real open_, close_, high_, low_;
     };
-
-    #ifdef QL_NULL_AS_FUNCTIONS
-
-    template <>
-    class Null<IntervalPrice> 
-    {
-      public:
-        Null() = default;
-        operator IntervalPrice() const { return {}; }
-    };
-
-    #else
-
-    template <>
-    class Null<IntervalPrice>
-    {
-      public:
-        Null() = default;
-        operator IntervalPrice() const { return {}; }
-    };
-
-    #endif
 
 }
 

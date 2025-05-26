@@ -73,7 +73,7 @@ namespace QuantLib {
               inflation curve is bootstrapped.
           */
           virtual bool isConsistent(const InflationTermStructure& iTS) const;
-
+          virtual Rate seasonalityFactor(const Date& d) const = 0;
           //! Takes a seasonality adjusted zeroRate and remove the seasonality adjustment
           virtual Rate deseasonalisedZeroRate(const Date& d,
                                               Rate r,
@@ -153,7 +153,7 @@ namespace QuantLib {
             virtual Frequency frequency() const;
             virtual std::vector<Rate> seasonalityFactors() const;
             //! The factor returned is NOT normalized relative to ANYTHING.
-            virtual Rate seasonalityFactor(const Date &d) const;
+            Rate seasonalityFactor(const Date& d) const override;
             //@}
 
             //! \name Seasonality interface

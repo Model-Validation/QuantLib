@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2018 Matthias Groncki
+ Copyright (C) 2023, 2024 Skandinaviska Enskilda Banken AB (publ)
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -35,9 +36,7 @@ namespace QuantLib {
 
         if (isWeekend(w)
             // New Year's Day
-            || ((d == 1 || (d == 3 && w == Monday) || (d == 2 && w == Tuesday) ||
-                 (d == 3 && w == Tuesday)) &&
-                m == January)
+            || ((d == 1 || (d == 3 && w == Monday)) && m == January)
             // Chakri Memorial Day
             || ((d == 6 || ((d == 7 || d == 8) && w == Monday)) && m == April)
             // Songkran Festival (was cancelled in 2020 due to the Covid-19 Pandamic)
@@ -50,7 +49,7 @@ namespace QuantLib {
             // Coronation Day
             || ((d == 4 || ((d == 5 || d == 6) && w == Monday)) && m == May && y >= 2019)
             // H.M.Queen Suthida Bajrasudhabimalalakshana’s Birthday
-            || ((d == 02 || ((d == 03 || d == 04) && w == Monday)) && m == June && y >= 2019)
+            || ((d == 03 || ((d == 04 || d == 05) && w == Monday)) && m == June && y >= 2019)
             // H.M. King Maha Vajiralongkorn Phra Vajiraklaochaoyuhua’s Birthday
             || ((d == 28 || ((d == 29 || d == 30) && w == Monday)) && m == July && y >= 2017)
             // 	​H.M. Queen Sirikit The Queen Mother’s Birthday / Mother’s Day
@@ -58,13 +57,14 @@ namespace QuantLib {
             // H.M. King Bhumibol Adulyadej The Great Memorial Day
             || ((d == 13 || ((d == 14 || d == 15) && w == Monday)) && m == October && y >= 2017)
             // Chulalongkorn Day
-            || ((d == 23 || ((d == 24 || d == 25) && w == Monday)) && m == October)
+            || ((d == 23 || ((d == 24 || d == 25) && w == Monday)) && m == October && y != 2021)  // Moved 2021, see below
             // H.M. King Bhumibol Adulyadej The Great’s Birthday/ National Day / Father’s Day
             || ((d == 5 || ((d == 6 || d == 7) && w == Monday)) && m == December)
             // Constitution Day
             || ((d == 10 || ((d == 11 || d == 12) && w == Monday)) && m == December)
             // New Year’s Eve
-            || (d == 31 && m == December))
+            || ((d == 31 && m == December) || (d == 2 && w == Monday && m == January && y != 2024))  // Moved 2024
+            )
             return false;
 
         if ((y == 2000) &&
@@ -255,11 +255,47 @@ namespace QuantLib {
         if ((y == 2021) && ((d == 12 && m == February)     // Special Holiday
                             || (d == 26 && m == February)  // Makha Bucha Day
                             || (d == 26 && m == May)       // Wisakha Bucha Day
-                            || (d == 26 && m == July)      // Asarnha Bucha Day
-                            || (d == 27 && m == July)      // Substitution for Songkran Festival
+                            || (d == 26 && m == July)      // Substitution for Asarnha Bucha Day (Saturday 24th July 2021)
                             || (d == 24 && m == September) // Special Holiday
                             || (d == 22 && m == October)   // ​Substitution for Chulalongkorn Day
                             ))
+            return false;
+
+        if ((y == 2022) && ((d == 16 && m == February)   // Makha Bucha Day
+                            || (d == 16 && m == May)     // Substitution for Wisakha Bucha Day (Sunday 15th May 2022)
+                            || (d == 13 && m == July)    // Asarnha Bucha Day
+                            || (d == 29 && m == July)    // Additional special holiday (added)
+                            || (d == 14 && m == October) // Additional special holiday (added)
+                            || (d == 24 && m == October) // ​Substitution for Chulalongkorn Day (Sunday 23rd October 2022)
+            ))
+            return false;
+
+        if ((y == 2023) && ((d == 6 && m == March)        // Makha Bucha Day
+                            || (d == 5 && m == May)       // Additional special holiday (added)
+                            || (d == 5 && m == June)      // Substitution for H.M. Queen's birthday and Wisakha Bucha Day (Saturday 3rd June 2022)
+                            || (d == 1 && m == August)    // Asarnha Bucha Day
+                            || (d == 23 && m == October)  // Chulalongkorn Day
+                            || (d == 29 && m == December) // Substitution for New Year’s Eve (Sunday 31st December 2023) (added)
+            ))
+            return false;
+
+        if ((y == 2024) && ((d == 26 && m == February)    // Substitution for Makha Bucha Day (Saturday 24th February 2024)
+                            || (d == 8 && m == April)     // Substitution for Chakri Memorial Day (Saturday 6th April 2024)
+                            || (d == 12 && m == April)    // Additional holiday in relation to the Songkran festival
+                            || (d == 6 && m == May)       // Substitution for Coronation Day (Saturday 4th May 2024)
+                            || (d == 22 && m == May)      // Wisakha Bucha Day
+                            || (d == 22 && m == July)     // Substitution for Asarnha Bucha Day (Saturday 20th July 2024)
+                            || (d == 23 && m == October)  // Chulalongkorn Day
+            ))
+            return false;
+
+        if ((y == 2025) && ((d == 12 && m == February)    // Substitution for Makha Bucha Day (Wednesday 12th February 2025)
+            || (d == 7 && m == April)     // Substitution for Chakri Memorial Day (Sunday 6th April 2025)
+            || (d == 5 && m == May)       // Substitution for Coronation Day (Sunday 4th May 2025)
+            || (d == 12 && m == May)      // Wisakha Bucha Day
+            || (d == 10 && m == July)     // Substitution for Asarnha Bucha Day (Tuesday 20th July 2025)
+            || (d == 23 && m == October)  // Chulalongkorn Day
+            ))
             return false;
 
         return true;

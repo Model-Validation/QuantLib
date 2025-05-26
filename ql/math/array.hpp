@@ -38,6 +38,15 @@
 #include <iomanip>
 #include <memory>
 #include <type_traits>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/unique_ptr.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
 
 namespace QuantLib {
 
@@ -66,6 +75,8 @@ namespace QuantLib {
         Array(const Array&);
         Array(Array&&) noexcept;
         Array(std::initializer_list<Real>);
+        template <typename T, typename = std::enable_if_t<std::is_convertible_v<T, Real>>>
+        Array(std::initializer_list<T> init);
         //! creates the array from an iterable sequence
         template <class ForwardIterator>
         Array(ForwardIterator begin, ForwardIterator end);
@@ -144,29 +155,21 @@ namespace QuantLib {
       private:
         std::unique_ptr<Real[]> data_;
         Size n_;
+
+        friend class boost::serialization::access;
+
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& n_;
+
+            // if deserialising
+            if (Archive::is_loading::value)
+                data_ = std::make_unique<Real[]>(n_);
+
+            ar& boost::serialization::make_array(data_.get(), n_);
+        }
     };
 
-    #ifdef QL_NULL_AS_FUNCTIONS
-
-    //! specialization of null template for this class
-    template <>
-    class Null<Array> {
-      public:
-        Null() = default;
-        operator Array() const { return Array(); }
-    };
-
-    #else
-
-    //! specialization of null template for this class
-    template <>
-    class Null<Array> {
-      public:
-        Null() = default;
-        operator Array() const { return Array(); }
-    };
-
-    #endif
 
     /*! \relates Array */
     Real DotProduct(const Array&, const Array&);
@@ -356,6 +359,11 @@ namespace QuantLib {
         // We have to detect integral types and dispatch.
         detail::_fill_array_(*this, data_, n_, begin, end,
                              std::is_integral<ForwardIterator>());
+    }
+
+    template <typename T, typename>
+    Array::Array(std::initializer_list<T> init) {
+        detail::_fill_array_(*this, data_, n_, init.begin(), init.end(), std::false_type());
     }
 
     inline Array& Array::operator=(const Array& from) {

@@ -88,6 +88,7 @@ namespace QuantLib {
         AverageBMALeg& withPaymentDayCounter(const DayCounter&);
         AverageBMALeg& withPaymentCalendar(const Calendar&);
         AverageBMALeg& withPaymentAdjustment(BusinessDayConvention);
+        AverageBMALeg& withPaymentLag(Integer lag);
         AverageBMALeg& withGearings(Real gearing);
         AverageBMALeg& withGearings(const std::vector<Real>& gearings);
         AverageBMALeg& withSpreads(Spread spread);
@@ -100,6 +101,7 @@ namespace QuantLib {
         DayCounter paymentDayCounter_;
         Calendar paymentCalendar_;
         BusinessDayConvention paymentAdjustment_ = Following;
+        Natural paymentLag_ = 0;
         std::vector<Real> gearings_;
         std::vector<Spread> spreads_;
     };

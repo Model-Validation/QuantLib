@@ -25,8 +25,19 @@
 #ifndef quantlib_currency_hpp
 #define quantlib_currency_hpp
 
-#include <ql/math/rounding.hpp>
 #include <ql/errors.hpp>
+#include <ql/math/rounding.hpp>
+
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
+
 #include <iosfwd>
 #include <set>
 
@@ -51,7 +62,6 @@ namespace QuantLib {
                  const std::string& fractionSymbol,
                  Integer fractionsPerUnit,
                  const Rounding& rounding,
-                 const std::string& formatString,
                  const Currency& triangulationCurrency = Currency(),
                  const std::set<std::string>& minorUnitCodes = {});
         //@}
@@ -71,11 +81,6 @@ namespace QuantLib {
         Integer fractionsPerUnit() const;
         //! rounding convention
         const Rounding& rounding() const;
-        //! output format
-        /*! The format will be fed three positional parameters,
-            namely, value, code, and symbol, in this order.
-        */
-        std::string format() const;
         //@}
         //! \name Other information
         //@{
@@ -86,10 +91,15 @@ namespace QuantLib {
         //! minor unit codes, e.g. GBp, GBX for GBP
         const std::set<std::string>& minorUnitCodes() const;
         //@}
+        friend class boost::serialization::access;
+        template <class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& data_;
+        }
       protected:
         struct Data;
         ext::shared_ptr<Data> data_;
-     private:
+      private:
         void checkNonEmpty() const;
     };
 
@@ -100,8 +110,9 @@ namespace QuantLib {
         Integer fractionsPerUnit;
         Rounding rounding;
         Currency triangulated;
-        std::string formatString;
         std::set<std::string> minorUnitCodes;
+
+        Data() = default;
 
         Data(std::string name,
              std::string code,
@@ -110,10 +121,22 @@ namespace QuantLib {
              std::string fractionSymbol,
              Integer fractionsPerUnit,
              const Rounding& rounding,
-             std::string formatString,
              Currency triangulationCurrency = Currency(),
              std::set<std::string> minorUnitCodes = {});
+
+        friend class boost::serialization::access;
+        template <class Archive> void serialize(Archive& ar, const unsigned int version) {
+            ar & name;
+            ar & code;
+            ar & numeric;
+            ar & symbol;
+            ar & fractionSymbol;
+            ar & fractionsPerUnit;
+            ar & rounding;
+            ar & minorUnitCodes;
+        }
     };
+
 
     /*! \relates Currency */
     bool operator==(const Currency&,
@@ -167,11 +190,6 @@ namespace QuantLib {
     inline const Rounding& Currency::rounding() const {
         checkNonEmpty();
         return data_->rounding;
-    }
-
-    inline std::string Currency::format() const {
-        checkNonEmpty();
-        return data_->formatString;
     }
 
     inline bool Currency::empty() const {

@@ -33,7 +33,9 @@
 #include <ql/patterns/visitor.hpp>
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/time/daycounter.hpp>
+#include <ql/any.hpp>
 #include <ql/handle.hpp>
+#include <map>
 
 namespace QuantLib {
 
@@ -42,7 +44,7 @@ namespace QuantLib {
     class FloatingRateCouponPricer;
 
     //! base floating-rate coupon class
-    class FloatingRateCoupon : public Coupon, public LazyObject {
+    class FloatingRateCoupon : public Coupon {
       public:
         FloatingRateCoupon(const Date& paymentDate,
                            Real nominal,
@@ -117,6 +119,9 @@ namespace QuantLib {
 
         virtual void setPricer(const ext::shared_ptr<FloatingRateCouponPricer>&);
         ext::shared_ptr<FloatingRateCouponPricer> pricer() const;
+
+        std::map<std::string, ext::any>& additionalResults() const { return additionalResults_; }
+
       protected:
         //! convexity adjustment for the given index fixing
         Rate convexityAdjustmentImpl(Rate fixing) const;
@@ -129,6 +134,7 @@ namespace QuantLib {
         Date fixingDate_;
         ext::shared_ptr<FloatingRateCouponPricer> pricer_;
         mutable Real rate_;
+        mutable std::map<std::string, ext::any> additionalResults_;
     };
 
     // inline definitions

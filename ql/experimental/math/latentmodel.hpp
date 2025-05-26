@@ -42,12 +42,6 @@ namespace QuantLib {
     namespace detail {
         // havent figured out how to do this in-place
         struct multiplyV {
-            /*! \deprecated Use `auto` or `decltype` instead.
-                            Deprecated in version 1.29.
-            */
-            QL_DEPRECATED
-            typedef std::vector<Real> result_type;
-
             std::vector<Real> operator()(Real d, std::vector<Real> v) 
             {
                 std::transform(v.begin(), v.end(), v.begin(), 
@@ -71,19 +65,19 @@ namespace QuantLib {
     public:
         // Interface with actual integrators:
         // integral of a scalar function
-        virtual Real integrate(const ext::function<Real (
+        virtual Real integrate(const std::function<Real (
             const std::vector<Real>& arg)>& f) const = 0;
         // integral of a vector function
         /* I had to use a different name, since the compiler does not
         recognise the overload; MSVC sees the argument as 
-        ext::function<Signature> in both cases....   
+        std::function<Signature> in both cases....   
         I could do the as with the quadratures and have this as a template 
         function and spez for the vector case but I prefer to understand
         why the overload fails....
                     FIX ME
         */
         virtual std::vector<Real> integrateV(
-            const ext::function<std::vector<Real>  (
+            const std::function<std::vector<Real>  (
             const std::vector<Real>& arg)>& f) const {
             QL_FAIL("No vector integration provided");
         }
@@ -122,11 +116,11 @@ namespace QuantLib {
     public:
         IntegrationBase(Size dimension, Size order) 
         : GaussianQuadMultidimIntegrator(dimension, order) {}
-        Real integrate(const ext::function<Real(const std::vector<Real>& arg)>& f) const override {
+        Real integrate(const std::function<Real(const std::vector<Real>& arg)>& f) const override {
             return GaussianQuadMultidimIntegrator::integrate<Real>(f);
         }
         std::vector<Real> integrateV(
-            const ext::function<std::vector<Real>(const std::vector<Real>& arg)>& f)
+            const std::function<std::vector<Real>(const std::vector<Real>& arg)>& f)
             const override {
             return GaussianQuadMultidimIntegrator::integrate<std::vector<Real>>(f);
         }
@@ -143,7 +137,7 @@ namespace QuantLib {
             Real a, Real b) 
         : MultidimIntegral(integrators), 
           a_(integrators.size(),a), b_(integrators.size(),b) {}
-        Real integrate(const ext::function<Real(const std::vector<Real>& arg)>& f) const override {
+        Real integrate(const std::function<Real(const std::vector<Real>& arg)>& f) const override {
             return MultidimIntegral::operator()(f, a_, b_);
         }
         // vector version here....
@@ -518,7 +512,7 @@ namespace QuantLib {
         explicit LatentModel(
             const std::vector<std::vector<Real> >& factorsWeights, 
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor but contributing to each latent
           variable through different weights.
@@ -530,7 +524,7 @@ namespace QuantLib {
         */
         explicit LatentModel(const std::vector<Real>& factorsWeight,
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables.
@@ -544,7 +538,7 @@ namespace QuantLib {
         */
         explicit LatentModel(Real correlSqr,
                              Size nVariables,
-                             const typename copulaType::initTraits& ini = copulaType::initTraits());
+                             const typename copulaType::initTraits& ini = typename copulaType::initTraits());
         /*! Constructs a LM with an arbitrary number of latent variables 
           depending only on one random factor with the same weight for all
           latent variables. The weight is observed and this constructor is
@@ -560,7 +554,7 @@ namespace QuantLib {
         explicit LatentModel(const Handle<Quote>& singleFactorCorrel,
             Size nVariables,
             const typename copulaType::initTraits& ini = 
-                copulaType::initTraits());
+                typename copulaType::initTraits());
 
         //! Provides values of the factors \f$ a_{i,k} \f$ 
         const std::vector<std::vector<Real> >& factorWeights() const {
@@ -584,7 +578,7 @@ namespace QuantLib {
          computes its expected value).
         */
         Real integratedExpectedValue(
-            const ext::function<Real(const std::vector<Real>& v1)>& f) const {
+            const std::function<Real(const std::vector<Real>& v1)>& f) const {
             // function composition: composes the integrand with the density 
             //   through a product.
             return integration()->integrate(
@@ -594,8 +588,8 @@ namespace QuantLib {
          computes its expected value).
         */
         std::vector<Real> integratedExpectedValueV(
-            // const ext::function<std::vector<Real>(
-            const ext::function<std::vector<Real>(
+            // const std::function<std::vector<Real>(
+            const std::function<std::vector<Real>(
                 const std::vector<Real>& v1)>& f ) const {
             detail::multiplyV M;
             return integration()->integrateV(//see note in LMIntegrators base class

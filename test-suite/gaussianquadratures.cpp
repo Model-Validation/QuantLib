@@ -17,11 +17,11 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "gaussianquadratures.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
-
 #include <ql/types.hpp>
 #include <ql/math/matrix.hpp>
+#include <ql/math/randomnumbers/mt19937uniformrng.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/math/integrals/gaussianquadratures.hpp>
 #include <ql/math/integrals/momentbasedgaussianpolynomial.hpp>
@@ -45,108 +45,120 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace gaussian_quadratures_test {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    template <class T>
-    void testSingle(const T& I, const std::string& tag,
-                    const boost::function<Real(Real)>& f, Real expected) {
-        Real calculated = I(f);
-        if (std::fabs(calculated-expected) > 1.0e-4) {
-            BOOST_ERROR("integrating" << tag << "\n"
-                        << "    calculated: " << calculated << "\n"
-                        << "    expected:   " << expected);
-        }
+BOOST_AUTO_TEST_SUITE(GaussianQuadraturesTests)
+
+template <class T>
+void testSingle(const T& I, const std::string& tag,
+                const boost::function<Real(Real)>& f, Real expected) {
+    Real calculated = I(f);
+    if (std::fabs(calculated-expected) > 1.0e-4) {
+        BOOST_ERROR("integrating" << tag << "\n"
+                    << "    calculated: " << calculated << "\n"
+                    << "    expected:   " << expected);
     }
-
-    // test functions
-
-    Real inv_exp(Real x) {
-        return std::exp(-x);
-    }
-
-    Real x_inv_exp(Real x) {
-        return x*std::exp(-x);
-    }
-
-    Real x_normaldistribution(Real x) {
-        return x*NormalDistribution()(x);
-    }
-
-    Real x_x_normaldistribution(Real x) {
-        return x*x*NormalDistribution()(x);
-    }
-
-    Real inv_cosh(Real x) {
-        return 1/std::cosh(x);
-    }
-
-    Real x_inv_cosh(Real x) {
-        return x/std::cosh(x);
-    }
-
-    Real x_x_nonCentralChiSquared(Real x) {
-        return x * x * boost::math::pdf(
-            boost::math::non_central_chi_squared_distribution<Real>(4.0,1.0),x);
-    }
-
-    Real x_sin_exp_nonCentralChiSquared(Real x) {
-        return x * std::sin(0.1*x) * std::exp(0.3*x) * boost::math::pdf(
-            boost::math::non_central_chi_squared_distribution<Real>(1.0,1.0),x);
-    }
-
-    template <class T>
-    void testSingleJacobi(const T& I) {
-        testSingle(I, "f(x) = 1",
-                   [](Real x) -> Real { return 1.0; }, 2.0);
-        testSingle(I, "f(x) = x",
-                   [](Real x) -> Real { return x; }, 0.0);
-        testSingle(I, "f(x) = x^2",
-                   [](Real x) -> Real{ return x * x; }, 2/3.);
-        testSingle(I, "f(x) = sin(x)",
-                   [](Real x) -> Real { return std::sin(x); }, 0.0);
-        testSingle(I, "f(x) = cos(x)",
-                   [](Real x) -> Real { return std::cos(x); },
-                   std::sin(1.0)-std::sin(-1.0));
-        testSingle(I, "f(x) = Gaussian(x)",
-                   NormalDistribution(),
-                   CumulativeNormalDistribution()(1.0)
-                   -CumulativeNormalDistribution()(-1.0));
-    }
-
-    template <class T>
-    void testSingleLaguerre(const T& I) {
-        testSingle(I, "f(x) = exp(-x)",
-                   inv_exp, 1.0);
-        testSingle(I, "f(x) = x*exp(-x)",
-                   x_inv_exp, 1.0);
-        testSingle(I, "f(x) = Gaussian(x)",
-                   NormalDistribution(), 0.5);
-    }
-
-    void testSingleTabulated(const boost::function<Real(Real)>& f,
-                             const std::string& tag,
-                             Real expected, Real tolerance) {
-        const Size order[] = { 6, 7, 12, 20 };
-        TabulatedGaussLegendre quad;
-        for (unsigned long i : order) {
-            quad.order(i);
-            Real realised = quad(f);
-            if (std::fabs(realised-expected) > tolerance) {
-                BOOST_ERROR(" integrating " << tag << "\n"
-                                            << "    order " << i << "\n"
-                                            << "    realised: " << realised << "\n"
-                                            << "    expected: " << expected);
-            }
-        }
-    }
-
 }
 
+// test functions
 
-void GaussianQuadraturesTest::testJacobi() {
+Real inv_exp(Real x) {
+    return std::exp(-x);
+}
+
+Real x_inv_exp(Real x) {
+    return x*std::exp(-x);
+}
+
+Real x_normaldistribution(Real x) {
+    return x*NormalDistribution()(x);
+}
+
+Real x_x_normaldistribution(Real x) {
+    return x*x*NormalDistribution()(x);
+}
+
+Real inv_cosh(Real x) {
+    return 1/std::cosh(x);
+}
+
+Real x_inv_cosh(Real x) {
+    return x/std::cosh(x);
+}
+
+Real x_x_nonCentralChiSquared(Real x) {
+    return x * x * boost::math::pdf(
+            boost::math::non_central_chi_squared_distribution<Real>(4.0,1.0),x);
+}
+
+Real x_sin_exp_nonCentralChiSquared(Real x) {
+    return x * std::sin(0.1*x) * std::exp(0.3*x) * boost::math::pdf(
+            boost::math::non_central_chi_squared_distribution<Real>(1.0,1.0),x);
+}
+
+template <class T>
+void testSingleJacobi(const T& I) {
+    testSingle(I, "f(x) = 1",
+               [](Real x) -> Real { return 1.0; }, 2.0);
+    testSingle(I, "f(x) = x",
+               [](Real x) -> Real { return x; }, 0.0);
+    testSingle(I, "f(x) = x^2",
+               [](Real x) -> Real{ return x * x; }, 2/3.);
+    testSingle(I, "f(x) = sin(x)",
+               [](Real x) -> Real { return std::sin(x); }, 0.0);
+    testSingle(I, "f(x) = cos(x)",
+               [](Real x) -> Real { return std::cos(x); },
+               std::sin(1.0)-std::sin(-1.0));
+    testSingle(I, "f(x) = Gaussian(x)",
+               NormalDistribution(),
+               CumulativeNormalDistribution()(1.0)
+               -CumulativeNormalDistribution()(-1.0));
+}
+
+template <class T>
+void testSingleLaguerre(const T& I) {
+    testSingle(I, "f(x) = exp(-x)",
+               inv_exp, 1.0);
+    testSingle(I, "f(x) = x*exp(-x)",
+               x_inv_exp, 1.0);
+    testSingle(I, "f(x) = Gaussian(x)",
+               NormalDistribution(), 0.5);
+}
+
+void testSingleTabulated(const boost::function<Real(Real)>& f,
+                         const std::string& tag,
+                         Real expected, Real tolerance) {
+    const Size order[] = { 6, 7, 12, 20 };
+    TabulatedGaussLegendre quad;
+    for (unsigned long i : order) {
+        quad.order(i);
+        Real realised = quad(f);
+        if (std::fabs(realised-expected) > tolerance) {
+            BOOST_ERROR(" integrating " << tag << "\n"
+                        << "    order " << i << "\n"
+                        << "    realised: " << realised << "\n"
+                        << "    expected: " << expected);
+        }
+    }
+}
+
+template <class mp_float>
+class MomentBasedGaussLaguerrePolynomial
+    : public MomentBasedGaussianPolynomial<mp_float> {
+  public:
+    mp_float moment(Size i) const override {
+        if (i == 0)
+            return mp_float(1.0);
+        else
+            return mp_float(i)*moment(i-1);
+    }
+
+    Real w(Real x) const override { return std::exp(-x); }
+};
+
+
+BOOST_AUTO_TEST_CASE(testJacobi) {
     BOOST_TEST_MESSAGE("Testing Gauss-Jacobi integration...");
-
-    using namespace gaussian_quadratures_test;
 
     testSingleJacobi(GaussLegendreIntegration(16));
     testSingleJacobi(GaussChebyshevIntegration(130));
@@ -154,10 +166,8 @@ void GaussianQuadraturesTest::testJacobi() {
     testSingleJacobi(GaussGegenbauerIntegration(50,0.55));
 }
 
-void GaussianQuadraturesTest::testLaguerre() {
+BOOST_AUTO_TEST_CASE(testLaguerre) {
      BOOST_TEST_MESSAGE("Testing Gauss-Laguerre integration...");
-
-     using namespace gaussian_quadratures_test;
 
      testSingleLaguerre(GaussLaguerreIntegration(16));
      testSingleLaguerre(GaussLaguerreIntegration(150,0.01));
@@ -168,10 +178,8 @@ void GaussianQuadraturesTest::testLaguerre() {
                 x_inv_exp, 1.0);
 }
 
-void GaussianQuadraturesTest::testHermite() {
+BOOST_AUTO_TEST_CASE(testHermite) {
      BOOST_TEST_MESSAGE("Testing Gauss-Hermite integration...");
-
-     using namespace gaussian_quadratures_test;
 
      testSingle(GaussHermiteIntegration(16), "f(x) = Gaussian(x)",
                 NormalDistribution(), 1.0);
@@ -181,10 +189,8 @@ void GaussianQuadraturesTest::testHermite() {
                 x_x_normaldistribution, 1.0);
 }
 
-void GaussianQuadraturesTest::testHyperbolic() {
+BOOST_AUTO_TEST_CASE(testHyperbolic) {
      BOOST_TEST_MESSAGE("Testing Gauss hyperbolic integration...");
-
-     using namespace gaussian_quadratures_test;
 
      testSingle(GaussHyperbolicIntegration(16), "f(x) = 1/cosh(x)",
                 inv_cosh, M_PI);
@@ -192,13 +198,9 @@ void GaussianQuadraturesTest::testHyperbolic() {
                 x_inv_cosh, 0.0);
 }
 
-void GaussianQuadraturesTest::testTabulated() {
+BOOST_AUTO_TEST_CASE(testTabulated) {
      BOOST_TEST_MESSAGE("Testing tabulated Gauss-Laguerre integration...");
 
-     using namespace gaussian_quadratures_test;
-
-     testSingleTabulated([](Real x) -> Real { return 1.0; }, "f(x) = 1",
-                         2.0,       1.0e-13);
      testSingleTabulated([](Real x) -> Real { return x; }, "f(x) = x",
                          0.0,       1.0e-13);
      testSingleTabulated([](Real x) -> Real { return x * x; }, "f(x) = x^2",
@@ -209,87 +211,8 @@ void GaussianQuadraturesTest::testTabulated() {
                          (2.0/5.0), 1.0e-13);
 }
 
-void GaussianQuadraturesTest::testNonCentralChiSquared() {
-     BOOST_TEST_MESSAGE(
-         "Testing Gauss non-central chi-squared integration...");
-
-     using namespace gaussian_quadratures_test;
-
-     testSingle(
-        GaussianQuadrature(2, GaussNonCentralChiSquaredPolynomial(4.0, 1.0)),
-        "f(x) = x^2 * nonCentralChiSquared(4, 1)(x)",
-        x_x_nonCentralChiSquared, 37.0);
-
-     testSingle(
-        GaussianQuadrature(14, GaussNonCentralChiSquaredPolynomial(1.0, 1.0)),
-        "f(x) = x * sin(0.1*x)*exp(0.3*x)*nonCentralChiSquared(1, 1)(x)",
-        x_sin_exp_nonCentralChiSquared, 17.408092);
-}
-
-
-void GaussianQuadraturesTest::testNonCentralChiSquaredSumOfNodes() {
-     BOOST_TEST_MESSAGE(
-         "Testing Gauss non-central chi-squared sum of nodes...");
-
-     using namespace gaussian_quadratures_test;
-
-     // Walter Gautschi, How and How not to check Gaussian Quadrature Formulae
-     // https://www.cs.purdue.edu/homes/wxg/selected_works/section_08/084.pdf
-
-     // Expected results have been calculated with a multi precision library
-     // following the description of test #4 in the paper above.
-     // Using QuantLib's own determinant function will not work here
-     // as it supports only double precision.
-
-     const Real expected[] = {
-         47.53491786730293,
-         70.6103295419633383,
-         98.0593406849441607,
-         129.853401537905341,
-         165.96963582663912,
-         206.389183233992043
-     };
-
-     const Real nu=4.0;
-     const Real lambda=1.0;
-     const GaussNonCentralChiSquaredPolynomial orthPoly(nu, lambda);
-
-     const Real tol = 1e-5;
-
-	 for (Size n = 4; n < 10; ++n) {
-		 const Array x = GaussianQuadrature(n, orthPoly).x();
-         const Real calculated = std::accumulate(x.begin(), x.end(), Real(0.0));
-
-
-         if (std::fabs(calculated - expected[n-4]) > tol) {
-             BOOST_ERROR("failed to reproduce rule of sum"
-                         << "\n    calculated: " << calculated
-                         << "\n    expected:   " << expected[n-4]
-                         << "\n    diff    :   " << calculated - expected[n-4]);
-         }
-     }
-}
-
-namespace gaussian_quadratures_test {
-    template <class mp_float>
-    class MomentBasedGaussLaguerrePolynomial
-            : public MomentBasedGaussianPolynomial<mp_float> {
-      public:
-        mp_float moment(Size i) const override {
-            if (i == 0)
-                return mp_float(1.0);
-            else
-                return mp_float(i)*moment(i-1);
-        }
-
-        Real w(Real x) const override { return std::exp(-x); }
-    };
-}
-
-void GaussianQuadraturesTest::testMomentBasedGaussianPolynomial() {
+BOOST_AUTO_TEST_CASE(testMomentBasedGaussianPolynomial) {
      BOOST_TEST_MESSAGE("Testing moment-based Gaussian polynomials...");
-
-     using namespace gaussian_quadratures_test;
 
      GaussLaguerrePolynomial g;
 
@@ -325,10 +248,8 @@ void GaussianQuadraturesTest::testMomentBasedGaussianPolynomial() {
      }
 }
 
-void GaussianQuadraturesTest::testGaussLaguerreCosinePolynomial() {
+BOOST_AUTO_TEST_CASE(testGaussLaguerreCosinePolynomial) {
     BOOST_TEST_MESSAGE("Testing Gauss-Laguerre-Cosine quadrature...");
-
-    using namespace gaussian_quadratures_test;
 
     const GaussianQuadrature quadCosine(
             16, GaussLaguerreCosinePolynomial<Real>(0.2));
@@ -347,28 +268,196 @@ void GaussianQuadraturesTest::testGaussLaguerreCosinePolynomial() {
                x_inv_exp, 1.0);
 }
 
-test_suite* GaussianQuadraturesTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Gaussian quadratures tests");
-    suite->add(QUANTLIB_TEST_CASE(&GaussianQuadraturesTest::testJacobi));
-    suite->add(QUANTLIB_TEST_CASE(&GaussianQuadraturesTest::testLaguerre));
-    suite->add(QUANTLIB_TEST_CASE(&GaussianQuadraturesTest::testHermite));
-    suite->add(QUANTLIB_TEST_CASE(&GaussianQuadraturesTest::testHyperbolic));
-    suite->add(QUANTLIB_TEST_CASE(&GaussianQuadraturesTest::testTabulated));
-    suite->add(QUANTLIB_TEST_CASE(
-        &GaussianQuadraturesTest::testMomentBasedGaussianPolynomial));
-    suite->add(QUANTLIB_TEST_CASE(
-        &GaussianQuadraturesTest::testGaussLaguerreCosinePolynomial));
+BOOST_AUTO_TEST_CASE(testNonCentralChiSquared) {
+    BOOST_TEST_MESSAGE(
+        "Testing Gauss non-central chi-squared integration...");
 
-    return suite;
+    testSingle(
+        GaussianQuadrature(2, GaussNonCentralChiSquaredPolynomial(4.0, 1.0)),
+        "f(x) = x^2 * nonCentralChiSquared(4, 1)(x)",
+        x_x_nonCentralChiSquared, 37.0);
+
+    testSingle(
+        GaussianQuadrature(14, GaussNonCentralChiSquaredPolynomial(1.0, 1.0)),
+        "f(x) = x * sin(0.1*x)*exp(0.3*x)*nonCentralChiSquared(1, 1)(x)",
+        x_sin_exp_nonCentralChiSquared, 17.408092);
 }
 
-test_suite* GaussianQuadraturesTest::experimental() {
-    auto* suite = BOOST_TEST_SUITE("Gaussian quadratures experimental tests");
+BOOST_AUTO_TEST_CASE(testNonCentralChiSquaredSumOfNodes) {
+    BOOST_TEST_MESSAGE(
+        "Testing Gauss non-central chi-squared sum of nodes...");
 
-    suite->add(QUANTLIB_TEST_CASE(
-        &GaussianQuadraturesTest::testNonCentralChiSquared));
-    suite->add(QUANTLIB_TEST_CASE(
-        &GaussianQuadraturesTest::testNonCentralChiSquaredSumOfNodes));
+    // Walter Gautschi, How and How not to check Gaussian Quadrature Formulae
+    // https://www.cs.purdue.edu/homes/wxg/selected_works/section_08/084.pdf
 
-    return suite;
+    // Expected results have been calculated with a multi precision library
+    // following the description of test #4 in the paper above.
+    // Using QuantLib's own determinant function will not work here
+    // as it supports only double precision.
+
+    const Real expected[] = {
+        47.53491786730293,
+        70.6103295419633383,
+        98.0593406849441607,
+        129.853401537905341,
+        165.96963582663912,
+        206.389183233992043
+    };
+
+    const Real nu=4.0;
+    const Real lambda=1.0;
+    const GaussNonCentralChiSquaredPolynomial orthPoly(nu, lambda);
+
+    const Real tol = 1e-5;
+
+    for (Size n = 4; n < 10; ++n) {
+         const Array x = GaussianQuadrature(n, orthPoly).x();
+         const Real calculated = std::accumulate(x.begin(), x.end(), Real(0.0));
+
+
+         if (std::fabs(calculated - expected[n-4]) > tol) {
+             BOOST_ERROR("failed to reproduce rule of sum"
+                         << "\n    calculated: " << calculated
+                         << "\n    expected:   " << expected[n-4]
+                         << "\n    diff    :   " << calculated - expected[n-4]);
+         }
+    }
 }
+
+
+BOOST_AUTO_TEST_CASE(testMultiDimensionalGaussIntegration) {
+    BOOST_TEST_MESSAGE("Testing multi-dimensional Gaussian quadrature...");
+
+    const auto normal = [](const Array& x) -> Real {
+        return std::exp(-DotProduct(x, x));
+    };
+
+    for (Size n=1; n < 5; ++n) {
+        std::vector<Size> ns(n);
+        std::iota(ns.begin(), ns.end(), Size(1));
+
+        MultiDimGaussianIntegration quad(
+            ns,
+            [](const Size n) {
+               return ext::make_shared<GaussHermiteIntegration>(n);
+            }
+        );
+
+        constexpr double tol = 1e4*QL_EPSILON;
+
+        const Real calculated = quad(normal);
+        const Real expected = std::sqrt(std::pow(M_PI, Real(n)));
+        const Real diff = std::abs(expected-calculated);
+        if (diff > tol) {
+            BOOST_ERROR("failed to reproduce multi dimensional Gaussian quadrature"
+                        << std::setprecision(12)
+                        << "\n    calculated: " << calculated
+                        << "\n    expected:   " << expected
+                        << "\n    diff:       " << diff);
+        }
+    }
+
+    // testing some Gaussian Integrals
+    // https://en.wikipedia.org/wiki/Gaussian_integral
+    MersenneTwisterUniformRng rng(1234);
+    const std::vector<Size> ns = {20, 28, 16, 22};
+    const std::vector<Real> tols = {1e-8, 1e-6, 1e-2, 5e-2};
+    for (Size n=1; n < 5; ++n) {
+        // create symmetric positive-definite matrix
+        Matrix a(n, n);
+        for (Size i=0; i < n; ++i)
+            for (Size j=0; j < n; ++j)
+                a[i][j] = (i==j) ? (i+1) : rng.nextReal();
+
+        const Matrix A = a*transpose(a);
+        const Matrix invA = inverse(A);
+        const Real det_2piA = std::sqrt(determinant(M_TWOPI*invA));
+
+        const MultiDimGaussianIntegration quad(
+            std::vector<Size>(ns.begin(), ns.begin()+n),
+            [](const Size n) { return ext::make_shared<GaussHermiteIntegration>(n); }
+        );
+
+        const Real calculated = quad(
+            [&A](const Array& x) -> Real { return std::exp(-0.5*DotProduct(x, A*x)); }
+        );
+
+        const Real expected = det_2piA;
+        const Real diff = std::abs(calculated - expected);
+        if (diff > tols[n-1]) {
+            BOOST_ERROR("failed to reproduce multi dimensional Gaussian quadrature"
+                        << "\n    dimensions: " << n
+                        << std::setprecision(12)
+                        << "\n    calculated: " << calculated
+                        << "\n    expected:   " << expected
+                        << "\n    diff:       " << diff
+                        << "\n    tolerance:  " << tols[n-1]);
+        }
+    }
+
+
+    Matrix a(3, 3);
+    for (Size i=0; i < 3; ++i)
+        for (Size j=0; j < 3; ++j)
+            a[i][j] = (i==j) ? (i+1) : rng.nextReal();
+
+    const Matrix A = a*transpose(a);
+    const Matrix invA = inverse(A);
+    const Real sqrt_det_2piA = std::sqrt(determinant(M_TWOPI*invA));
+
+    const MultiDimGaussianIntegration quadHigh(
+        std::vector<Size>({22, 18, 26}),
+        [](const Size n) { return ext::make_shared<GaussHermiteIntegration>(n); }
+    );
+    const MultiDimGaussianIntegration quad2(
+        std::vector<Size>(3, 2),
+        [](const Size n) { return ext::make_shared<GaussHermiteIntegration>(n); }
+    );
+
+    for (Size i=0; i < 3; ++i)
+        for (Size j=0; j < 3; ++j) {
+            const Real expected = sqrt_det_2piA*invA[i][j];
+
+            Real calculated = quadHigh(
+                [&A, i, j](const Array& x) -> Real {
+                    return x[i]*x[j]*std::exp(-0.5*DotProduct(x, A*x));
+                }
+            );
+
+            Real diff = std::abs(calculated - expected);
+            Real tol = 1e-4;
+            if (diff > tol) {
+                BOOST_ERROR("failed to reproduce multi dimensional Gaussian quadrature"
+                            << std::setprecision(12)
+                            << "\n    calculated: " << calculated
+                            << "\n    expected:   " << expected
+                            << "\n    diff:       " << diff
+                            << "\n    tolerance:  " << tol);
+            }
+
+            Matrix inva = inverse(transpose(a));
+            calculated = quad2(
+                [&inva, i, j](const Array& x) -> Real {
+                    const Array f = M_SQRT2*inva*x;
+                    return f[i]*f[j]*std::exp(-DotProduct(x, x));
+                }
+            );
+
+            calculated *= determinant(M_SQRT2*inva);
+            diff = std::abs(calculated - expected);
+            tol = QL_EPSILON*1e4;
+            if (diff > tol) {
+                BOOST_ERROR("failed to reproduce multi dimensional Gaussian quadrature"
+                            << std::setprecision(12)
+                            << "\n    calculated: " << calculated
+                            << "\n    expected:   " << expected
+                            << "\n    diff:       " << diff
+                            << "\n    tolerance:  " << tol);
+            }
+        }
+}
+
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

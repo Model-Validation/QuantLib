@@ -25,7 +25,6 @@
 #include <ql/pricingengines/credit/isdacdsengine.hpp>
 #include <ql/pricingengines/credit/midpointcdsengine.hpp>
 #include <ql/termstructures/credit/defaultprobabilityhelpers.hpp>
-#include <ql/time/daycounters/actual360.hpp>
 #include <ql/utilities/null_deleter.hpp>
 #include <utility>
 #include <iostream>
@@ -172,18 +171,10 @@ namespace QuantLib {
 
     void CdsHelper::initializeDates() {
 
-        // For CDS, the standard day counter is Actual/360 and the final period coupon accrual includes the maturity date.
-        // If the main day counter is Act/360 and no lastPeriodDayCounter_ is given, default to Act/360 including last.
-        Actual360 standardDayCounter;
-        if (lastPeriodDC_.empty()) {
-            lastPeriodDC_ = dayCounter_ == standardDayCounter ? Actual360(true) : dayCounter_;
-        }
-
         protectionStart_ = evaluationDate_ + settlementDays_;
 
         Date startDate = startDate_ == Date() ? protectionStart_ : startDate_;
-        // Only adjust start date if rule is not CDS or CDS2015. Unsure about OldCDS.
-        if (rule_ != DateGeneration::CDS && rule_ != DateGeneration::CDS2015) {
+        if (rule_ != DateGeneration::CDS2015 && rule_ != DateGeneration::CDS) {
             startDate = calendar_.adjust(startDate, paymentConvention_);
         }
 
@@ -205,6 +196,9 @@ namespace QuantLib {
                           .withConvention(paymentConvention_)
                           .withTerminationDateConvention(Unadjusted)
                           .withRule(rule_);
+
+        schedule_ = removeCDSPeriodsBeforeStartDate(schedule_, evaluationDate_ + 1);
+
         earliestDate_ = schedule_.dates().front();
         latestDate_   = calendar_.adjust(schedule_.dates().back(),
                                          paymentConvention_);
@@ -308,10 +302,10 @@ namespace QuantLib {
     }
 
     void SpreadCdsHelper::resetEngine() {
-        swap_ = ext::shared_ptr<CreditDefaultSwap>(new CreditDefaultSwap(
+        swap_ = ext::make_shared<CreditDefaultSwap>(
             Protection::Buyer, 100.0, 0.01, schedule_, paymentConvention_,
             dayCounter_, settlesAccrual_, protectionPaymentTime_, protectionStart_,
-            ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_, evaluationDate_));
+            ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_, evaluationDate_);
 
         switch (model_) {
           case CreditDefaultSwap::ISDA:
@@ -444,21 +438,17 @@ namespace QuantLib {
     }
 
     void UpfrontCdsHelper::initializeDates() {
-// <<<<<<< HEAD
+        CdsHelper::initializeDates();
         upfrontDate_ = calendar_.advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
-// =======
-//         CdsHelper::initializeDates();
-//         upfrontDate_ = upfrontDate();
-// >>>>>>> v1.31.1
     }
 
     void UpfrontCdsHelper::resetEngine() {
-        swap_ = ext::shared_ptr<CreditDefaultSwap>(new CreditDefaultSwap(
+        swap_ = ext::make_shared<CreditDefaultSwap>(
             Protection::Buyer, 100.0, 0.01, runningSpread_, schedule_,
             paymentConvention_, dayCounter_, settlesAccrual_,
             protectionPaymentTime_, protectionStart_, upfrontDate_,
             ext::shared_ptr<Claim>(), lastPeriodDC_, rebatesAccrual_,
-            evaluationDate_));
+            evaluationDate_);
         
         switch (model_) {
           case CreditDefaultSwap::ISDA:

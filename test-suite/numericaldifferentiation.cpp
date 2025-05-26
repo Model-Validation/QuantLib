@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "numericaldifferentiation.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 
 #include <ql/math/matrix.hpp>
@@ -29,47 +29,50 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace {
-    bool isTheSame(Real a, Real b) {
-        constexpr double eps = 500 * QL_EPSILON;
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-        if (std::fabs(b) < QL_EPSILON)
-            return std::fabs(a) < eps;
-        else
-            return std::fabs((a - b)/b) < eps;
-    }
+BOOST_AUTO_TEST_SUITE(NumericalDifferentiationTests)
 
-    void checkTwoArraysAreTheSame(const Array& calculated,
-                                  const Array& expected) {
-        bool correct = (calculated.size() == expected.size())
-            && std::equal(calculated.begin(), calculated.end(),
-                          expected.begin(), isTheSame);
+bool isTheSame(Real a, Real b) {
+    constexpr double eps = 500 * QL_EPSILON;
 
-        if (!correct) {
-            BOOST_FAIL("Failed to reproduce expected array"
-                        << "\n    calculated: " << calculated
-                        << "\n    expected:   " << expected
-                        << "\n    difference: " << expected - calculated);
-        }
-    }
+    if (std::fabs(b) < QL_EPSILON)
+        return std::fabs(a) < eps;
+    else
+        return std::fabs((a - b)/b) < eps;
+}
 
-    void singleValueTest(const std::string& comment,
-                         Real calculated, Real expected, Real tol) {
-        if (std::fabs(calculated - expected) > tol)
-            BOOST_FAIL("Failed to reproduce " << comment
-                        << " order derivative"
-                        << "\n    calculated: " << calculated
-                        << "\n      expected: " << expected
-                        << "\n     tolerance: " << tol
-                        << "\n    difference: "
-                        << expected - calculated);
+void checkTwoArraysAreTheSame(const Array& calculated,
+                              const Array& expected) {
+    bool correct = (calculated.size() == expected.size())
+        && std::equal(calculated.begin(), calculated.end(),
+                      expected.begin(), isTheSame);
+
+    if (!correct) {
+        BOOST_FAIL("Failed to reproduce expected array"
+                   << "\n    calculated: " << calculated
+                   << "\n    expected:   " << expected
+                   << "\n    difference: " << expected - calculated);
     }
 }
 
-void NumericalDifferentiationTest::testTabulatedCentralScheme() {
+void singleValueTest(const std::string& comment,
+                     Real calculated, Real expected, Real tol) {
+    if (std::fabs(calculated - expected) > tol)
+        BOOST_FAIL("Failed to reproduce " << comment
+                   << " order derivative"
+                   << "\n    calculated: " << calculated
+                   << "\n      expected: " << expected
+                   << "\n     tolerance: " << tol
+                   << "\n    difference: "
+                   << expected - calculated);
+}
+
+
+BOOST_AUTO_TEST_CASE(testTabulatedCentralScheme) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation "
                        "using the central scheme...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     const NumericalDifferentiation::Scheme central
         = NumericalDifferentiation::Central;
@@ -96,10 +99,10 @@ void NumericalDifferentiationTest::testTabulatedCentralScheme() {
         {-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5});
 }
 
-void NumericalDifferentiationTest::testTabulatedBackwardScheme() {
+BOOST_AUTO_TEST_CASE(testTabulatedBackwardScheme) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation "
                        "using the backward scheme...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     const NumericalDifferentiation::Scheme backward
         = NumericalDifferentiation::Backward;
@@ -122,11 +125,10 @@ void NumericalDifferentiationTest::testTabulatedBackwardScheme() {
         {0.0, -0.5, -1.0, -1.5});
 }
 
-
-void NumericalDifferentiationTest::testTabulatedForwardScheme() {
+BOOST_AUTO_TEST_CASE(testTabulatedForwardScheme) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation "
                        "using the Forward scheme...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     const NumericalDifferentiation::Scheme forward
         = NumericalDifferentiation::Forward;
@@ -149,11 +151,10 @@ void NumericalDifferentiationTest::testTabulatedForwardScheme() {
         {0.0, 0.5, 1.0, 1.5});
 }
 
-
-void NumericalDifferentiationTest::testIrregularSchemeFirstOrder() {
+BOOST_AUTO_TEST_CASE(testIrregularSchemeFirstOrder) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation "
                        "of first order using an irregular scheme...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     const Real h1 = 5e-7;
     const Real h2 = 3e-6;
@@ -169,10 +170,10 @@ void NumericalDifferentiationTest::testIrregularSchemeFirstOrder() {
         { alpha, beta, gamma });
 }
 
-void NumericalDifferentiationTest::testIrregularSchemeSecondOrder() {
+BOOST_AUTO_TEST_CASE(testIrregularSchemeSecondOrder) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation "
                        "of second order using an irregular scheme...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     const Real h1 = 2e-7;
     const Real h2 = 8e-8;
@@ -188,22 +189,21 @@ void NumericalDifferentiationTest::testIrregularSchemeSecondOrder() {
         {alpha, beta, gamma});
 }
 
-
-void NumericalDifferentiationTest::testDerivativesOfSineFunction() {
+BOOST_AUTO_TEST_CASE(testDerivativesOfSineFunction) {
     BOOST_TEST_MESSAGE("Testing numerical differentiation"
                        " of sin function...");
 
-    const ext::function<Real(Real)> f = [](Real x) -> Real { return std::sin(x); };
+    const std::function<Real(Real)> f = [](Real x) -> Real { return std::sin(x); };
 
-    const ext::function<Real(Real)> df_central
+    const std::function<Real(Real)> df_central
         = NumericalDifferentiation(f, 1, std::sqrt(QL_EPSILON), 3,
                                    NumericalDifferentiation::Central);
 
-    const ext::function<Real(Real)> df_backward
+    const std::function<Real(Real)> df_backward
         = NumericalDifferentiation(f, 1, std::sqrt(QL_EPSILON), 3,
                                    NumericalDifferentiation::Backward);
 
-    const ext::function<Real(Real)> df_forward
+    const std::function<Real(Real)> df_forward
         = NumericalDifferentiation(f, 1, std::sqrt(QL_EPSILON), 3,
                                    NumericalDifferentiation::Forward);
 
@@ -218,13 +218,13 @@ void NumericalDifferentiationTest::testDerivativesOfSineFunction() {
         singleValueTest("forward first", calculatedForward, expected, 1e-6);
     }
 
-    const ext::function<Real(Real)> df4_central
+    const std::function<Real(Real)> df4_central
         = NumericalDifferentiation(f, 4, 1e-2, 7,
                                    NumericalDifferentiation::Central);
-    const ext::function<Real(Real)> df4_backward
+    const std::function<Real(Real)> df4_backward
         = NumericalDifferentiation(f, 4, 1e-2, 7,
                                    NumericalDifferentiation::Backward);
-    const ext::function<Real(Real)> df4_forward
+    const std::function<Real(Real)> df4_forward
         = NumericalDifferentiation(f, 4, 1e-2, 7,
                                    NumericalDifferentiation::Forward);
 
@@ -252,31 +252,31 @@ void NumericalDifferentiationTest::testDerivativesOfSineFunction() {
     }
 }
 
-namespace {
-    Array vandermondeCoefficients(
-        Size order, Real x, const Array& gridPoints) {
 
-        const Array q = gridPoints - x;
-        const Size n = gridPoints.size();
+Array vandermondeCoefficients(
+                              Size order, Real x, const Array& gridPoints) {
 
-        Matrix m(n, n, 1.0);
-        for (Size i=1; i < n; ++i) {
-            const Real fact = Factorial::get(i);
-            for (Size j=0; j < n; ++j)
-                m[i][j] = std::pow(q[j], Integer(i)) / fact;
-        }
+    const Array q = gridPoints - x;
+    const Size n = gridPoints.size();
 
-        Array b(n, 0.0);
-        b[order] = 1.0;
-        return inverse(m)*b;
+    Matrix m(n, n, 1.0);
+    for (Size i=1; i < n; ++i) {
+        const Real fact = Factorial::get(i);
+        for (Size j=0; j < n; ++j)
+            m[i][j] = std::pow(q[j], Integer(i)) / fact;
     }
+
+    Array b(n, 0.0);
+    b[order] = 1.0;
+    return inverse(m)*b;
 }
 
-void NumericalDifferentiationTest::testCoefficientBasedOnVandermonde() {
+
+BOOST_AUTO_TEST_CASE(testCoefficientBasedOnVandermonde) {
     BOOST_TEST_MESSAGE("Testing coefficients from numerical differentiation"
                        " by comparison with results from"
                        " Vandermonde matrix inversion...");
-    const ext::function<Real(Real)> f;
+    const std::function<Real(Real)> f;
 
     for (Natural order=0; order < 5; ++order) {
         for (Natural nGridPoints = order + 1;
@@ -299,27 +299,6 @@ void NumericalDifferentiationTest::testCoefficientBasedOnVandermonde() {
     }
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-
-test_suite* NumericalDifferentiationTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("NumericalDifferentiation tests");
-
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testTabulatedCentralScheme));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testTabulatedBackwardScheme));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testTabulatedForwardScheme));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testIrregularSchemeFirstOrder));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testIrregularSchemeSecondOrder));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testDerivativesOfSineFunction));
-    suite->add(QUANTLIB_TEST_CASE(
-        &NumericalDifferentiationTest::testCoefficientBasedOnVandermonde));
-
-    return suite;
-}
-
-
+BOOST_AUTO_TEST_SUITE_END()

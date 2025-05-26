@@ -36,25 +36,27 @@ namespace QuantLib {
         explicit UKRPI(const Handle<ZeroInflationTermStructure>& ts = {})
         : ZeroInflationIndex(
               "RPI", UKRegion(), false, Monthly, Period(1, Months), GBPCurrency(), ts) {}
-
-        /*! \deprecated Use the constructor without the "interpolated" parameter.
-                        Deprecated in version 1.29.
-        */
-        QL_DEPRECATED
-        explicit UKRPI(
-            bool interpolated,
-            const Handle<ZeroInflationTermStructure>& ts = {})
-        : UKRPI(ts) {
-            QL_DEPRECATED_DISABLE_WARNING
-            interpolated_ = interpolated;
-            QL_DEPRECATED_ENABLE_WARNING
-        }
     };
 
 
     //! Quoted year-on-year UK RPI (i.e. not a ratio of UK RPI)
     class YYUKRPI : public YoYInflationIndex {
       public:
+        explicit YYUKRPI(const Handle<YoYInflationTermStructure>& ts = {})
+        : YoYInflationIndex("YY_RPI",
+                            UKRegion(),
+                            false,
+                            Monthly,
+                            Period(1, Months),
+                            GBPCurrency(),
+                            ts) {}
+
+        QL_DEPRECATED_DISABLE_WARNING
+
+        /*! \deprecated Use the overload without the interpolated parameter.
+                        Deprecated in version 1.38.
+        */
+        [[deprecated("Use the overload without the interpolated parameter")]]
         explicit YYUKRPI(
             bool interpolated,
             const Handle<YoYInflationTermStructure>& ts = {})
@@ -66,32 +68,10 @@ namespace QuantLib {
                             Period(1, Months),
                             GBPCurrency(),
                             ts) {}
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
-
-    QL_DEPRECATED_DISABLE_WARNING
-
-    //! Year-on-year UK RPI (i.e. a ratio of UK RPI)
-    /*! \deprecated Pass the UKRPI index to YoYInflationIndex instead.
-                    Deprecated in version 1.31.
-    */
-    class [[deprecated("Pass the UKRPI index to YoYInflationIndex instead")]] YYUKRPIr : public YoYInflationIndex {
-      public:
-        explicit YYUKRPIr(
-            bool interpolated,
-            const Handle<YoYInflationTermStructure>& ts = {})
-        : YoYInflationIndex("YYR_RPI",
-                            UKRegion(),
-                            false,
-                            interpolated,
-                            true,
-                            Monthly,
-                            Period(1, Months),
-                            GBPCurrency(),
-                            ts) {}
-    };
-
-    QL_DEPRECATED_ENABLE_WARNING
 }
 
 

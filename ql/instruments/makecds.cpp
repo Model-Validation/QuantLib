@@ -46,7 +46,7 @@ namespace QuantLib {
 
     MakeCreditDefaultSwap::operator ext::shared_ptr<CreditDefaultSwap>() const {
 
-        Date tradeDate = (tradeDate_ != Null<Date>()) ? tradeDate_ : Settings::instance().evaluationDate();
+        Date tradeDate = (tradeDate_ != Date()) ? tradeDate_ : Settings::instance().evaluationDate();
         Date upfrontDate = WeekendsOnly().advance(tradeDate, cashSettlementDays_, Days);
 
         Date protectionStart;
@@ -64,17 +64,18 @@ namespace QuantLib {
                 end = tradeDate + *tenor_;
             }
         } else {
-            end = *termDate_;
+            // we have two exclusive constructors; if we don't have a tenor, we have a term date
+            end = *termDate_; // NOLINT(bugprone-unchecked-optional-access)
         }
 
         Schedule schedule(protectionStart, end, couponTenor_, WeekendsOnly(), Following,
                           Unadjusted, rule_, false);
 
         ext::shared_ptr<CreditDefaultSwap> cds =
-            ext::shared_ptr<CreditDefaultSwap>(new CreditDefaultSwap(
+            ext::make_shared<CreditDefaultSwap>(
                 side_, nominal_, upfrontRate_, couponRate_, schedule, Following,
                 dayCounter_, true, CreditDefaultSwap::ProtectionPaymentTime::atDefault, protectionStart, upfrontDate,
-                ext::shared_ptr<Claim>(), lastPeriodDayCounter_, true, tradeDate, cashSettlementDays_));
+                ext::shared_ptr<Claim>(), lastPeriodDayCounter_, true, tradeDate, cashSettlementDays_);
 
         cds->setPricingEngine(engine_);
         return cds;

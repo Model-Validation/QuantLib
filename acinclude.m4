@@ -1,24 +1,22 @@
 
-# QL_CHECK_CPP14
+# QL_CHECK_CPP17
 # --------------------
-# Check whether C++14 features are supported by default.
-# If not (e.g., with Clang on Mac OS) add -std=c++14
-AC_DEFUN([QL_CHECK_CPP14],
-[AC_MSG_CHECKING([for C++14 support])
+# Check whether C++17 features are supported by default.
+# If not (e.g., with Clang on Mac OS) add -std=c++17
+AC_DEFUN([QL_CHECK_CPP17],
+[AC_MSG_CHECKING([for C++17 support])
  AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
-        [[@%:@include <memory>
-          class C {
-            public:
-              C(int) noexcept;
-              auto f() { return std::make_unique<C>(1); }
-          };
+        [[@%:@include <optional>
+          int main() {
+              auto x = std::optional<int>{42};
+          }
           ]],
         [[]])],
     [AC_MSG_RESULT([yes])],
-    [AC_MSG_RESULT([no: adding -std=c++14 to CXXFLAGS])
-     AC_SUBST([CPP14_CXXFLAGS],["-std=c++14"])
-     AC_SUBST([CXXFLAGS],["${CXXFLAGS} -std=c++14"])
+    [AC_MSG_RESULT([no: adding -std=c++17 to CXXFLAGS])
+     AC_SUBST([CPP17_CXXFLAGS],["-std=c++17"])
+     AC_SUBST([CXXFLAGS],["${CXXFLAGS} -std=c++17"])
     ])
 ])
 
@@ -119,37 +117,29 @@ AC_DEFUN([QL_CHECK_BOOST_VERSION_1_59_OR_HIGHER],
 AC_DEFUN([QL_CHECK_BOOST_UNIT_TEST],
 [AC_MSG_CHECKING([for Boost.Test])
  AC_REQUIRE([AC_PROG_CC])
- ql_original_CXXFLAGS=$CXXFLAGS
- for test_flags in "" \
-                   "-DBOOST_TEST_MAIN -DBOOST_TEST_DYN_LINK" ; do
-     # static version
-     CXXFLAGS="$ql_original_CXXFLAGS $test_flags"
-     boost_unit_found=no
-     AC_LINK_IFELSE([AC_LANG_SOURCE(
-         [@%:@include <boost/test/included/unit_test.hpp>
-          using namespace boost::unit_test_framework;
-          test_suite*
-          init_unit_test_suite(int argc, char** argv)
-          {
-              return (test_suite*) 0;
-          }
-         ])],
-         [boost_unit_found=yes
-          boost_defines=$test_flags
-          break],
-         [])
- done
- CXXFLAGS="$ql_original_CXXFLAGS"
+ # static version
+ boost_unit_found=no
+ AC_LINK_IFELSE([AC_LANG_SOURCE(
+     [@%:@include <boost/test/included/unit_test.hpp>
+      using namespace boost::unit_test_framework;
+      test_suite*
+      init_unit_test_suite(int argc, char** argv)
+      {
+          return (test_suite*) 0;
+      }
+     ])],
+     [boost_unit_found=yes
+      boost_defines=$test_flags
+      break],
+     [])
  if test "$boost_unit_found" = no ; then
      AC_MSG_RESULT([no])
      AC_SUBST([HAVE_BOOST_TEST],[""])
-     AC_SUBST([BOOST_UNIT_TEST_MAIN_CXXFLAGS],[""])
      AC_MSG_WARN([Boost unit-test framework not found.])
      AC_MSG_WARN([The test suite will be disabled.])
  else
      AC_MSG_RESULT([yes])
      AC_SUBST([HAVE_BOOST_TEST],["yes"])
-     AC_SUBST([BOOST_UNIT_TEST_MAIN_CXXFLAGS],[$boost_defines])
  fi
 ])
 

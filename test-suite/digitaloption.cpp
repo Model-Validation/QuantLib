@@ -20,8 +20,9 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "digitaloption.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
+#include <ql/shared_ptr.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
@@ -35,6 +36,10 @@
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(DigitalOptionTests)
 
 #undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, payoff, exercise, s, q, r, today, \
@@ -55,25 +60,21 @@ using namespace boost::unit_test_framework;
                << "    tolerance:        " << tolerance << "\n" \
                << "    knock_in:         " << knockin);
 
-namespace {
-
-    struct DigitalOptionData {
-        Option::Type type;
-        Real strike;
-        Real s;        // spot
-        Rate q;        // dividend
-        Rate r;        // risk-free rate
-        Time t;        // time to maturity
-        Volatility v;  // volatility
-        Real result;   // expected result
-        Real tol;      // tolerance
-        bool knockin;  // true if knock-in
-    };
-
-}
+struct DigitalOptionData {
+    Option::Type type;
+    Real strike;
+    Real s;        // spot
+    Rate q;        // dividend
+    Rate r;        // risk-free rate
+    Time t;        // time to maturity
+    Volatility v;  // volatility
+    Real result;   // expected result
+    Real tol;      // tolerance
+    bool knockin;  // true if knock-in
+};
 
 
-void DigitalOptionTest::testCashOrNothingEuropeanValues() {
+BOOST_AUTO_TEST_CASE(testCashOrNothingEuropeanValues) {
 
     BOOST_TEST_MESSAGE("Testing European cash-or-nothing digital option...");
 
@@ -127,7 +128,7 @@ void DigitalOptionTest::testCashOrNothingEuropeanValues() {
     }
 }
 
-void DigitalOptionTest::testAssetOrNothingEuropeanValues() {
+BOOST_AUTO_TEST_CASE(testAssetOrNothingEuropeanValues) {
 
     BOOST_TEST_MESSAGE("Testing European asset-or-nothing digital option...");
 
@@ -181,7 +182,7 @@ void DigitalOptionTest::testAssetOrNothingEuropeanValues() {
     }
 }
 
-void DigitalOptionTest::testGapEuropeanValues() {
+BOOST_AUTO_TEST_CASE(testGapEuropeanValues) {
 
     BOOST_TEST_MESSAGE("Testing European gap digital option...");
 
@@ -234,7 +235,7 @@ void DigitalOptionTest::testGapEuropeanValues() {
     }
 }
 
-void DigitalOptionTest::testCashAtHitOrNothingAmericanValues() {
+BOOST_AUTO_TEST_CASE(testCashAtHitOrNothingAmericanValues) {
 
     BOOST_TEST_MESSAGE("Testing American cash-(at-hit)-or-nothing "
                        "digital option...");
@@ -301,7 +302,7 @@ void DigitalOptionTest::testCashAtHitOrNothingAmericanValues() {
     }
 }
 
-void DigitalOptionTest::testAssetAtHitOrNothingAmericanValues() {
+BOOST_AUTO_TEST_CASE(testAssetAtHitOrNothingAmericanValues) {
 
     BOOST_TEST_MESSAGE("Testing American asset-(at-hit)-or-nothing "
                        "digital option...");
@@ -366,7 +367,7 @@ void DigitalOptionTest::testAssetAtHitOrNothingAmericanValues() {
     }
 }
 
-void DigitalOptionTest::testCashAtExpiryOrNothingAmericanValues() {
+BOOST_AUTO_TEST_CASE(testCashAtExpiryOrNothingAmericanValues) {
 
     BOOST_TEST_MESSAGE("Testing American cash-(at-expiry)-or-nothing "
                        "digital option...");
@@ -418,9 +419,9 @@ void DigitalOptionTest::testCashAtExpiryOrNothingAmericanValues() {
                                       Handle<BlackVolTermStructure>(volTS)));
         ext::shared_ptr<PricingEngine> engine;
         if (value.knockin)
-            engine.reset(new AnalyticDigitalAmericanEngine(stochProcess));
+            engine = ext::make_shared<AnalyticDigitalAmericanEngine>(stochProcess);
         else
-           engine.reset(new AnalyticDigitalAmericanKOEngine(stochProcess));
+           engine = ext::make_shared<AnalyticDigitalAmericanKOEngine>(stochProcess);
 
         VanillaOption opt(payoff, amExercise);
         opt.setPricingEngine(engine);
@@ -434,7 +435,7 @@ void DigitalOptionTest::testCashAtExpiryOrNothingAmericanValues() {
     }
 }
 
-void DigitalOptionTest::testAssetAtExpiryOrNothingAmericanValues() {
+BOOST_AUTO_TEST_CASE(testAssetAtExpiryOrNothingAmericanValues) {
 
     BOOST_TEST_MESSAGE("Testing American asset-(at-expiry)-or-nothing "
                        "digital option...");
@@ -490,9 +491,9 @@ void DigitalOptionTest::testAssetAtExpiryOrNothingAmericanValues() {
                                       Handle<BlackVolTermStructure>(volTS)));
         ext::shared_ptr<PricingEngine> engine;
         if (value.knockin)
-            engine.reset(new AnalyticDigitalAmericanEngine(stochProcess));
+            engine = ext::make_shared<AnalyticDigitalAmericanEngine>(stochProcess);
         else
-           engine.reset(new AnalyticDigitalAmericanKOEngine(stochProcess));
+           engine = ext::make_shared<AnalyticDigitalAmericanKOEngine>(stochProcess);
 
         VanillaOption opt(payoff, amExercise);
         opt.setPricingEngine(engine);
@@ -506,7 +507,7 @@ void DigitalOptionTest::testAssetAtExpiryOrNothingAmericanValues() {
     }
 }
 
-void DigitalOptionTest::testCashAtHitOrNothingAmericanGreeks() {
+BOOST_AUTO_TEST_CASE(testCashAtHitOrNothingAmericanGreeks) {
 
     BOOST_TEST_MESSAGE("Testing American cash-(at-hit)-or-nothing "
                        "digital option greeks...");
@@ -560,7 +561,7 @@ void DigitalOptionTest::testCashAtHitOrNothingAmericanGreeks() {
     ext::shared_ptr<PricingEngine> engines[] = { euroEngine, amEngine };
 
     bool knockin=true;
-    for (Size j=0; j<LENGTH(engines); j++) {
+    for (Size j=0; j<std::size(engines); j++) {
         for (auto& type : types) {
             for (Real strike : strikes) {
                 ext::shared_ptr<StrikedTypePayoff> payoff(
@@ -661,8 +662,7 @@ void DigitalOptionTest::testCashAtHitOrNothingAmericanGreeks() {
     }
 }
 
-
-void DigitalOptionTest::testMCCashAtHit() {
+BOOST_AUTO_TEST_CASE(testMCCashAtHit) {
 
     BOOST_TEST_MESSAGE("Testing Monte Carlo cash-(at-hit)-or-nothing "
                        "American engine...");
@@ -728,25 +728,6 @@ void DigitalOptionTest::testMCCashAtHit() {
     }
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* DigitalOptionTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Digital option tests");
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testCashOrNothingEuropeanValues));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testAssetOrNothingEuropeanValues));
-    suite->add(QUANTLIB_TEST_CASE(&DigitalOptionTest::testGapEuropeanValues));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testCashAtHitOrNothingAmericanValues));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testCashAtHitOrNothingAmericanGreeks));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testAssetAtHitOrNothingAmericanValues));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testCashAtExpiryOrNothingAmericanValues));
-    suite->add(QUANTLIB_TEST_CASE(
-               &DigitalOptionTest::testAssetAtExpiryOrNothingAmericanValues));
-    suite->add(QUANTLIB_TEST_CASE(&DigitalOptionTest::testMCCashAtHit));
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

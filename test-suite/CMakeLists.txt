@@ -108,6 +108,7 @@ set(QL_TEST_SOURCES
     mclongstaffschwartzengine.cpp
     mersennetwister.cpp
     money.cpp
+    multipleresetscoupons.cpp
     noarbsabr.cpp
     normalclvmodel.cpp
     nthorderderivativeop.cpp
@@ -126,7 +127,9 @@ set(QL_TEST_SOURCES
     period.cpp
     piecewiseyieldcurve.cpp
     piecewisezerospreadedtermstructure.cpp
-    quantlibtestsuite.cpp
+    preconditions.cpp
+    prices.cpp
+    quantlibglobalfixture.cpp
     quantooption.cpp
     quotes.cpp
     rangeaccrual.cpp
@@ -134,7 +137,6 @@ set(QL_TEST_SOURCES
     riskstats.cpp
     rngtraits.cpp
     rounding.cpp
-    sampledcurve.cpp
     schedule.cpp
     settings.cpp
     shortratemodels.cpp
@@ -143,7 +145,6 @@ set(QL_TEST_SOURCES
     spreadoption.cpp
     squarerootclvmodel.cpp
     stats.cpp
-    subperiodcoupons.cpp
     svivolatility.cpp
     swap.cpp
     swapforwardmappings.cpp
@@ -166,259 +167,50 @@ set(QL_TEST_SOURCES
     varianceswaps.cpp
     volatilitymodels.cpp
     vpp.cpp
+    xoshiro256starstar.cpp
     zabr.cpp
     zerocouponswap.cpp
+    zigguratgaussian.cpp
 )
 
 set(QL_TEST_HEADERS
-    americanoption.hpp
-    amortizingbond.hpp
-    andreasenhugevolatilityinterpl.hpp
-    array.hpp
-    asianoptions.hpp
-    assetswap.hpp
-    autocovariances.hpp
-    barrieroption.hpp
-    basismodels.hpp
-    basisswapratehelpers.hpp
-    basketoption.hpp
-    batesmodel.hpp
-    bermudanswaption.hpp
-    binaryoption.hpp
-    blackdeltacalculator.hpp
-    blackformula.hpp
-    bondforward.hpp
-    bonds.hpp
-    brownianbridge.hpp
-    businessdayconventions.hpp
-    calendars.hpp
-    callablebonds.hpp
-    capfloor.hpp
-    capflooredcoupon.hpp
-    cashflows.hpp
-    catbonds.hpp
-    cdo.hpp
-    cdsoption.hpp
-    chooseroption.hpp
-    cliquetoption.hpp
-    cms.hpp
-    cms_normal.hpp
-    cmsspread.hpp
-    commodityunitofmeasure.hpp
-    compiledboostversion.hpp
-    compoundoption.hpp
-    convertiblebonds.hpp
-    covariance.hpp
-    creditdefaultswap.hpp
-    creditriskplus.hpp
-    crosscurrencyratehelpers.hpp
-    currency.hpp
-    curvestates.hpp
-    dates.hpp
-    daycounters.hpp
-    defaultprobabilitycurves.hpp
-    digitalcoupon.hpp
-    digitaloption.hpp
-    distributions.hpp
-    dividendoption.hpp
-    doublebarrieroption.hpp
-    doublebinaryoption.hpp
-    equityindex.hpp
-    equitycashflow.hpp
-    equitytotalreturnswap.hpp
-    europeanoption.hpp
-    everestoption.hpp
-    exchangerate.hpp
-    extendedtrees.hpp
-    extensibleoptions.hpp
-    fastfouriertransform.hpp
-    fdcev.hpp
-    fdcir.hpp
-    fdheston.hpp
-    fdmlinearop.hpp
-    fdsabr.hpp
-    fittedbonddiscountcurve.hpp
-    forwardoption.hpp
-    forwardrateagreement.hpp
-    functions.hpp
-    garch.hpp
-    gaussianquadratures.hpp
-    gjrgarchmodel.hpp
-    gsr.hpp
-    hestonmodel.hpp
-    hestonslvmodel.hpp
-    himalayaoption.hpp
-    hybridhestonhullwhiteprocess.hpp
-    indexes.hpp
-    inflation.hpp
-    inflationcapfloor.hpp
-    inflationcapflooredcoupon.hpp
-    inflationcpibond.hpp
-    inflationcpicapfloor.hpp
-    inflationcpiswap.hpp
-    inflationvolatility.hpp
-    instruments.hpp
-    integrals.hpp
-    interestrates.hpp
-    interpolations.hpp
-    jumpdiffusion.hpp
-    lazyobject.hpp
-    libormarketmodel.hpp
-    libormarketmodelprocess.hpp
-    linearleastsquaresregression.hpp
-    lookbackoptions.hpp
-    lowdiscrepancysequences.hpp
-    margrabeoption.hpp
-    marketmodel.hpp
-    marketmodel_cms.hpp
-    marketmodel_smm.hpp
-    marketmodel_smmcapletalphacalibration.hpp
-    marketmodel_smmcapletcalibration.hpp
-    marketmodel_smmcaplethomocalibration.hpp
-    markovfunctional.hpp
-    matrices.hpp
-    mclongstaffschwartzengine.hpp
-    mersennetwister.hpp
-    money.hpp
-    noarbsabr.hpp
-    normalclvmodel.hpp
-    nthorderderivativeop.hpp
-    nthtodefault.hpp
-    numericaldifferentiation.hpp
-    observable.hpp
-    ode.hpp
-    operators.hpp
-    optimizers.hpp
-    optionletstripper.hpp
-    overnightindexedcoupon.hpp
-    overnightindexedswap.hpp
-    pagodaoption.hpp
     paralleltestrunner.hpp
-    partialtimebarrieroption.hpp
-    pathgenerator.hpp
-    period.hpp
-    piecewiseyieldcurve.hpp
-    piecewisezerospreadedtermstructure.hpp
-    quantooption.hpp
-    quotes.hpp
-    rangeaccrual.hpp
-    riskneutraldensitycalculator.hpp
-    riskstats.hpp
-    rngtraits.hpp
-    rounding.hpp
-    sampledcurve.hpp
-    schedule.hpp
-    settings.hpp
-    shortratemodels.hpp
-    sofrfutures.hpp
-    solvers.hpp
-    speedlevel.hpp
-    spreadoption.hpp
-    squarerootclvmodel.hpp
-    stats.hpp
-    subperiodcoupons.hpp
-    svivolatility.hpp
-    swap.hpp
-    swapforwardmappings.hpp
-    swaption.hpp
-    swaptionvolatilitycube.hpp
-    swaptionvolatilitymatrix.hpp
+    preconditions.hpp
+    quantlibglobalfixture.hpp
     swaptionvolstructuresutilities.hpp
-    swingoption.hpp
-    termstructures.hpp
-    timegrid.hpp
-    timeseries.hpp
-    tqreigendecomposition.hpp
-    tracing.hpp
-    transformedgrid.hpp
-    twoassetbarrieroption.hpp
-    twoassetcorrelationoption.hpp
-    ultimateforwardtermstructure.hpp
+    toplevelfixture.hpp
     utilities.hpp
-    variancegamma.hpp
-    varianceoption.hpp
-    varianceswaps.hpp
-    volatilitymodels.hpp
-    vpp.hpp
-    zabr.hpp
-    zerocouponswap.hpp
 )
 
-set(QL_BENCHMARK_SOURCES
-    quantlibbenchmark.cpp
-    
-    americanoption.cpp                  americanoption.hpp
-    asianoptions.cpp                    asianoptions.hpp
-    barrieroption.cpp                   barrieroption.hpp
-    basketoption.cpp                    basketoption.hpp
-    batesmodel.cpp                      batesmodel.hpp
-    convertiblebonds.cpp                convertiblebonds.hpp
-    digitaloption.cpp                   digitaloption.hpp
-    dividendoption.cpp                  dividendoption.hpp
-    europeanoption.cpp                  europeanoption.hpp
-    fdheston.cpp                        fdheston.hpp
-    hestonmodel.cpp                     hestonmodel.hpp
-    interpolations.cpp                  interpolations.hpp
-    jumpdiffusion.cpp                   jumpdiffusion.hpp
-    lowdiscrepancysequences.cpp         lowdiscrepancysequences.hpp
-    marketmodel_cms.cpp                 marketmodel_cms.hpp
-    marketmodel_smm.cpp                 marketmodel_smm.hpp
-    quantooption.cpp                    quantooption.hpp
-    riskstats.cpp                       riskstats.hpp
-    shortratemodels.cpp                 shortratemodels.hpp
-
-    utilities.cpp                       utilities.hpp
-                                        swaptionvolstructuresutilities.hpp
-)
 
 if (QL_BUILD_TEST_SUITE)
-    add_library(ql_unit_test_main STATIC main.cpp)
-    target_include_directories(ql_unit_test_main PRIVATE
-        ${PROJECT_BINARY_DIR}
-        ${PROJECT_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS})
-    add_executable(ql_test_suite ${QL_TEST_SOURCES} ${QL_TEST_HEADERS})
-    set_target_properties(ql_test_suite PROPERTIES OUTPUT_NAME "quantlib-test-suite")
+    add_library(ql_test OBJECT ${QL_TEST_SOURCES} ${QL_TEST_HEADERS})
     if (NOT Boost_USE_STATIC_LIBS)
-        target_compile_definitions(ql_unit_test_main PRIVATE BOOST_TEST_DYN_LINK)
-        target_compile_definitions(ql_test_suite PRIVATE BOOST_ALL_DYN_LINK BOOST_TEST_DYN_LINK)
+        target_compile_definitions(ql_test PUBLIC BOOST_ALL_DYN_LINK)
     endif()
-    if (QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER OR QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN)
-        set(QL_TEST_SUITE_LIBRARIES Boost::thread ${RT_LIBRARY})
-    endif()
-    target_link_libraries(ql_test_suite PRIVATE
-        ql_library
-        ql_unit_test_main
-        ${QL_THREAD_LIBRARIES})
     if(MSVC AND CMAKE_UNITY_BUILD)
         # for Unity builds, we need to add /bigobj
-        target_compile_options(ql_test_suite PRIVATE "/bigobj")
+        target_compile_options(ql_test PUBLIC "/bigobj")
     endif()
-        
+    target_link_libraries(ql_test PUBLIC ql_library ${QL_THREAD_LIBRARIES})
+
+
+    add_executable(ql_test_suite quantlibtestsuite.cpp)
+    set_source_files_properties(quantlibtestsuite.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION true)
+    set_target_properties(ql_test_suite PROPERTIES OUTPUT_NAME "quantlib-test-suite")
+    target_link_libraries(ql_test_suite PRIVATE ql_test) 
+
     if (QL_INSTALL_TEST_SUITE)
         install(TARGETS ql_test_suite RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
     endif()
     add_test(NAME quantlib_test_suite COMMAND ql_test_suite --log_level=message)
-endif()
 
-IF (QL_BUILD_BENCHMARK)
-    add_executable(ql_benchmark ${QL_BENCHMARK_SOURCES})
+
+    add_executable(ql_benchmark quantlibbenchmark.cpp)
     set_target_properties(ql_benchmark PROPERTIES OUTPUT_NAME "quantlib-benchmark")
-    if (NOT Boost_USE_STATIC_LIBS)
-        target_compile_definitions(ql_benchmark PRIVATE BOOST_ALL_DYN_LINK BOOST_TEST_DYN_LINK)
-    endif()
-    if (QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN)
-        set(QL_BENCHMARK_LIBRARIES Boost::thread ${RT_LIBRARY})
-    endif()
-    target_link_libraries(ql_benchmark PRIVATE
-        ql_library
-        ql_unit_test_main
-        ${QL_THREAD_LIBRARIES})
-    if(MSVC AND CMAKE_UNITY_BUILD)
-        # for Unity builds, we need to add /bigobj
-        target_compile_options(ql_benchmark PRIVATE "/bigobj")
-    endif()
+    target_link_libraries(ql_benchmark PRIVATE ql_test)
     if (QL_INSTALL_BENCHMARK)
         install(TARGETS ql_benchmark RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
     endif()
 endif()
+

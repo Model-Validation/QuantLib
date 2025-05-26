@@ -42,9 +42,11 @@ namespace QuantLib {
       protected:
         class Link : public Observable, public Observer {
           public:
-            explicit Link(const ext::shared_ptr<T>& h,
-                          bool registerAsObserver);
-            void linkTo(const ext::shared_ptr<T>&,
+            Link(const ext::shared_ptr<T>& h,
+                 bool registerAsObserver);
+            Link(ext::shared_ptr<T>&& h,
+                 bool registerAsObserver);
+            void linkTo(ext::shared_ptr<T>,
                         bool registerAsObserver);
             bool empty() const { return !h_; }
             const ext::shared_ptr<T>& currentLink() const { return h_; }
@@ -77,7 +79,10 @@ namespace QuantLib {
         : Handle(ext::shared_ptr<T>()) {}
         explicit Handle(const ext::shared_ptr<T>& p,
                         bool registerAsObserver = true)
-        : link_(new Link(p,registerAsObserver)) {}
+        : link_(new Link(p, registerAsObserver)) {}
+        explicit Handle(ext::shared_ptr<T>&& p,
+                        bool registerAsObserver = true)
+        : link_(new Link(std::move(p), registerAsObserver)) {}
         //@}
         //! dereferencing
         const ext::shared_ptr<T>& currentLink() const;
@@ -111,14 +116,26 @@ namespace QuantLib {
     template <class T>
     class RelinkableHandle : public Handle<T> {
       public:
+        RelinkableHandle()
+        : RelinkableHandle(ext::shared_ptr<T>()) {}
         explicit RelinkableHandle(
-                       const ext::shared_ptr<T>& p = ext::shared_ptr<T>(),
+                       const ext::shared_ptr<T>& p,
                        bool registerAsObserver = true);
+        explicit RelinkableHandle(
+                       ext::shared_ptr<T>&& p,
+                       bool registerAsObserver = true);
+        /*! \deprecated Use one of the constructors taking shared_ptr.
+                        Deprecated in version 1.35.
+        */
+        [[deprecated("Use one of the constructors taking shared_ptr.")]]
         explicit RelinkableHandle(
                        T* p,
                        bool registerAsObserver = true);
-        void linkTo(const ext::shared_ptr<T>&,
+        void linkTo(const ext::shared_ptr<T>& h,
                     bool registerAsObserver = true);
+        void linkTo(ext::shared_ptr<T>&& h,
+                    bool registerAsObserver = true);
+        void reset();
     };
 
 
@@ -126,16 +143,21 @@ namespace QuantLib {
 
     template <class T>
     inline Handle<T>::Link::Link(const ext::shared_ptr<T>& h, bool registerAsObserver) {
-        linkTo(h,registerAsObserver);
+        linkTo(h, registerAsObserver);
     }
 
     template <class T>
-    inline void Handle<T>::Link::linkTo(const ext::shared_ptr<T>& h,
+    inline Handle<T>::Link::Link(ext::shared_ptr<T>&& h, bool registerAsObserver) {
+        linkTo(std::move(h), registerAsObserver);
+    }
+
+    template <class T>
+    inline void Handle<T>::Link::linkTo(ext::shared_ptr<T> h,
                                         bool registerAsObserver) {
         if ((h != h_) || (isObserver_ != registerAsObserver)) {
             if (h_ && isObserver_)
                 unregisterWith(h_);
-            h_ = h;
+            h_ = std::move(h);
             isObserver_ = registerAsObserver;
             if (h_ && isObserver_)
                 registerWith(h_);
@@ -179,6 +201,11 @@ namespace QuantLib {
     : Handle<T>(p,registerAsObserver) {}
 
     template <class T>
+    inline RelinkableHandle<T>::RelinkableHandle(ext::shared_ptr<T>&& p,
+                                                 bool registerAsObserver)
+    : Handle<T>(std::move(p), registerAsObserver) {}
+
+    template <class T>
     inline RelinkableHandle<T>::RelinkableHandle(T* p,
                                                  bool registerAsObserver)
     : Handle<T>(p,registerAsObserver) {}
@@ -186,7 +213,18 @@ namespace QuantLib {
     template <class T>
     inline void RelinkableHandle<T>::linkTo(const ext::shared_ptr<T>& h,
                                             bool registerAsObserver) {
-        this->link_->linkTo(h,registerAsObserver);
+        this->link_->linkTo(h, registerAsObserver);
+    }
+
+    template <class T>
+    inline void RelinkableHandle<T>::linkTo(ext::shared_ptr<T>&& h,
+                                            bool registerAsObserver) {
+        this->link_->linkTo(std::move(h), registerAsObserver);
+    }
+
+    template <class T>
+    inline void RelinkableHandle<T>::reset() {
+        this->link_->linkTo(nullptr, true);
     }
 
 }

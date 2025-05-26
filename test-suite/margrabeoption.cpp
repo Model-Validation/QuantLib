@@ -17,17 +17,21 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "margrabeoption.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/time/daycounters/actual360.hpp>
-#include <ql/experimental/exoticoptions/margrabeoption.hpp>
-#include <ql/experimental/exoticoptions/analyticamericanmargrabeengine.hpp>
-#include <ql/experimental/exoticoptions/analyticeuropeanmargrabeengine.hpp>
+#include <ql/instruments/margrabeoption.hpp>
+#include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
+#include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/utilities/dataformatters.hpp>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
+
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(MargrabeOptionTests)
 
 #undef REPORT_FAILURE
 #define REPORT_FAILURE(greekName, exercise, \
@@ -75,49 +79,46 @@ using namespace boost::unit_test_framework;
         << "    error:            " << error << "\n" \
         << "    tolerance:        " << tolerance);
 
-namespace {
+struct MargrabeOptionTwoData {
+    Real s1;
+    Real s2;
+    Integer Q1;
+    Integer Q2;
+    Rate q1;
+    Rate q2;
+    Rate r;
+    Time t; // years
+    Volatility v1;
+    Volatility v2;
+    Real rho;
+    Real result;
+    Real delta1;
+    Real delta2;
+    Real gamma1;
+    Real gamma2;
+    Real theta;
+    Real rho_greek;
+    Real tol;
+};
 
-    struct MargrabeOptionTwoData {
-        Real s1;
-        Real s2;
-        Integer Q1;
-        Integer Q2;
-        Rate q1;
-        Rate q2;
-        Rate r;
-        Time t; // years
-        Volatility v1;
-        Volatility v2;
-        Real rho;
-        Real result;
-        Real delta1;
-        Real delta2;
-        Real gamma1;
-        Real gamma2;
-        Real theta;
-        Real rho_greek;
-        Real tol;
-    };
+struct MargrabeAmericanOptionTwoData {
+    Real s1;
+    Real s2;
+    Integer Q1;
+    Integer Q2;
+    Rate q1;
+    Rate q2;
+    Rate r;
+    Time t; // years
+    Volatility v1;
+    Volatility v2;
+    Real rho;
+    Real result;
+    Real tol;
+};
 
-    struct MargrabeAmericanOptionTwoData {
-        Real s1;
-        Real s2;
-        Integer Q1;
-        Integer Q2;
-        Rate q1;
-        Rate q2;
-        Rate r;
-        Time t; // years
-        Volatility v1;
-        Volatility v2;
-        Real rho;
-        Real result;
-        Real tol;
-    };
 
-}
-
-void MargrabeOptionTest::testEuroExchangeTwoAssets() {
+BOOST_AUTO_TEST_CASE(testEuroExchangeTwoAssets) {
 
     BOOST_TEST_MESSAGE("Testing European one-asset-for-another option...");
 
@@ -284,7 +285,7 @@ void MargrabeOptionTest::testEuroExchangeTwoAssets() {
     }
 }
 
-void MargrabeOptionTest::testGreeks() {
+BOOST_AUTO_TEST_CASE(testGreeks) {
 
     BOOST_TEST_MESSAGE("Testing analytic European exchange option greeks...");
 
@@ -355,10 +356,10 @@ void MargrabeOptionTest::testGreeks() {
             // analytic engine
             margrabeOption.setPricingEngine(engine);
 
-            for (Size l = 0; l < LENGTH(underlyings1); l++) {
-                for (Size m=0; m<LENGTH(qRates1); m++) {
+            for (Size l = 0; l < std::size(underlyings1); l++) {
+                for (Size m=0; m < std::size(qRates1); m++) {
                     for (Real n : rRates) {
-                        for (Size p = 0; p < LENGTH(vols1); p++) {
+                        for (Size p = 0; p < std::size(vols1); p++) {
                             Real u1 = underlyings1[l], u2 = underlyings2[l], u;
                             Rate q1 = qRates1[m], q2 = qRates2[m], r = n;
                             Volatility v1 = vols1[p], v2 = vols2[p];
@@ -444,7 +445,7 @@ void MargrabeOptionTest::testGreeks() {
     }
 }
 
-void MargrabeOptionTest::testAmericanExchangeTwoAssets() {
+BOOST_AUTO_TEST_CASE(testAmericanExchangeTwoAssets) {
 
     BOOST_TEST_MESSAGE("Testing American one-asset-for-another option...");
 
@@ -547,13 +548,6 @@ void MargrabeOptionTest::testAmericanExchangeTwoAssets() {
         }
     }
 }
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* MargrabeOptionTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Exchange option tests");
-    suite->add(
-        QUANTLIB_TEST_CASE(&MargrabeOptionTest::testEuroExchangeTwoAssets));
-    suite->add(
-        QUANTLIB_TEST_CASE(&MargrabeOptionTest::testAmericanExchangeTwoAssets));
-    suite->add(QUANTLIB_TEST_CASE(&MargrabeOptionTest::testGreeks));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

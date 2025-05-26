@@ -79,6 +79,7 @@ namespace QuantLib {
                                         Natural fixingDays,
                                         const ext::shared_ptr<YoYInflationIndex>& index,
                                         const Period& observationLag,
+                                        const CPI::InterpolationType interpolation,
                                         const DayCounter& dayCounter,
                                         Real gearing = 1.0,
                                         Spread spread = 0.0,
@@ -87,13 +88,35 @@ namespace QuantLib {
                                         const Date& refPeriodStart = Date(),
                                         const Date& refPeriodEnd = Date())
         : YoYInflationCoupon(paymentDate, nominal, startDate, endDate,
-                             fixingDays, index, observationLag,  dayCounter,
-                             gearing, spread, refPeriodStart, refPeriodEnd),
+                             fixingDays, index, observationLag, interpolation,
+                             dayCounter, gearing, spread,
+                             refPeriodStart, refPeriodEnd),
           isFloored_(false), isCapped_(false) {
-            QL_DEPRECATED_DISABLE_WARNING
             setCommon(cap, floor);
-            QL_DEPRECATED_ENABLE_WARNING
         }
+
+        /*! \deprecated Use the overload that passes an interpolation type instead.
+                        Deprecated in version 1.36.
+        */
+        [[deprecated("Use the overload that passes an interpolation type instead")]]
+        CappedFlooredYoYInflationCoupon(const Date& paymentDate,
+                                        Real nominal,
+                                        const Date& startDate,
+                                        const Date& endDate,
+                                        Natural fixingDays,
+                                        const ext::shared_ptr<YoYInflationIndex>& index,
+                                        const Period& observationLag,
+                                        const DayCounter& dayCounter,
+                                        Real gearing = 1.0,
+                                        Spread spread = 0.0,
+                                        const Rate cap = Null<Rate>(),
+                                        const Rate floor = Null<Rate>(),
+                                        const Date& refPeriodStart = Date(),
+                                        const Date& refPeriodEnd = Date())
+        : CappedFlooredYoYInflationCoupon(paymentDate, nominal, startDate, endDate,
+                                          fixingDays, index, observationLag, CPI::AsIndex,
+                                          dayCounter, gearing, spread, cap, floor,
+                                          refPeriodStart, refPeriodEnd) {}
 
         //! \name augmented Coupon interface
         //@{
@@ -128,21 +151,13 @@ namespace QuantLib {
         void setPricer(const ext::shared_ptr<YoYInflationCouponPricer>&);
 
       protected:
-        // to be made private and non-virtual after deprecation, not removed
-        /*! \deprecated Do not use this method and rely on its being
-                        called by the constructor of the base class.
-                        If you have overridden it, move the code to the
-                        constructor of your derived class.
-                        Deprecated in version 1.30.
-        */
-        QL_DEPRECATED
-        virtual void setCommon(Rate cap, Rate floor);
-
         // data, we only use underlying_ if it was constructed that way,
         // generally we use the shared_ptr conversion to boolean to test
         ext::shared_ptr<YoYInflationCoupon> underlying_;
         bool isFloored_, isCapped_;
         Rate cap_, floor_;
+      private:
+        void setCommon(Rate cap, Rate floor);
     };
 
 }

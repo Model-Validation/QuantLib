@@ -11,7 +11,6 @@ this_include_HEADERS = \
     constrainedevolver.hpp \
     curvestate.hpp \
     discounter.hpp \
-    duffsdeviceinnerproduct.hpp \
     evolutiondescription.hpp \
     evolver.hpp \
     forwardforwardmappings.hpp \

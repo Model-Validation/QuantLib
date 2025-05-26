@@ -17,9 +17,9 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "fdsabr.hpp"
+#include "preconditions.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
-#include <ql/functional.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/comparison.hpp>
 #include <ql/math/randomnumbers/rngtraits.hpp>
@@ -31,80 +31,116 @@
 #include <ql/pricingengines/vanilla/fdsabrvanillaengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/quotes/simplequote.hpp>
-#include <ql/termstructures/volatility/sabr.hpp>
 #include <ql/shared_ptr.hpp>
+#include <ql/termstructures/volatility/sabr.hpp>
+#include <functional>
 #include <utility>
 
 using namespace QuantLib;
-using boost::unit_test_framework::test_suite;
+using namespace boost::unit_test_framework;
 
-namespace {
-    class SabrMonteCarloPricer {
-      public:
-        SabrMonteCarloPricer(Real f0,
-                             Time maturity,
-                             ext::shared_ptr<Payoff> payoff,
-                             Real alpha,
-                             Real beta,
-                             Real nu,
-                             Real rho)
-        : f0_(f0), maturity_(maturity), payoff_(std::move(payoff)), alpha_(alpha), beta_(beta),
-          nu_(nu), rho_(rho) {}
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-        Real operator()(Real dt) const {
-            const Size nSims = 64*1024;
+BOOST_AUTO_TEST_SUITE(FdSabrTests)
 
-            const Real timeStepsPerYear = 1./dt;
-            const Size timeSteps = Size(maturity_*timeStepsPerYear+1e-8);
+class SabrMonteCarloPricer {
+  public:
+    SabrMonteCarloPricer(Real f0,
+                         Time maturity,
+                         ext::shared_ptr<Payoff> payoff,
+                         Real alpha,
+                         Real beta,
+                         Real nu,
+                         Real rho)
+    : f0_(f0), maturity_(maturity), payoff_(std::move(payoff)), alpha_(alpha), beta_(beta),
+      nu_(nu), rho_(rho) {}
 
-            const Real sqrtDt = std::sqrt(dt);
-            const Real w = std::sqrt(1.0-rho_*rho_);
+    Real operator()(Real dt) const {
+        const Size nSims = 64*1024;
 
-            const Real logAlpha = std::log(alpha_);
+        const Real timeStepsPerYear = 1./dt;
+        const Size timeSteps = Size(maturity_*timeStepsPerYear+1e-8);
 
-            SobolBrownianBridgeRsg rsg(2, timeSteps, SobolBrownianGenerator::Diagonal, 12345U);
+        const Real sqrtDt = std::sqrt(dt);
+        const Real w = std::sqrt(1.0-rho_*rho_);
 
-            GeneralStatistics stats;
+        const Real logAlpha = std::log(alpha_);
 
-            for (Size i=0; i < nSims; ++i) {
-                Real f = f0_;
-                Real a = logAlpha;
+        SobolBrownianBridgeRsg rsg(2, timeSteps, SobolBrownianGenerator::Diagonal, 12345U);
 
-                const std::vector<Real> n = rsg.nextSequence().value;
+        GeneralStatistics stats;
 
-                for (Size j=0; j < timeSteps && f > 0.0; ++j) {
+        for (Size i=0; i < nSims; ++i) {
+            Real f = f0_;
+            Real a = logAlpha;
 
-                    const Real r1 = n[j];
-                    const Real r2 = rho_*r1 + n[j+timeSteps]*w;
+            const std::vector<Real> n = rsg.nextSequence().value;
 
-                    //Sample CEV distribution: accurate but slow
-                    //
-                    //const CEVRNDCalculator calc(f, std::exp(a), beta_);
-                    //const Real u = CumulativeNormalDistribution()(r1);
-                    //f = calc.invcdf(u, dt);
+            for (Size j=0; j < timeSteps && f > 0.0; ++j) {
 
-                    // simple Euler method
-                    f += std::exp(a)*std::pow(f, beta_)*r1*sqrtDt;
-                    a += - 0.5*nu_*nu_*dt + nu_*r2*sqrtDt;
-                }
-                f = std::max(0.0, f);
-                stats.add((*payoff_)(f));
+                const Real r1 = n[j];
+                const Real r2 = rho_*r1 + n[j+timeSteps]*w;
+
+                //Sample CEV distribution: accurate but slow
+                //
+                //const CEVRNDCalculator calc(f, std::exp(a), beta_);
+                //const Real u = CumulativeNormalDistribution()(r1);
+                //f = calc.invcdf(u, dt);
+
+                // simple Euler method
+                f += std::exp(a)*std::pow(f, beta_)*r1*sqrtDt;
+                a += - 0.5*nu_*nu_*dt + nu_*r2*sqrtDt;
             }
-
-            return stats.mean();
+            f = std::max(0.0, f);
+            stats.add((*payoff_)(f));
         }
 
-      private:
-        const Real f0_;
-        const Time maturity_;
-        const ext::shared_ptr<Payoff> payoff_;
-        const Real alpha_, beta_, nu_, rho_;
-    };
+        return stats.mean();
+    }
 
-}
+  private:
+    const Real f0_;
+    const Time maturity_;
+    const ext::shared_ptr<Payoff> payoff_;
+    const Real alpha_, beta_, nu_, rho_;
+};
+
+/*
+ * Example and reference values are taken from
+ * B. Chen, C.W. Oosterlee, H. Weide,
+ * Efficient unbiased simulation scheme for the SABR stochastic volatility model.
+ * https://http://ta.twi.tudelft.nl/mf/users/oosterle/oosterlee/SABRMC.pdf
+ */
+
+class OsterleeReferenceResults {
+  public:
+    explicit OsterleeReferenceResults(Size i) : i_(i) { }
+
+    Real operator()(Real t) const {
+        Size i;
+        if (close_enough(t, 1/16.))
+            i = 0;
+        else if (close_enough(t, 1/32.))
+            i = 1;
+        else
+            QL_FAIL("unmatched reference result lookup");
+
+        return data_[i_][i];
+    }
+
+  private:
+    const Size i_;
+    static Real data_[9][3];
+};
+
+Real OsterleeReferenceResults::data_[9][3] = {
+    { 0.0610, 0.0604 }, { 0.0468, 0.0463 }, { 0.0347, 0.0343 },
+    { 0.0632, 0.0625 }, { 0.0512, 0.0506 }, { 0.0406, 0.0400 },
+    { 0.0635, 0.0630 }, { 0.0523, 0.0520 }, { 0.0422, 0.0421 }
+};
 
 
-void FdSabrTest::testFdmSabrOp() {
+BOOST_AUTO_TEST_CASE(testFdmSabrOp, *precondition(if_speed(Fast))) {
     BOOST_TEST_MESSAGE("Testing FDM SABR operator...");
 
     const Date today = Date(22, February, 2018);
@@ -172,7 +208,7 @@ void FdSabrTest::testFdmSabrOp() {
         const Real putPdeImplVol =
             optionPut.impliedVolatility(optionPut.NPV(), bsProcess, 1e-6);
 
-        const ext::function<Real(Real)> mcSabr(
+        const std::function<Real(Real)> mcSabr(
             SabrMonteCarloPricer(f0, maturityTime, putPayoff,
                                  alpha, beta, nu, rho));
 
@@ -198,7 +234,7 @@ void FdSabrTest::testFdmSabrOp() {
     }
 }
 
-void FdSabrTest::testFdmSabrCevPricing() {
+BOOST_AUTO_TEST_CASE(testFdmSabrCevPricing) {
     BOOST_TEST_MESSAGE("Testing FDM CEV pricing with trivial SABR model...");
 
     const Date today = Date(3, January, 2019);
@@ -261,7 +297,7 @@ void FdSabrTest::testFdmSabrCevPricing() {
     }
 }
 
-void FdSabrTest::testFdmSabrVsVolApproximation() {
+BOOST_AUTO_TEST_CASE(testFdmSabrVsVolApproximation) {
     BOOST_TEST_MESSAGE("Testing FDM SABR vs approximations...");
 
     const Date today = Date(8, January, 2019);
@@ -321,44 +357,7 @@ void FdSabrTest::testFdmSabrVsVolApproximation() {
     }
 }
 
-
-namespace {
-    /*
-     * Example and reference values are taken from
-     * B. Chen, C.W. Oosterlee, H. Weide,
-     * Efficient unbiased simulation scheme for the SABR stochastic volatility model.
-     * https://http://ta.twi.tudelft.nl/mf/users/oosterle/oosterlee/SABRMC.pdf
-     */
-
-    class OsterleeReferenceResults {
-      public:
-        explicit OsterleeReferenceResults(Size i) : i_(i) { }
-
-        Real operator()(Real t) const {
-            Size i;
-            if (close_enough(t, 1/16.))
-                i = 0;
-            else if (close_enough(t, 1/32.))
-                i = 1;
-            else
-                QL_FAIL("unmatched reference result lookup");
-
-            return data_[i_][i];
-        }
-
-      private:
-        const Size i_;
-        static Real data_[9][3];
-    };
-
-    Real OsterleeReferenceResults::data_[9][3] = {
-        { 0.0610, 0.0604 }, { 0.0468, 0.0463 }, { 0.0347, 0.0343 },
-        { 0.0632, 0.0625 }, { 0.0512, 0.0506 }, { 0.0406, 0.0400 },
-        { 0.0635, 0.0630 }, { 0.0523, 0.0520 }, { 0.0422, 0.0421 }
-    };
-}
-
-void FdSabrTest::testOosterleeTestCaseIV() {
+BOOST_AUTO_TEST_CASE(testOosterleeTestCaseIV) {
     BOOST_TEST_MESSAGE("Testing Chen, Oosterlee and Weide test case IV...");
 
     const Date today = Date(8, January, 2019);
@@ -381,7 +380,7 @@ void FdSabrTest::testOosterleeTestCaseIV() {
     const Real strikes[] = { 0.4*f0, f0, 1.6*f0 };
 
     const Real tol = 0.00035;
-    for (Size i=0; i < LENGTH(maturities); ++i) {
+    for (Size i=0; i < std::size(maturities); ++i) {
         const Date maturityDate = today + maturities[i];
         const Time maturityTime = dc.yearFraction(today, maturityDate);
 
@@ -394,7 +393,7 @@ void FdSabrTest::testOosterleeTestCaseIV() {
         const ext::shared_ptr<Exercise> exercise =
             ext::make_shared<EuropeanExercise>(maturityDate);
 
-        for (Size j=0; j < LENGTH(strikes); ++j) {
+        for (Size j=0; j < std::size(strikes); ++j) {
             const ext::shared_ptr<StrikedTypePayoff> payoff =
                 ext::make_shared<PlainVanillaPayoff>(Option::Call, strikes[j]);
 
@@ -406,7 +405,7 @@ void FdSabrTest::testOosterleeTestCaseIV() {
             const OsterleeReferenceResults referenceResuts(i*3+j);
 
             const Real expected = RichardsonExtrapolation(
-                ext::function<Real(Real)>(referenceResuts), 1/16., 1)(2.);
+                std::function<Real(Real)>(referenceResuts), 1/16., 1)(2.);
 
             const Real diff = std::fabs(calculated - expected);
             if (diff > tol) {
@@ -423,7 +422,7 @@ void FdSabrTest::testOosterleeTestCaseIV() {
     }
 }
 
-void FdSabrTest::testBenchOpSabrCase() {
+BOOST_AUTO_TEST_CASE(testBenchOpSabrCase) {
     BOOST_TEST_MESSAGE("Testing SABR BenchOp problem...");
 
     /*
@@ -463,7 +462,7 @@ void FdSabrTest::testBenchOpSabrCase() {
 
     const Real tol = 2e-4;
 
-    for (Size i=0; i < LENGTH(f0s); ++i) {
+    for (Size i=0; i < std::size(f0s); ++i) {
 
         const Date maturity = today + Period(maturityInYears[i]*365, Days);
         const Time T = dc.yearFraction(today, maturity);
@@ -478,7 +477,7 @@ void FdSabrTest::testBenchOpSabrCase() {
             f0*std::exp(-0.1*std::sqrt(T)), f0, f0*std::exp(0.1*std::sqrt(T))
         };
 
-        for (Size j=0; j < LENGTH(strikes); ++j) {
+        for (Size j=0; j < std::size(strikes); ++j) {
             const Real strike = strikes[j];
 
             VanillaOption option(
@@ -508,17 +507,6 @@ void FdSabrTest::testBenchOpSabrCase() {
     }
 }
 
-test_suite* FdSabrTest::suite(SpeedLevel speed) {
-    auto* suite = BOOST_TEST_SUITE("Finite Difference SABR tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(&FdSabrTest::testFdmSabrCevPricing));
-    suite->add(QUANTLIB_TEST_CASE(&FdSabrTest::testFdmSabrVsVolApproximation));
-    suite->add(QUANTLIB_TEST_CASE(&FdSabrTest::testOosterleeTestCaseIV));
-    suite->add(QUANTLIB_TEST_CASE(&FdSabrTest::testBenchOpSabrCase));
-
-    if (speed <= Fast) {
-        suite->add(QUANTLIB_TEST_CASE(&FdSabrTest::testFdmSabrOp));
-    }
-
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

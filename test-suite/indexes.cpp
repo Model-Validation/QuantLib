@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "indexes.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/indexes/bmaindex.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
@@ -29,7 +29,11 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-void IndexTest::testFixingObservability() {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
+
+BOOST_AUTO_TEST_SUITE(IndexTests)
+
+BOOST_AUTO_TEST_CASE(testFixingObservability) {
     BOOST_TEST_MESSAGE("Testing observability of index fixings...");
 
     ext::shared_ptr<InterestRateIndex> i1 = ext::make_shared<Euribor6M>();
@@ -66,7 +70,7 @@ void IndexTest::testFixingObservability() {
         BOOST_FAIL("Observer was not notified of added BMA fixing");
 }
 
-void IndexTest::testFixingHasHistoricalFixing() {
+BOOST_AUTO_TEST_CASE(testFixingHasHistoricalFixing) {
     BOOST_TEST_MESSAGE("Testing if index has historical fixings...");
 
     auto testCase = [](const std::string& indexName, const bool& expected, const bool& testResult) {
@@ -92,42 +96,22 @@ void IndexTest::testFixingHasHistoricalFixing() {
 
     name = euribor3M->name();
     testCase(name, fixingNotFound, euribor3M->hasHistoricalFixing(today));
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_upper_copy(euribor3M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_lower_copy(euribor3M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
 
     name = euribor6M->name();
     testCase(name, fixingFound, euribor6M->hasHistoricalFixing(today));
     testCase(name, fixingFound, euribor6M_a->hasHistoricalFixing(today));
-    testCase(name, fixingFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_upper_copy(euribor6M->name());
-    testCase(name, fixingFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_lower_copy(euribor6M->name());
-    testCase(name, fixingFound, IndexManager::instance().hasHistoricalFixing(name, today));
 
     IndexManager::instance().clearHistories();
 
     name = euribor3M->name();
     testCase(name, fixingNotFound, euribor3M->hasHistoricalFixing(today));
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_upper_copy(euribor3M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_lower_copy(euribor3M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
 
     name = euribor6M->name();
     testCase(name, fixingNotFound, euribor6M->hasHistoricalFixing(today));
     testCase(name, fixingNotFound, euribor6M_a->hasHistoricalFixing(today));
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_upper_copy(euribor6M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
-    name = boost::to_lower_copy(euribor6M->name());
-    testCase(name, fixingNotFound, IndexManager::instance().hasHistoricalFixing(name, today));
 }
 
-void IndexTest::testTenorNormalization() {
+BOOST_AUTO_TEST_CASE(testTenorNormalization) {
     BOOST_TEST_MESSAGE("Testing that interest-rate index tenor is normalized correctly...");
 
     auto i12m = IborIndex("foo", 12*Months, 2, Currency(),
@@ -155,10 +139,6 @@ void IndexTest::testTenorNormalization() {
     }
 }
 
-test_suite* IndexTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("index tests");
-    suite->add(QUANTLIB_TEST_CASE(&IndexTest::testFixingObservability));
-    suite->add(QUANTLIB_TEST_CASE(&IndexTest::testFixingHasHistoricalFixing));
-    suite->add(QUANTLIB_TEST_CASE(&IndexTest::testTenorNormalization));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

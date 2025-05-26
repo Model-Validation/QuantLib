@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "array.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/math/array.hpp>
 #include <ql/utilities/dataformatters.hpp>
@@ -25,18 +25,18 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace array_test {
-    class FSquared {
-      public:
-        Real operator()(Real x) const { return x*x; }
-    };
-}
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-void ArrayTest::testConstruction() {
+BOOST_AUTO_TEST_SUITE(ArrayTests)
+
+class FSquared {
+  public:
+    Real operator()(Real x) const { return x*x; }
+};
+
+BOOST_AUTO_TEST_CASE(testConstruction) {
 
     BOOST_TEST_MESSAGE("Testing array construction...");
-
-    using namespace array_test;
 
     // empty array
     Array a1;
@@ -115,9 +115,23 @@ void ArrayTest::testConstruction() {
                         << calculated);
         }
     }
+
+    // recast initializer list to Real
+    Array a11{1, 2, 3, 4, 5};
+    if (a2.size() != size)
+        BOOST_ERROR("Array not of the required size"
+                    << "\n    required:  " << size
+                    << "\n    resulting: " << a2.size());
+    for (i=0; i<size; ++i) {
+        if (a11[i] != Real(i+1))
+            BOOST_ERROR(io::ordinal(i+1) << " element not with required value"
+                        << "\n    required:  " << Real(i+1)
+                        << "\n    resulting: " << a11[i]);
+    }
+
 }
 
-void ArrayTest::testArrayFunctions() {
+BOOST_AUTO_TEST_CASE(testArrayFunctions) {
 
     BOOST_TEST_MESSAGE("Testing array functions...");
 
@@ -178,7 +192,7 @@ void ArrayTest::testArrayFunctions() {
     }
 }
 
-void ArrayTest::testArrayResize() {
+BOOST_AUTO_TEST_CASE(testArrayResize) {
     BOOST_TEST_MESSAGE("Testing array resize...");
 
     Array a(10,1.0,1.0);
@@ -213,7 +227,7 @@ void ArrayTest::testArrayResize() {
         QL_CHECK_CLOSE(actual[i], expected[i], 100 * QL_EPSILON);   \
     }                                                               \
 
-void ArrayTest::testArrayOperators() {
+BOOST_AUTO_TEST_CASE(testArrayOperators) {
     BOOST_TEST_MESSAGE("Testing array operators...");
 
     auto get_array = []() {
@@ -327,12 +341,7 @@ void ArrayTest::testArrayOperators() {
     QL_CHECK_CLOSE_ARRAY(real_rvalue_quotient, scalar_quotient_2);
 }
 
-test_suite* ArrayTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("array tests");
-    suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testConstruction));
-    suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testArrayFunctions));
-    suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testArrayResize));
-    suite->add(QUANTLIB_TEST_CASE(&ArrayTest::testArrayOperators));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()
 

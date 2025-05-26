@@ -22,7 +22,7 @@
 */
 
 #include <ql/cashflows/couponpricer.hpp>
-#include <ql/experimental/averageois/averageoiscouponpricer.hpp>
+#include <ql/cashflows/overnightindexedcouponpricer.hpp>
 #include <ql/cashflows/overnightindexedcoupon.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/utilities/vectors.hpp>
@@ -34,105 +34,12 @@ using std::vector;
 namespace QuantLib {
 
     namespace {
-
-        class OvernightIndexedCouponPricer : public FloatingRateCouponPricer {
-          public:
-            void initialize(const FloatingRateCoupon& coupon) override {
-                coupon_ = dynamic_cast<const OvernightIndexedCoupon*>(&coupon);
-                QL_ENSURE(coupon_, "wrong coupon type");
-            }
-
-            Rate averageRate(const Date& date) const {
-
-                const Date today = Settings::instance().evaluationDate();
-
-                const ext::shared_ptr<OvernightIndex> index =
-                    ext::dynamic_pointer_cast<OvernightIndex>(coupon_->index());
-                const auto& pastFixings = IndexManager::instance().getHistory(index->name());
-
-                const vector<Date>& fixingDates = coupon_->fixingDates();
-                const vector<Date>& valueDates = coupon_->valueDates();
-                const vector<Time>& dt = coupon_->dt();
-
-                Size i = 0;
-                const size_t n = std::lower_bound(valueDates.begin(), valueDates.end(), date) - valueDates.begin();
-                Real compoundFactor = 1.0;
-
-                // already fixed part
-                while (i < n && fixingDates[i] < today) {
-                    // rate must have been fixed
-                    const Rate fixing = pastFixings[fixingDates[i]];
-                    QL_REQUIRE(fixing != Null<Real>(),
-                               "Missing " << index->name() <<
-                               " fixing for " << fixingDates[i]);
-                    Time span = (date >= valueDates[i+1] ?
-                                 dt[i] :
-                                 index->dayCounter().yearFraction(valueDates[i], date));
-                    compoundFactor *= (1.0 + fixing * span);
-                    ++i;
-                }
-
-                // today is a border case
-                if (i < n && fixingDates[i] == today) {
-                    // might have been fixed
-                    try {
-                        Rate fixing = pastFixings[fixingDates[i]];
-                        if (fixing != Null<Real>()) {
-                            Time span = (date >= valueDates[i+1] ?
-                                         dt[i] :
-                                         index->dayCounter().yearFraction(valueDates[i], date));
-                            compoundFactor *= (1.0 + fixing * span);
-                            ++i;
-                        } else {
-                            ;   // fall through and forecast
-                        }
-                    } catch (Error&) {
-                        ;       // fall through and forecast
-                    }
-                }
-
-                // forward part using telescopic property in order
-                // to avoid the evaluation of multiple forward fixings
-                if (i<n) {
-                    const Handle<YieldTermStructure> curve = index->forwardingTermStructure();
-                    QL_REQUIRE(!curve.empty(),
-                               "null term structure set to this instance of " << index->name());
-
-                    const DiscountFactor startDiscount = curve->discount(valueDates[i]);
-                    if (valueDates[n] == date) {
-                        // full telescopic formula
-                        const DiscountFactor endDiscount = curve->discount(valueDates[n]);
-                        compoundFactor *= startDiscount / endDiscount;
-                    } else {
-                        // The last fixing is not used for its full period (the date is between its
-                        // start and end date).  We can use the telescopic formula until the previous
-                        // date, then we'll add the missing bit.
-                        const DiscountFactor endDiscount = curve->discount(valueDates[n-1]);
-                        compoundFactor *= startDiscount / endDiscount;
-
-                        Rate fixing = index->fixing(fixingDates[n-1]);
-                        Time span = index->dayCounter().yearFraction(valueDates[n-1], date);
-                        compoundFactor *= (1.0 + fixing * span);
-                    }
-                }
-
-                const Rate rate = (compoundFactor - 1.0) / coupon_->accruedPeriod(date);
-                return coupon_->gearing() * rate + coupon_->spread();
-            }
-
-            Rate swapletRate() const override {
-                return averageRate(coupon_->accrualEndDate());
-            }
-
-            Real swapletPrice() const override { QL_FAIL("swapletPrice not available"); }
-            Real capletPrice(Rate) const override { QL_FAIL("capletPrice not available"); }
-            Rate capletRate(Rate) const override { QL_FAIL("capletRate not available"); }
-            Real floorletPrice(Rate) const override { QL_FAIL("floorletPrice not available"); }
-            Rate floorletRate(Rate) const override { QL_FAIL("floorletRate not available"); }
-
-          protected:
-            const OvernightIndexedCoupon* coupon_;
-        };
+        Date applyLookbackPeriod(const ext::shared_ptr<InterestRateIndex>& index,
+                                 const Date& valueDate,
+                                 Natural lookbackDays) {
+            return index->fixingCalendar().advance(valueDate, -static_cast<Integer>(lookbackDays),
+                                                   Days);
+        }
     }
 
     OvernightIndexedCoupon::OvernightIndexedCoupon(
@@ -146,14 +53,19 @@ namespace QuantLib {
                     const Date& refPeriodStart,
                     const Date& refPeriodEnd,
                     const DayCounter& dayCounter,
-                    bool telescopicValueDates, 
-                    RateAveraging::Type averagingMethod)
+                    bool telescopicValueDates,
+                    RateAveraging::Type averagingMethod,
+                    Natural lookbackDays,
+                    Natural lockoutDays,
+                    bool applyObservationShift)
     : FloatingRateCoupon(paymentDate, nominal, startDate, endDate,
-                         overnightIndex ? overnightIndex->fixingDays() : 0,
+                         lookbackDays,
                          overnightIndex,
                          gearing, spread,
                          refPeriodStart, refPeriodEnd,
-                         dayCounter, false), averagingMethod_(averagingMethod) {
+                         dayCounter, false), 
+        averagingMethod_(averagingMethod), lockoutDays_(lockoutDays),
+        applyObservationShift_(applyObservationShift) {
 
         // value dates
         Date tmpEndDate = endDate;
@@ -165,6 +77,9 @@ namespace QuantLib {
            the front stub of valuation dates we build here (which incorporates
            a grace period of 7 business after the evaluation date). This will
            lead to false coupon projections (see the warning the class header). */
+
+        QL_REQUIRE(canApplyTelescopicFormula() || !telescopicValueDates,
+                   "Telescopic formula cannot be applied for a coupon with lookback.");
 
         if (telescopicValueDates) {
             // build optimised value dates schedule: front stub goes
@@ -186,48 +101,86 @@ namespace QuantLib {
         valueDates_ = sch.dates();
 
         if (telescopicValueDates) {
-            // build optimised value dates schedule: back stub
-            // contains at least two dates
-            Date tmp = overnightIndex->fixingCalendar().advance(
-                endDate, -1, Days, Preceding);
-            if (tmp != valueDates_.back())
-                valueDates_.push_back(tmp);
-            tmp = overnightIndex->fixingCalendar().adjust(
+            // if lockout days are defined, we need to ensure that
+            // the lockout period is covered by the value dates
+            tmpEndDate = overnightIndex->fixingCalendar().adjust(
                 endDate, overnightIndex->businessDayConvention());
-            if (tmp != valueDates_.back())
-                valueDates_.push_back(tmp);
+            Date tmpLockoutDate = overnightIndex->fixingCalendar().advance(
+                endDate, -std::max<Integer>(lockoutDays_, 1), Days, Preceding);
+            while (tmpLockoutDate <= tmpEndDate)
+            {
+                if (tmpLockoutDate > valueDates_.back())
+                    valueDates_.push_back(tmpLockoutDate);
+                tmpLockoutDate =
+                    overnightIndex->fixingCalendar().advance(tmpLockoutDate, 1, Days, Following);
+            }
         }
 
         QL_ENSURE(valueDates_.size()>=2, "degenerate schedule");
 
-        // fixing dates
-        n_ = valueDates_.size()-1;
-        if (overnightIndex->fixingDays()==0) {
-            fixingDates_ = vector<Date>(valueDates_.begin(),
-                                        valueDates_.end() - 1);
+        n_ = valueDates_.size() - 1;
+
+        interestDates_ = vector<Date>(valueDates_.begin(), valueDates_.end());
+
+        if (fixingDays_ == overnightIndex->fixingDays() && fixingDays_ == 0) {
+            fixingDates_ = vector<Date>(valueDates_.begin(), valueDates_.end() - 1);
         } else {
+            // Lookback (fixing days) without observation shift:
+            // The date that the fixing rate is pulled  from (the observation date) is k
+            // business days before the date that interest is applied (the interest date)
+            // and is applied for the number of calendar days until the next business
+            // day following the interest date.
             fixingDates_.resize(n_);
-            for (Size i=0; i<n_; ++i)
-                fixingDates_[i] = overnightIndex->fixingDate(valueDates_[i]);
+            for (Size i = 0; i <= n_; ++i) {
+                Date tmp = applyLookbackPeriod(overnightIndex, valueDates_[i], fixingDays_);
+                if (i < n_)
+                    fixingDates_[i] = tmp;
+                if (applyObservationShift_)
+                    // Lookback (fixing days) with observation shift:
+                    // The date that the fixing rate is pulled from (the observation date)
+                    // is k business days before the date that interest is applied
+                    // (the interest date) and is applied for the number of calendar
+                    // days until the next business day following the observation date.
+                    // This means that the fixing dates periods align with value dates.
+                    interestDates_[i] = tmp;
+                if (fixingDays_ != overnightIndex->fixingDays())
+                    // If fixing dates of the coupon deviate from fixing days in the index
+                    // we need to correct the value dates such that they reflect dates
+                    // corresponding to a deposit instrument linked to the index.
+                    // This is to ensure that future projections (which are computed
+                    // based on the value dates) of the index do not
+                    // yield any convexity corrections.
+                    valueDates_[i] = overnightIndex->valueDate(tmp);
+            }
+        }
+        // When lockout is used the fixing rate applied for the last k days of the
+        // interest period is frozen at the rate observed k days before the period ends.
+        if (lockoutDays_ != 0) {
+            QL_REQUIRE(lockoutDays_ > 0 && lockoutDays_ < n_,
+                       "Lockout period cannot be negative or exceed the number of fixing days.");
+            Date lockoutDate = fixingDates_[n_ - 1 - lockoutDays_];
+            for (Size i = n_ - 1; i > n_ - 1 - lockoutDays_; --i)
+                fixingDates_[i] = lockoutDate;
         }
 
         // accrual (compounding) periods
         dt_.resize(n_);
         const DayCounter& dc = overnightIndex->dayCounter();
         for (Size i=0; i<n_; ++i)
-            dt_[i] = dc.yearFraction(valueDates_[i], valueDates_[i+1]);
+            dt_[i] = dc.yearFraction(interestDates_[i], interestDates_[i + 1]);
 
         switch (averagingMethod) {
-            case RateAveraging::Simple:
-                setPricer(ext::shared_ptr<FloatingRateCouponPricer>(
-                    new ArithmeticAveragedOvernightIndexedCouponPricer(telescopicValueDates)));
-                break;
-            case RateAveraging::Compound:
-                setPricer(
-                    ext::shared_ptr<FloatingRateCouponPricer>(new OvernightIndexedCouponPricer));
-                break;
-            default:
-                QL_FAIL("unknown compounding convention (" << Integer(averagingMethod) << ")");
+          case RateAveraging::Simple:
+            QL_REQUIRE(
+                fixingDays_ == overnightIndex->fixingDays() && !applyObservationShift_ && lockoutDays_ == 0,
+                "Cannot price an overnight coupon with simple averaging with lookback or lockout.");
+            setPricer(ext::make_shared<ArithmeticAveragedOvernightIndexedCouponPricer>(telescopicValueDates));
+            break;
+          case RateAveraging::Compound:
+            setPricer(ext::make_shared<CompoundingOvernightIndexedCouponPricer>());
+            break;
+          default:
+            QL_FAIL("unknown compounding convention (" << Integer(averagingMethod) << ")");
         }
     }
 
@@ -246,10 +199,10 @@ namespace QuantLib {
     Rate OvernightIndexedCoupon::averageRate(const Date& d) const {
         QL_REQUIRE(pricer_, "pricer not set");
         pricer_->initialize(*this);
-        const auto overnightIndexPricer = ext::dynamic_pointer_cast<OvernightIndexedCouponPricer>(pricer_);
-        if (overnightIndexPricer)
-            return overnightIndexPricer->averageRate(d);
-
+        if (const auto compoundingPricer =
+                ext::dynamic_pointer_cast<CompoundingOvernightIndexedCouponPricer>(pricer_)) {
+            return compoundingPricer->averageRate(d);
+        }
         return pricer_->swapletRate();
     }
 
@@ -269,8 +222,8 @@ namespace QuantLib {
         }
     }
 
-    OvernightLeg::OvernightLeg(const Schedule& schedule, ext::shared_ptr<OvernightIndex> i)
-    : schedule_(schedule), overnightIndex_(std::move(i)), paymentCalendar_(schedule.calendar()) {
+    OvernightLeg::OvernightLeg(Schedule schedule, ext::shared_ptr<OvernightIndex> i)
+    : schedule_(std::move(schedule)), overnightIndex_(std::move(i)), paymentCalendar_(schedule_.calendar()) {
         QL_REQUIRE(overnightIndex_, "no index provided");
     }
 
@@ -300,7 +253,7 @@ namespace QuantLib {
         return *this;
     }
 
-    OvernightLeg& OvernightLeg::withPaymentLag(Natural lag) {
+    OvernightLeg& OvernightLeg::withPaymentLag(Integer lag) {
         paymentLag_ = lag;
         return *this;
     }
@@ -335,6 +288,19 @@ namespace QuantLib {
         return *this;
     }
 
+    OvernightLeg& OvernightLeg::withLookbackDays(Natural lookbackDays) {
+        lookbackDays_ = lookbackDays;
+        return *this;
+    }
+    OvernightLeg& OvernightLeg::withLockoutDays(Natural lockoutDays) {
+        lockoutDays_ = lockoutDays;
+        return *this;
+    }
+    OvernightLeg& OvernightLeg::withObservationShift(bool applyObservationShift) {
+        applyObservationShift_ = applyObservationShift;
+        return *this;
+    }
+
     OvernightLeg::operator Leg() const {
 
         QL_REQUIRE(!notionals_.empty(), "no notional given");
@@ -360,18 +326,13 @@ namespace QuantLib {
                 refEnd = calendar.adjust(start + schedule_.tenor(),
                                          paymentAdjustment_);
 
-            cashflows.push_back(ext::shared_ptr<CashFlow>(new
-                OvernightIndexedCoupon(paymentDate,
-                                       detail::get(notionals_, i,
-                                                   notionals_.back()),
-                                       start, end,
-                                       overnightIndex_,
-                                       detail::get(gearings_, i, 1.0),
-                                       detail::get(spreads_, i, 0.0),
-                                       refStart, refEnd,
-                                       paymentDayCounter_,
-                                       telescopicValueDates_, 
-                                       averagingMethod_)));
+            const auto overnightIndexedCoupon = ext::make_shared<OvernightIndexedCoupon>(
+                paymentDate, detail::get(notionals_, i, notionals_.back()), start, end,
+                overnightIndex_, detail::get(gearings_, i, 1.0), detail::get(spreads_, i, 0.0),
+                refStart, refEnd, paymentDayCounter_, telescopicValueDates_, averagingMethod_,
+                lookbackDays_, lockoutDays_, applyObservationShift_);
+
+            cashflows.push_back(overnightIndexedCoupon);
         }
         return cashflows;
     }
