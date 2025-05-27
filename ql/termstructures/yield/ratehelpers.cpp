@@ -965,16 +965,23 @@ namespace QuantLib {
         // if the evaluation date is not a business day
         // then move to the next business day
         Date refDate = evaluationDate_; // cal_.adjust(evaluationDate_
+        // earliestDate_ = cal_.advance(refDate, fixingDays_ * Days);
         earliestDate_ = fixingDays_ != 0 ? cal_.advance(refDate, fixingDays_ * Days) : refDate;
 
         if (!tradingCalendar_.empty()) {
             // check if fx trade can be settled in US, if not, adjust it
 
-            earliestDate_ = tradingCalendar_.isHoliday(earliestDate_) ?
-                                jointCalendar_.adjust(earliestDate_) :
-                                earliestDate_;
+            // but only adjust if it might not be the O/N quote where the earliest date
+            // is fixed as the ref date
+
+            if (earliestDate_ != refDate)
+                earliestDate_ = tradingCalendar_.isHoliday(earliestDate_) ?
+                                    jointCalendar_.adjust(earliestDate_) :
+                                    earliestDate_;
+            // earliestDate_ = jointCalendar_.adjust(earliestDate_);
             latestDate_ = jointCalendar_.advance(earliestDate_, tenor_,
                                                  conv_, eom_);
+            // latestDate_ = jointCalendar_.adjust(latestDate_);
         } else {
             latestDate_ = cal_.advance(earliestDate_, tenor_, conv_, eom_);
         }
