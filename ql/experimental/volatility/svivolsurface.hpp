@@ -44,7 +44,7 @@ namespace QuantLib {
                       const Handle<YieldTermStructure>& riskFreeTS,
                       const Handle<YieldTermStructure>& dividendTS,
                       const std::vector<Date>& expiries,
-                      const std::vector<std::vector<double>>& smileSectionParameterSets,
+                      const std::vector<std::vector<Real>>& smileSectionParameterSets,
                       const Calendar& cal = Calendar(),
                       BusinessDayConvention bdc = Following,
                       const DayCounter& dc = DayCounter());
@@ -68,8 +68,9 @@ namespace QuantLib {
         Handle<YieldTermStructure> div_;
         std::vector<Date> expiries_;
         std::vector<Time> expiryTimes_;
-        std::vector<std::vector<double>> smileSectionParameterSets_;
+        std::vector<std::vector<Real>> smileSectionParameterSets_;
         std::vector<ext::shared_ptr<SviSmileSection>> smileSections_;
+        bool isStickyStrike_;
     };
 
     inline Date SviVolSurface::maxDate() const {
