@@ -101,8 +101,9 @@ void TurnbullWakemanAsianEngine::calculate() const {
         times.push_back(process_->blackVolatility()->timeFromReference(fd));
 
         spotVars.push_back(
-            process_->blackVolatility()->blackVariance(times.back(), effectiveStrike));
-        spotVolsVec.push_back(std::sqrt(spotVars.back() / times.back()));
+            process_->blackVolatility()->blackVariance(times.back(), payoff->strike()));
+        spotVolsVec.push_back(
+            process_->blackVolatility()->blackVol(times.back(), payoff->strike()));
 
         EA += forwards.back();
     }
