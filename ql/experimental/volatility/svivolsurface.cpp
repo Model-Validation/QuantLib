@@ -23,7 +23,7 @@ namespace QuantLib {
                                  const Handle<YieldTermStructure>& riskFreeTS,
                                  const Handle<YieldTermStructure>& dividendTS,
                                  const std::vector<Date>& expiries,
-                                 const std::vector<std::vector<double>>& smileSectionParameterSets,
+                                 const std::vector<std::vector<Real>>& smileSectionParameterSets,
                                  const Calendar& cal,
                                  BusinessDayConvention bdc,
                                  const DayCounter& dc)
@@ -34,13 +34,27 @@ namespace QuantLib {
             smileSectionParameterSets_.size() > 0,
             "VolatilitySviSurfaceConfig expects one or more SVI smile section parameter sets");
         QL_REQUIRE(expiries_.size() == smileSectionParameterSets_.size(),
-                   "Expected an equal amount of expiries andSVI smile section parameter sets");
+                   "Expected an equal amount of expiries and SVI smile section parameter sets");
         QL_REQUIRE(std::is_sorted(expiries_.begin(), expiries_.end()),
                    "The SviSmileSections must be sorted by expiry, in increasing order");
 
         for (Size i = 0; i < expiries_.size(); ++i) {
-            smileSections_.push_back(ext::make_shared<SviSmileSection>(
-                expiries[i], forward(expiries[i]), smileSectionParameterSets_[i], dayCounter()));
+            if (smileSectionParameterSets_[i].size() == 5) {
+                isStickyStrike_ = false;
+                Real atmRef = forward(expiries[i]);
+                smileSections_.push_back(ext::make_shared<SviSmileSection>(
+                    expiries[i], atmRef, smileSectionParameterSets_[i], dayCounter()));
+            }  else if (smileSectionParameterSets_[i].size() == 6) {
+                isStickyStrike_ = true;
+                Real atmRef = smileSectionParameterSets_[i][5];
+                std::vector<Real> sviParamSubset(smileSectionParameterSets_[i].begin(),
+                                                   smileSectionParameterSets_[i].begin() + 5);
+                smileSections_.push_back(ext::make_shared<SviSmileSection>(
+                    expiries[i], atmRef, sviParamSubset, dayCounter()));
+            }
+            else {
+                QL_FAIL("Incorrect number of SVI smile parameters passed");
+            }
             expiryTimes_.push_back(smileSections_[i]->exerciseTime());
         }
     }
@@ -58,8 +72,11 @@ namespace QuantLib {
             t1 = 0.0;
             t2 = smileSections_[0]->exerciseTime();
             var_t1 = 0.0;
-            var_t2 = smileSections_[0]->variance(moneyness * smileSections_[0]->atmLevel());
-        } else if (t <= expiryTimes_.back()) {
+            if (isStickyStrike_)
+                var_t2 = smileSections_[0]->variance(strike);
+            else
+                var_t2 = smileSections_[0]->variance(moneyness * smileSections_[0]->atmLevel());
+        } else if (t < expiryTimes_.back()) {
             Size i1, i2;
             for (Size i = 0; i < smileSections_.size() - 1; ++i) {
                 if (t >= smileSections_[i]->exerciseTime() &&
@@ -71,14 +88,18 @@ namespace QuantLib {
             }
             t1 = smileSections_[i1]->exerciseTime();
             t2 = smileSections_[i2]->exerciseTime();
-            var_t1 = smileSections_[i1]->variance(moneyness * smileSections_[i1]->atmLevel());
-            var_t2 = smileSections_[i2]->variance(moneyness * smileSections_[i2]->atmLevel());
+            if (isStickyStrike_) {
+                var_t1 = smileSections_[i1]->variance(strike);
+                var_t2 = smileSections_[i2]->variance(strike);
+            } else {
+                var_t1 = smileSections_[i1]->variance(moneyness * smileSections_[i1]->atmLevel());
+                var_t2 = smileSections_[i2]->variance(moneyness * smileSections_[i2]->atmLevel());
+            }
         } else {
-            return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel()) *
-                   t;
-            // return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel())
-            // *
-            //       t / smileSections_.back()->exerciseTime();
+            if (isStickyStrike_)
+                return smileSections_.back()->variance(strike) * t;
+            else
+                return smileSections_.back()->variance(moneyness * smileSections_.back()->atmLevel()) * t;
         }
         Real var_t = var_t1 + (var_t2 - var_t1) * (t - t1) / (t2 - t1);
         return var_t * t;
