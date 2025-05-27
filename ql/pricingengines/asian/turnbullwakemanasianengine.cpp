@@ -113,6 +113,16 @@ void TurnbullWakemanAsianEngine::calculate() const {
     Real EA2 = 0.0;
     Size n = forwards.size();
 
+    if (useAverageVol_) {
+        Real avgVol =
+            std::accumulate(spotVolsVec.begin(), spotVolsVec.end(), 0.0) / spotVolsVec.size();
+        results_.additionalResults["averageVol"] = avgVol;
+        spotVars.clear();
+        for (auto time : times) {
+            spotVars.push_back(avgVol * avgVol * time);
+        }
+    }
+
     for (Size i = 0; i < n; ++i) {
         EA2 += forwards[i] * forwards[i] * exp(spotVars[i]);
         for (Size j = 0; j < i; ++j) {
