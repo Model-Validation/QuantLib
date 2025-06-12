@@ -38,28 +38,34 @@ namespace QuantLib {
 class MultiCurveBootstrap;
 
 class MultiCurveBootstrapContributor {
-  public:
+public:
     virtual ~MultiCurveBootstrapContributor() {}
-    virtual void setParentBootstraper(MultiCurveBootstrap* b) = 0;
-    virtual void sendBootstrapContribution() = 0;
+    virtual void setParentBootstrapper(MultiCurveBootstrap* b) = 0;
+    virtual void sendContribution() = 0;
+    virtual void setToCalculated() = 0;
 };
 
 class MultiCurveBootstrap {
-  public:
-    MultiCurveBootstrap();
-    void add(MultiCurveBootstrapContributor* c);
-    void finalizeInitialization();
-    void addFirstBootstrapContribution(MultiCurveBootstrapContributor* from,
-                                       CostFunction* c,
-                                       Array* guess);
-    void triggerOtherBootstrapContributions();
-    void runMultiCurveBootstrap();
-    void setOtherBootstrapContributorsToCalculated();
-    void finalizeCalculation();
+public:
+  explicit MultiCurveBootstrap(Real accuracy);
+  MultiCurveBootstrap(ext::shared_ptr<OptimizationMethod> optimizer = nullptr,
+                      ext::shared_ptr<EndCriteria> endCriteria = nullptr);
+  void add(MultiCurveBootstrapContributor* c);
+  void addCostFunction(CostFunction* c, Array* g);
+  void triggerOtherContributors();
+  void runMultiCurveBootstrap();
+  void setOtherContributorsToCalculated();
+  void finalizeCalculation();
+private:
+    ext::shared_ptr<OptimizationMethod> optimizer_;
+    ext::shared_ptr<EndCriteria> endCriteria_;
+    std::vector<MultiCurveBootstrapContributor*> contributors_;
+    std::vector<CostFunction*> costFunctions_;
+    std::vector<Array*> guesses_;
 };
 
 class AdditionalBootstrapVariables {
-  public:
+public:
     virtual ~AdditionalBootstrapVariables() = default;
     // Initialize variables to initial guesses and return them.
     virtual Array initialize(bool validData) = 0;
@@ -124,8 +130,9 @@ class GlobalBootstrap : public MultiCurveBootstrapContributor {
     void calculate() const;
 
   private:
-    void setParentBootstraper(MultiCurveBootstrap* b) override;
-    void sendBootstrapContribution() override;
+    void setParentBootstrapper(MultiCurveBootstrap* b) override;
+    void sendContribution() override;
+    void setToCalculated() override;
     void setupCostFunction() const;
     void initialize() const;
     Curve *ts_;
@@ -142,9 +149,112 @@ class GlobalBootstrap : public MultiCurveBootstrapContributor {
     mutable Array guess_;
     mutable ext::shared_ptr<CostFunction> costFunction_;
     MultiCurveBootstrap* parentBootstrapper_ = nullptr;
+    bool frozen_ = false;
+    friend struct Freezer;
+    struct Freezer {
+        Freezer(GlobalBootstrap<Curve>* t) : t_(t) { t_->frozen_ = true; }
+        ~Freezer() { t_->frozen_ = false; }
+        GlobalBootstrap<Curve>* t_;
+    };
 };
 
+// implementation
+
+MultiCurveBootstrap::MultiCurveBootstrap(Real accuracy) {
+    optimizer_ = ext::make_shared<LevenbergMarquardt>(accuracy, accuracy, accuracy);
+    endCriteria_ = ext::make_shared<EndCriteria>(1000, 10, accuracy, accuracy, accuracy);
+}
+
+MultiCurveBootstrap::MultiCurveBootstrap(ext::shared_ptr<OptimizationMethod> optimizer,
+                                         ext::shared_ptr<EndCriteria> endCriteria)
+: optimizer_(std::move(optimizer)), endCriteria_(std::move(endCriteria)) {}
+
+void MultiCurveBootstrap::add(MultiCurveBootstrapContributor* c) {
+    contributors_.push_back(c);
+    c->setParentBootstrapper(this);
+}
+
+void MultiCurveBootstrap::addCostFunction(CostFunction* c, Array* g) {
+    costFunctions_.push_back(c);
+    guesses_.push_back(g);
+}
+
+void MultiCurveBootstrap::triggerOtherContributors() {
+    for(std::size_t i=1;i<contributors_.size();++i)
+        contributors_[i]->sendContribution();
+}
+
+void MultiCurveBootstrap::runMultiCurveBootstrap() {
+
+    // concatenate the contributors' guesses to one guess
+
+    std::size_t totalSizeInput = std::accumulate(
+        guesses_.begin(), guesses_.end(), 0, [](std::size_t l, Array* a) { return l + a->size(); });
+
+    Array guess(totalSizeInput);
+
+    std::size_t offset = 0;
+    for (auto const& g: guesses_) {
+        std::copy(g->begin(),g->end(),std::next(guess.begin(),offset));
+        offset += g->size();
+    }
+
+    auto fn = [this](const Array& x) {
+
+        // call the contributors' cost functions and collect the returned values
+
+        std::vector<Array> results;
+
+        std::size_t offset = 0;
+        for (std::size_t c = 0; c < guesses_.size(); ++c) {
+            Array tmp(guesses_[c]->size());
+            std::copy(std::next(x.begin(), offset),
+                      std::next(x.begin(), offset + guesses_[c]->size()), tmp.begin());
+            offset += guesses_[c]->size();
+            results.push_back(costFunctions_[c]->values(tmp));
+        }
+
+        // concatenate the contributors' values and return the concatenation as the result
+
+        std::size_t resultSize =
+            std::accumulate(results.begin(), results.end(), 0,
+                            [](std::size_t len, const Array& a) { return len + a.size(); });
+
+        Array result(resultSize);
+
+        offset = 0;
+        for (auto const& r : results) {
+            std::copy(r.begin(), r.end(), std::next(result.begin(), offset));
+            offset += r.size();
+        }
+
+        return result;
+    };
+
+    SimpleCostFunction<decltype(fn)> costFunction(fn);
+    NoConstraint noConstraint;
+    Problem problem(costFunction, noConstraint, guess);
+
+    EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);
+    QL_REQUIRE(
+        EndCriteria::succeeded(endType),
+        "global bootstrap failed to minimize to required accuracy (during multi curve bootstrap): "
+            << endType);
+}
+
+void MultiCurveBootstrap::setOtherContributorsToCalculated() {
+    for (std::size_t i = 1; i < contributors_.size(); ++i)
+        contributors_[i]->setToCalculated();
+}
+
+void MultiCurveBootstrap::finalizeCalculation() {
+    contributors_.clear();
+    costFunctions_.clear();
+    guesses_.clear();
+}
+
 // template definitions
+
 
 template <class Curve>
 GlobalBootstrap<Curve>::GlobalBootstrap(
@@ -187,12 +297,26 @@ GlobalBootstrap<Curve>::GlobalBootstrap(
                   std::move(additionalVariables)) {}
 
 template <class Curve>
-void GlobalBootstrap<Curve>::setParentBootstraper(MultiCurveBootstrap* b) {
+void GlobalBootstrap<Curve>::setParentBootstrapper(MultiCurveBootstrap* b) {
     parentBootstrapper_ = b;
 }
 
 template <class Curve>
-void GlobalBootstrap<Curve>::sendBootstrapContribution() {}
+void GlobalBootstrap<Curve>::sendContribution() {
+    QL_REQUIRE(parentBootstrapper_, "GlobalBootstrap::sendContribution(): "
+                                    "parentBootstrapper_ is not set. Internal error.");
+    setupCostFunction();
+    parentBootstrapper_->addCostFunction(costFunction_.get(), &guess_);
+}
+
+template <class Curve>
+void GlobalBootstrap<Curve>::setToCalculated() {
+    if (!ts_->isCalculated()) {
+        Freezer freezer(this);
+        ts_->recalculate();
+        validCurve_ = true;
+    }
+}
 
 template <class Curve>
 void GlobalBootstrap<Curve>::setup(Curve* ts) {
@@ -377,7 +501,29 @@ template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
 
 template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
 
-    setupCostFunction();
+    if (frozen_)
+        return;
+
+    if(parentBootstrapper_) {
+
+        // multi curve bootstrap
+
+        struct CleanUp {
+            CleanUp(MultiCurveBootstrap* p) : p_(p) {}
+            ~CleanUp() { p_->finalizeCalculation(); }
+            MultiCurveBootstrap* p_;
+        } cleanUp(parentBootstrapper_);
+
+        setupCostFunction();
+        parentBootstrapper_->addCostFunction(costFunction_.get(), &guess_);
+        parentBootstrapper_->triggerOtherContributors();
+        parentBootstrapper_->runMultiCurveBootstrap();
+        parentBootstrapper_->setOtherContributorsToCalculated();
+        validCurve_ = true;
+        return;
+    }
+
+    // single curve boostrap
 
     // setup problem
     NoConstraint noConstraint;
