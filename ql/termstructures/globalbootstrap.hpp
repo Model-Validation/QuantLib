@@ -35,6 +35,29 @@
 
 namespace QuantLib {
 
+class MultiCurveBootstrap;
+
+class MultiCurveBootstrapContributor {
+  public:
+    virtual ~MultiCurveBootstrapContributor() {}
+    virtual void setParentBootstraper(MultiCurveBootstrap* b) = 0;
+    virtual void sendBootstrapContribution() = 0;
+};
+
+class MultiCurveBootstrap {
+  public:
+    MultiCurveBootstrap();
+    void add(MultiCurveBootstrapContributor* c);
+    void finalizeInitialization();
+    void addFirstBootstrapContribution(MultiCurveBootstrapContributor* from,
+                                       CostFunction* c,
+                                       Array* guess);
+    void triggerOtherBootstrapContributions();
+    void runMultiCurveBootstrap();
+    void setOtherBootstrapContributorsToCalculated();
+    void finalizeCalculation();
+};
+
 class AdditionalBootstrapVariables {
   public:
     virtual ~AdditionalBootstrapVariables() = default;
@@ -71,7 +94,9 @@ class AdditionalBootstrapVariables {
   and Traits::transformInverse() to be implemented. Also, check the usage of
   Traits::updateGuess(), Traits::guess() in this class.
 */
-template <class Curve> class GlobalBootstrap {
+
+template <class Curve>
+class GlobalBootstrap : public MultiCurveBootstrapContributor {
     typedef typename Curve::traits_type Traits;             // ZeroYield, Discount, ForwardRate
     typedef typename Curve::interpolator_type Interpolator; // Linear, LogLinear, ...
     typedef std::function<Array(const std::vector<Time>&, const std::vector<Real>&)>
@@ -99,6 +124,9 @@ template <class Curve> class GlobalBootstrap {
     void calculate() const;
 
   private:
+    void setParentBootstraper(MultiCurveBootstrap* b) override;
+    void sendBootstrapContribution() override;
+    void setupCostFunction() const;
     void initialize() const;
     Curve *ts_;
     Real accuracy_;
@@ -111,6 +139,9 @@ template <class Curve> class GlobalBootstrap {
     mutable bool initialized_ = false, validCurve_ = false;
     mutable Size firstHelper_, numberHelpers_;
     mutable Size firstAdditionalHelper_, numberAdditionalHelpers_;
+    mutable Array guess_;
+    mutable ext::shared_ptr<CostFunction> costFunction_;
+    MultiCurveBootstrap* parentBootstrapper_ = nullptr;
 };
 
 // template definitions
@@ -155,7 +186,16 @@ GlobalBootstrap<Curve>::GlobalBootstrap(
                   accuracy, std::move(optimizer), std::move(endCriteria),
                   std::move(additionalVariables)) {}
 
-template <class Curve> void GlobalBootstrap<Curve>::setup(Curve *ts) {
+template <class Curve>
+void GlobalBootstrap<Curve>::setParentBootstraper(MultiCurveBootstrap* b) {
+    parentBootstrapper_ = b;
+}
+
+template <class Curve>
+void GlobalBootstrap<Curve>::sendBootstrapContribution() {}
+
+template <class Curve>
+void GlobalBootstrap<Curve>::setup(Curve* ts) {
     ts_ = ts;
     for (Size j = 0; j < ts_->instruments_.size(); ++j)
         ts_->registerWithObservables(ts_->instruments_[j]);
@@ -255,7 +295,7 @@ template <class Curve> void GlobalBootstrap<Curve>::initialize() const {
     initialized_ = true;
 }
 
-template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
+template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
 
     // we might have to call initialize even if the curve is initialized
     // and not moving, just because helpers might be date relative and change
@@ -295,30 +335,29 @@ template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
 
     // Setup initial guess. We have guesses for the curve values first (numberPillars),
     // followed by guesses for the additional variables.
-    const Size numberPillars = ts_->times_.size() - 1;
     Array additionalGuesses;
     if (additionalVariables_) {
         additionalGuesses = additionalVariables_->initialize(validCurve_);
     }
-    Array guess(numberPillars + additionalGuesses.size());
-    for (Size i = 0; i < numberPillars; ++i) {
+    guess_ = Array(ts_->times_.size() - 1 + additionalGuesses.size());
+    for (Size i = 0; i < ts_->times_.size() - 1; ++i) {
         // just pass zero as the first alive helper, it's not used in the standard QL traits anyway
         // update ts_->data_ since Traits::guess() usually depends on previous values
         Traits::updateGuess(ts_->data_, Traits::guess(i + 1, ts_, validCurve_, 0), i + 1);
-        guess[i] = Traits::transformInverse(ts_->data_[i + 1], i + 1, ts_);
+        guess_[i] = Traits::transformInverse(ts_->data_[i + 1], i + 1, ts_);
     }
-    std::copy(additionalGuesses.begin(), additionalGuesses.end(), guess.begin() + numberPillars);
+    std::copy(additionalGuesses.begin(), additionalGuesses.end(), guess_.begin() + ts_->times_.size() - 1);
 
     // setup cost function
-    SimpleCostFunction cost([&](const Array& x) {
+    auto fn = [this](const Array& x) {
         // x has the same layout as guess above: the first numberPillars values go into
         // the curve, while the rest are new values for the additional variables.
-        for (Size i = 0; i < numberPillars; ++i) {
+        for (Size i = 0; i < ts_->times_.size() - 1; ++i) {
             Traits::updateGuess(ts_->data_, Traits::transformDirect(x[i], i + 1, ts_), i + 1);
         }
         ts_->interpolation_.update();
         if (additionalVariables_) {
-            additionalVariables_->update(Array(x.begin() + numberPillars, x.end()));
+            additionalVariables_->update(Array(x.begin() + ts_->times_.size() - 1, x.end()));
         }
 
         Array additionalErrors;
@@ -332,11 +371,17 @@ template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
         std::copy(additionalErrors.begin(), additionalErrors.end(),
                   result.begin() + numberHelpers_);
         return result;
-    });
+    };
+    costFunction_ = ext::make_shared<SimpleCostFunction<decltype(fn)>>(fn);
+}
+
+template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
+
+    setupCostFunction();
 
     // setup problem
     NoConstraint noConstraint;
-    Problem problem(cost, noConstraint, guess);
+    Problem problem(*costFunction_, noConstraint, guess_);
 
     // run optimization
     EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);
