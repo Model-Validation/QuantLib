@@ -101,7 +101,7 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
         return result;
     };
 
-    SimpleCostFunction<decltype(fn)> costFunction(fn, 1E-8);
+    SimpleCostFunction<decltype(fn)> costFunction(fn);
     NoConstraint noConstraint;
     Problem problem(costFunction, noConstraint, guess);
     EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);
