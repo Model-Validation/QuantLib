@@ -40,27 +40,32 @@ class MultiCurveBootstrap;
 class MultiCurveBootstrapContributor {
 public:
     virtual ~MultiCurveBootstrapContributor() {}
-    virtual void setParentBootstrapper(MultiCurveBootstrap* b) = 0;
-    virtual void sendContribution() = 0;
-    virtual void setToCalculated() = 0;
+    virtual void
+    setParentBootstrapper(const QuantLib::ext::shared_ptr<MultiCurveBootstrap>& b) const = 0;
+    virtual void sendContribution() const = 0;
+    virtual void setToValid() const = 0;
 };
 
-class MultiCurveBootstrap {
-public:
-  explicit MultiCurveBootstrap(Real accuracy);
-  MultiCurveBootstrap(ext::shared_ptr<OptimizationMethod> optimizer = nullptr,
-                      ext::shared_ptr<EndCriteria> endCriteria = nullptr);
-  void add(MultiCurveBootstrapContributor* c);
-  void addCostFunction(CostFunction* c, Array* g);
-  void triggerOtherContributors();
-  void runMultiCurveBootstrap();
-  void setOtherContributorsToCalculated();
-  void finalizeCalculation();
-private:
+class MultiCurveBootstrap : public QuantLib::ext::enable_shared_from_this<MultiCurveBootstrap> {
+  public:
+    explicit MultiCurveBootstrap(Real accuracy);
+    MultiCurveBootstrap(ext::shared_ptr<OptimizationMethod> optimizer = nullptr,
+                        ext::shared_ptr<EndCriteria> endCriteria = nullptr);
+    void add(const MultiCurveBootstrapContributor* c);
+    void addCostFunction(std::function<void(const Array&)>* set,
+                         std::function<Array(void)>* eval,
+                         Array* guess);
+    void triggerOtherContributors() const;
+    void runMultiCurveBootstrap();
+    void setOtherContributorsToValid() const;
+    void finalizeCalculation();
+
+  private:
     ext::shared_ptr<OptimizationMethod> optimizer_;
     ext::shared_ptr<EndCriteria> endCriteria_;
-    std::vector<MultiCurveBootstrapContributor*> contributors_;
-    std::vector<CostFunction*> costFunctions_;
+    std::vector<const MultiCurveBootstrapContributor*> contributors_;
+    std::vector<std::function<void(const Array&)>*> costFunctionsSet_;
+    std::vector<std::function<Array(void)>*> costFunctionsEval_;
     std::vector<Array*> guesses_;
 };
 
@@ -130,9 +135,10 @@ class GlobalBootstrap : public MultiCurveBootstrapContributor {
     void calculate() const;
 
   private:
-    void setParentBootstrapper(MultiCurveBootstrap* b) override;
-    void sendContribution() override;
-    void setToCalculated() override;
+    void
+    setParentBootstrapper(const QuantLib::ext::shared_ptr<MultiCurveBootstrap>& b) const override;
+    void sendContribution() const override;
+    void setToValid() const override;
     void setupCostFunction() const;
     void initialize() const;
     Curve *ts_;
@@ -147,15 +153,9 @@ class GlobalBootstrap : public MultiCurveBootstrapContributor {
     mutable Size firstHelper_, numberHelpers_;
     mutable Size firstAdditionalHelper_, numberAdditionalHelpers_;
     mutable Array guess_;
-    mutable ext::shared_ptr<CostFunction> costFunction_;
-    MultiCurveBootstrap* parentBootstrapper_ = nullptr;
-    bool frozen_ = false;
-    friend struct Freezer;
-    struct Freezer {
-        Freezer(GlobalBootstrap<Curve>* t) : t_(t) { t_->frozen_ = true; }
-        ~Freezer() { t_->frozen_ = false; }
-        GlobalBootstrap<Curve>* t_;
-    };
+    mutable std::function<void(const Array&)> costFunctionSet_;
+    mutable std::function<Array(void)> costFunctionEval_;
+    mutable QuantLib::ext::shared_ptr<MultiCurveBootstrap> parentBootstrapper_ = nullptr;
 };
 
 // template definitions
@@ -201,26 +201,22 @@ GlobalBootstrap<Curve>::GlobalBootstrap(
                   std::move(additionalVariables)) {}
 
 template <class Curve>
-void GlobalBootstrap<Curve>::setParentBootstrapper(MultiCurveBootstrap* b) {
+void GlobalBootstrap<Curve>::setParentBootstrapper(
+    const QuantLib::ext::shared_ptr<MultiCurveBootstrap>& b) const {
     parentBootstrapper_ = b;
 }
 
 template <class Curve>
-void GlobalBootstrap<Curve>::sendContribution() {
+void GlobalBootstrap<Curve>::sendContribution() const {
     QL_REQUIRE(parentBootstrapper_, "GlobalBootstrap::sendContribution(): "
                                     "parentBootstrapper_ is not set. Internal error.");
     setupCostFunction();
-    parentBootstrapper_->addCostFunction(costFunction_.get(), &guess_);
+    parentBootstrapper_->addCostFunction(&costFunctionSet_, &costFunctionEval_, &guess_);
 }
 
 template <class Curve>
-void GlobalBootstrap<Curve>::setToCalculated() {
-    QL_REQUIRE(ts_, "GlobalBootstrap::setToCalculated(): ts_ is null. Internal error.");
-    if (!ts_->isCalculated()) {
-        Freezer freezer(this);
-        ts_->recalculate();
-        validCurve_ = true;
-    }
+void GlobalBootstrap<Curve>::setToValid() const {
+    validCurve_ = true;
 }
 
 template <class Curve>
@@ -326,6 +322,11 @@ template <class Curve> void GlobalBootstrap<Curve>::initialize() const {
 
 template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
 
+    // for single-curve boostrap, this was done in LazyObject::calculate() already, but for
+    // multi-curve boostrap we have to do this manually for all contributing curves except
+    // the main one, because calculate() is never triggered for them
+    ts_->setCalculated(true);
+
     // we might have to call initialize even if the curve is initialized
     // and not moving, just because helpers might be date relative and change
     // with evaluation date change.
@@ -378,7 +379,7 @@ template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
     std::copy(additionalGuesses.begin(), additionalGuesses.end(), guess_.begin() + ts_->times_.size() - 1);
 
     // setup cost function
-    auto fn = [this](const Array& x) {
+    costFunctionSet_ = [this](const Array& x) {
         // x has the same layout as guess above: the first numberPillars values go into
         // the curve, while the rest are new values for the additional variables.
         for (Size i = 0; i < ts_->times_.size() - 1; ++i) {
@@ -388,7 +389,9 @@ template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
         if (additionalVariables_) {
             additionalVariables_->update(Array(x.begin() + ts_->times_.size() - 1, x.end()));
         }
+    };
 
+    costFunctionEval_ = [this]() {
         Array additionalErrors;
         if (additionalPenalties_) {
             additionalErrors = additionalPenalties_(ts_->times_, ts_->data_);
@@ -401,30 +404,28 @@ template <class Curve> void GlobalBootstrap<Curve>::setupCostFunction() const {
                   result.begin() + numberHelpers_);
         return result;
     };
-    costFunction_ = ext::make_shared<SimpleCostFunction<decltype(fn)>>(fn);
 }
 
 template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
-
-    if (frozen_)
-        return;
 
     if(parentBootstrapper_) {
 
         // multi curve bootstrap
 
-        struct CleanUp {
-            CleanUp(MultiCurveBootstrap* p) : p_(p) {}
-            ~CleanUp() { p_->finalizeCalculation(); }
-            MultiCurveBootstrap* p_;
-        } cleanUp(parentBootstrapper_);
+        struct Finalizer {
+            explicit Finalizer(const QuantLib::ext::shared_ptr<MultiCurveBootstrap>& p) : p_(p) {}
+            ~Finalizer() { p_->finalizeCalculation(); }
+            QuantLib::ext::shared_ptr<MultiCurveBootstrap> p_;
+        } finalizer(parentBootstrapper_);
 
         setupCostFunction();
-        parentBootstrapper_->addCostFunction(costFunction_.get(), &guess_);
+
+        parentBootstrapper_->addCostFunction(&costFunctionSet_, &costFunctionEval_, &guess_);
         parentBootstrapper_->triggerOtherContributors();
         parentBootstrapper_->runMultiCurveBootstrap();
-        parentBootstrapper_->setOtherContributorsToCalculated();
+        parentBootstrapper_->setOtherContributorsToValid();
         validCurve_ = true;
+
         return;
     }
 
@@ -434,7 +435,13 @@ template <class Curve> void GlobalBootstrap<Curve>::calculate() const {
 
     // setup problem
     NoConstraint noConstraint;
-    Problem problem(*costFunction_, noConstraint, guess_);
+
+    SimpleCostFunction costFunction([this](const Array& x) {
+        this->costFunctionSet_(x);
+        return this->costFunctionEval_();
+    });
+
+    Problem problem(costFunction, noConstraint, guess_);
 
     // run optimization
     EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);

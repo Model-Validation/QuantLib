@@ -18,6 +18,7 @@
 */
 
 #include <ql/termstructures/globalbootstrap.hpp>
+#include <ql/math/optimization/levenbergmarquardt.hpp>
 
 namespace QuantLib {
 
@@ -30,18 +31,21 @@ MultiCurveBootstrap::MultiCurveBootstrap(ext::shared_ptr<OptimizationMethod> opt
                                          ext::shared_ptr<EndCriteria> endCriteria)
 : optimizer_(std::move(optimizer)), endCriteria_(std::move(endCriteria)) {}
 
-void MultiCurveBootstrap::add(MultiCurveBootstrapContributor* c) {
+void MultiCurveBootstrap::add(const MultiCurveBootstrapContributor* c) {
     contributors_.push_back(c);
-    c->setParentBootstrapper(this);
+    c->setParentBootstrapper(shared_from_this());
 }
 
-void MultiCurveBootstrap::addCostFunction(CostFunction* c, Array* g) {
-    costFunctions_.push_back(c);
-    guesses_.push_back(g);
+void MultiCurveBootstrap::addCostFunction(std::function<void(const Array&)>* set,
+                                          std::function<Array(void)>* eval,
+                                          Array* guess) {
+    costFunctionsSet_.push_back(set);
+    costFunctionsEval_.push_back(eval);
+    guesses_.push_back(guess);
 }
 
-void MultiCurveBootstrap::triggerOtherContributors() {
-    for(std::size_t i=1;i<contributors_.size();++i)
+void MultiCurveBootstrap::triggerOtherContributors() const {
+    for (std::size_t i = 1; i < contributors_.size(); ++i)
         contributors_[i]->sendContribution();
 }
 
@@ -55,16 +59,14 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
     Array guess(totalSizeInput);
 
     std::size_t offset = 0;
-    for (auto const& g: guesses_) {
-        std::copy(g->begin(),g->end(),std::next(guess.begin(),offset));
+    for (auto const& g : guesses_) {
+        std::copy(g->begin(), g->end(), std::next(guess.begin(), offset));
         offset += g->size();
     }
 
     auto fn = [this](const Array& x) {
 
-        // call the contributors' cost functions and collect the returned values
-
-        std::vector<Array> results;
+        // call the contributors' cost functions' set part
 
         std::size_t offset = 0;
         for (std::size_t c = 0; c < guesses_.size(); ++c) {
@@ -72,7 +74,14 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
             std::copy(std::next(x.begin(), offset),
                       std::next(x.begin(), offset + guesses_[c]->size()), tmp.begin());
             offset += guesses_[c]->size();
-            results.push_back(costFunctions_[c]->values(tmp));
+            costFunctionsSet_[c]->operator()(tmp);
+        }
+
+        // collect the contributoes result
+
+        std::vector<Array> results;
+        for (std::size_t c = 0; c < guesses_.size(); ++c) {
+            results.push_back(costFunctionsEval_[c]->operator()());
         }
 
         // concatenate the contributors' values and return the concatenation as the result
@@ -92,25 +101,27 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
         return result;
     };
 
-    SimpleCostFunction<decltype(fn)> costFunction(fn);
+    SimpleCostFunction<decltype(fn)> costFunction(fn, 1E-8);
     NoConstraint noConstraint;
     Problem problem(costFunction, noConstraint, guess);
-
     EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);
+
     QL_REQUIRE(
         EndCriteria::succeeded(endType),
         "global bootstrap failed to minimize to required accuracy (during multi curve bootstrap): "
             << endType);
+
 }
 
-void MultiCurveBootstrap::setOtherContributorsToCalculated() {
+void MultiCurveBootstrap::setOtherContributorsToValid() const {
     for (std::size_t i = 1; i < contributors_.size(); ++i)
-        contributors_[i]->setToCalculated();
+        contributors_[i]->setToValid();
 }
 
 void MultiCurveBootstrap::finalizeCalculation() {
     contributors_.clear();
-    costFunctions_.clear();
+    costFunctionsSet_.clear();
+    costFunctionsEval_.clear();
     guesses_.clear();
 }
 
