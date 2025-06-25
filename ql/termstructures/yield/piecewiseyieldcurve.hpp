@@ -169,6 +169,9 @@ namespace QuantLib {
         //@{
         void update() override;
         //@}
+
+        const bootstrap_type& bootstrap() const { return bootstrap_; }
+
       private:
         //! \name LazyObject interface
         //@{

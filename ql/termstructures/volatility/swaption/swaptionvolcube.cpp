@@ -89,9 +89,11 @@ namespace QuantLib {
     Rate SwaptionVolatilityCube::atmStrike(const Date& optionD,
                                            const Period& swapTenor) const {
         if (swapTenor > shortSwapIndexBase_->tenor()) {
-            return swapIndexBase_->clone(swapTenor)->fixing(optionD);
+            return swapIndexBase_->clone(swapTenor)->fixing(
+                swapIndexBase_->fixingCalendar().adjust(optionD));
         } else {
-            return shortSwapIndexBase_->clone(swapTenor)->fixing(optionD);
+            return shortSwapIndexBase_->clone(swapTenor)->fixing(
+                swapIndexBase_->fixingCalendar().adjust(optionD));
         }
     }
 
