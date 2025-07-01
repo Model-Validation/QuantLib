@@ -92,7 +92,7 @@ namespace QuantLib {
 
         void calculate() const override;
 
-      private:
+      protected:
         ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
         DividendSchedule dividends_;
         Size tGrid_, xGrid_, dampingSteps_;
