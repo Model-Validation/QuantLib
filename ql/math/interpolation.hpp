@@ -68,6 +68,8 @@ namespace QuantLib {
             virtual Real primitive(Real) const = 0;
             virtual Real derivative(Real) const = 0;
             virtual Real secondDerivative(Real) const = 0;
+
+            virtual std::vector<QuantLib::Real> getCoefficients() const = 0;
         };
         ext::shared_ptr<Impl> impl_;
 
