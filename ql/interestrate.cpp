@@ -37,7 +37,7 @@ namespace QuantLib {
             freqMakesSense_ = true;
             QL_REQUIRE(freq != Once && freq != NoFrequency,
                        "frequency not allowed for this interest rate");
-            freq_ = static_cast<Frequency>(freq);
+            freq_ = static_cast<Real>(freq);
         }
     }
 
