@@ -27,8 +27,8 @@
 #ifndef ql_bootstrap_traits_hpp
 #define ql_bootstrap_traits_hpp
 
-#include "instantaneousforwardcurve.hpp"
-#include "termforwardcurve.hpp"
+#include <ql/termstructures/yield/instantaneousforwardcurve.hpp>
+#include <ql/termstructures/yield/termforwardcurve.hpp>
 #include <ql/termstructures/yield/discountcurve.hpp>
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yield/interpolatedsimplezerocurve.hpp>
