@@ -352,7 +352,7 @@ namespace QuantLib {
                     transformedValues[i] = splineSegments_[segmentIndex]->transform(x, value);
                     break;
                 }
-                // TODO More careful here, not sure if this is safe without further checks, e.g. if x < left
+                // TODO: More careful here, not sure if this is safe without further checks, e.g. if x < left
                 // Move to the next segment
                 if (x < left) {
                     QL_FAIL("x = " << x << " is on the left of the range [" << left

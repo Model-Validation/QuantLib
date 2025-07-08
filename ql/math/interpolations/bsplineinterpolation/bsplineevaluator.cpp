@@ -64,7 +64,7 @@ namespace QuantLib {
         } else if (x >= knots_.back()) {
             return knots_.size() - degree_ - 1; // TODO Not -2, right?
         } else {
-            //TODO This never happens, right?
+            //TODO: This never happens, right?
             QL_FAIL("x = " << x << " is outside the range of the knots [" << knots_.front() << ", "
                            << knots_.back() << "]");
         }
