@@ -120,7 +120,7 @@ namespace QuantLib {
 
 
         //! compound factor implied by the rate compounded at time t.
-        /*! returns the compound (a.k.a capitalization) factor
+        /*! returns the compound (a.k.a. capitalization) factor
             implied by the rate compounded at time t.
 
             \warning Time must be measured using InterestRate's own
@@ -129,7 +129,7 @@ namespace QuantLib {
         Real compoundFactor(Time t) const;
 
         //! compound factor minus 1 implied by the rate compounded at time t.
-        /*! returns the compound (a.k.a capitalization) factor minus 1
+        /*! returns the compound (a.k.a. capitalization) factor minus 1
             implied by the rate compounded at time t. The minus one
             helps avoid loss of accuracy in certain contexts, and is akin to the
             expm1 and log1p in C++ std and numpy. It is used to improve accuracy
@@ -141,7 +141,7 @@ namespace QuantLib {
         Real compoundFactorMinusOne(Time t) const;
 
         //! compound factor implied by the rate compounded between two dates
-        /*! returns the compound (a.k.a capitalization) factor
+        /*! returns the compound (a.k.a. capitalization) factor
             implied by the rate compounded between two dates.
         */
         Real compoundFactor(const Date& d1,
@@ -157,7 +157,7 @@ namespace QuantLib {
         }
 
         //! compound factor minus 1 implied by the rate compounded between two dates
-        /*! returns the compound (a.k.a capitalization) factor minus 1,
+        /*! returns the compound (a.k.a. capitalization) factor minus 1,
             implied by the rate compounded between two dates. The minus one
             helps avoid loss of accuracy in certain contexts, and is akin to the
             expm1 and log1p in C++ std and numpy. It is used to improve accuracy

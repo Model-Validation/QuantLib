@@ -44,7 +44,7 @@ class AdditionalBootstrapVariables {
     virtual void update(const Array& x) = 0;
 };
 
-/*! Global boostrapper, with additional restrictions
+/*! Global bootstrapper, with additional restrictions
 
   The additionalDates functor must return a set of additional dates to add to the
   interpolation grid. These dates must only depend on the global evaluation date.

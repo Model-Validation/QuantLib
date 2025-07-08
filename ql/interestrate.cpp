@@ -18,6 +18,9 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+// ReSharper disable CppClangTidyClangDiagnosticFloatEqual
+// ReSharper disable CppClangTidyClangDiagnosticCoveredSwitchDefault
+// ReSharper disable CppClangTidyClangDiagnosticSwitchEnum
 #include <ql/interestrate.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <iomanip>
@@ -28,7 +31,8 @@ namespace QuantLib {
 
     // constructors
 
-    InterestRate::InterestRate() : r_(Null<Real>()) {}
+    InterestRate::InterestRate() : r_(Null<Real>()), comp_(Continuous), freqMakesSense_(false), freq_(0.0) {
+    }
 
     InterestRate::InterestRate(Rate r, DayCounter dc, Compounding comp, Frequency freq)
     : r_(r), dc_(std::move(dc)), comp_(comp), freqMakesSense_(false) {
