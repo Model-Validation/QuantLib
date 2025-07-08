@@ -37,7 +37,7 @@ namespace QuantLib {
 
     namespace detail {
         const Real avgHazardRate = 0.01;
-        const Real maxHazardRate = 1.0;
+        const Real maxHazardRate = 3.0;
     }
 
     //! Survival-Probability-curve traits
@@ -98,6 +98,17 @@ namespace QuantLib {
             // survival probability cannot increase
             return c->data()[i-1];
         }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c) {
+            return x;
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c) {
+            return x;
+        }
+
 
         // root-finding update
         static void updateGuess(std::vector<Real>& data,
@@ -175,6 +186,17 @@ namespace QuantLib {
             // We choose as max a value very unlikely to be exceeded.
             return detail::maxHazardRate;
         }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c) {
+            return x;
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c) {
+            return x;
+        }
+
         // update with new guess
         static void updateGuess(std::vector<Real>& data,
                                 Real rate,
@@ -250,6 +272,16 @@ namespace QuantLib {
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
             return detail::maxHazardRate;
+        }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c) {
+            return x;
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c) {
+            return x;
         }
 
         // update with new guess

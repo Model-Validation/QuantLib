@@ -39,8 +39,12 @@ namespace QuantLib {
     */
     template <class Interpolator>
     class InterpolatedCurve {
+        template <class Traits>
+        friend class IsdaCdsEngine;
+
       public:
         ~InterpolatedCurve() = default;
+        Interpolation getInterpolation() const { return interpolation_; }
 
       protected:
         //! \name Building

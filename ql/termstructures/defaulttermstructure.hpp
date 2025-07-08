@@ -99,8 +99,7 @@ namespace QuantLib {
                                        bool extrapolate = false) const;
         //! probability of default between two given times
         Probability defaultProbability(Time,
-                                       Time,
-                                       bool extrapo = false) const;
+                                       Time, bool extrapolate = false) const;
         //@}
 
         /*! \name Default densities

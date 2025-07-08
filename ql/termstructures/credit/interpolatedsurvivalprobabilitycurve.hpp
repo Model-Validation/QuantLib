@@ -35,7 +35,7 @@ namespace QuantLib {
     template <class Interpolator>
     class InterpolatedSurvivalProbabilityCurve
         : public SurvivalProbabilityStructure,
-          protected InterpolatedCurve<Interpolator> {
+          public InterpolatedCurve<Interpolator> {
       public:
         InterpolatedSurvivalProbabilityCurve(
             const std::vector<Date>& dates,
