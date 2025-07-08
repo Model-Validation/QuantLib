@@ -65,9 +65,8 @@ namespace QuantLib {
     }
 
     void FixedRateCoupon::performCalculations() const {
-        amount_ = nominal() * (rate_.compoundFactor(accrualStartDate_, accrualEndDate_,
-                                                    refPeriodStart_, refPeriodEnd_) -
-                               1.0);
+        amount_ = nominal() * rate_.compoundFactorMinusOne(accrualStartDate_, accrualEndDate_,
+                                                    refPeriodStart_, refPeriodEnd_);
     }
 
     Real FixedRateCoupon::accruedAmount(const Date& d) const {
@@ -75,16 +74,16 @@ namespace QuantLib {
             // out of coupon range
             return 0.0;
         } else if (tradingExCoupon(d)) {
-            return -nominal()*(rate_.compoundFactor(d,
+            return -nominal()*rate_.compoundFactorMinusOne(d,
                                                     std::max(d, accrualEndDate_),
                                                     refPeriodStart_,
-                                                    refPeriodEnd_) - 1.0);
+                                                    refPeriodEnd_);
         } else {
             // usual case
-            return nominal()*(rate_.compoundFactor(accrualStartDate_,
+            return nominal()*rate_.compoundFactorMinusOne(accrualStartDate_,
                                                    std::min(d,accrualEndDate_),
                                                    refPeriodStart_,
-                                                   refPeriodEnd_) - 1.0);
+                                                   refPeriodEnd_);
         }
     }
 
