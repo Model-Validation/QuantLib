@@ -26,6 +26,7 @@
 #ifndef quantlib_yield_term_structure_hpp
 #define quantlib_yield_term_structure_hpp
 
+#include "ql/indexes/interestrateindex.hpp"
 #include <ql/termstructure.hpp>
 #include <ql/interestrate.hpp>
 #include <ql/quote.hpp>
@@ -59,6 +60,14 @@ namespace QuantLib {
                            const DayCounter& dc = DayCounter(),
                            std::vector<Handle<Quote> > jumps = {},
                            const std::vector<Date>& jumpDates = {});
+        YieldTermStructure(const Date& referenceDate,
+                           const ext::shared_ptr<InterestRateIndex>& index,
+                           std::vector<Handle<Quote>> jumps = {},
+                           const std::vector<Date>& jumpDates = {});
+        YieldTermStructure(const ext::shared_ptr<InterestRateIndex>& index,
+                           std::vector<Handle<Quote>> jumps = {},
+                           const std::vector<Date>& jumpDates = {});
+
         //@}
 
         /*! \name Discount factors
@@ -84,7 +93,7 @@ namespace QuantLib {
             calculated as a fraction of year from the reference date.
         */
         //@{
-        /*! The resulting interest rate has the required daycounting
+        /*! The resulting interest rate has the required day counting
             rule.
         */
         virtual InterestRate zeroRate(const Date& d,
@@ -167,6 +176,9 @@ namespace QuantLib {
         bool supportsZero() const;
         bool isTermForward() const;
 
+        ext::shared_ptr<InterestRateIndex> index() const;
+        Period tenor() const;
+
     protected:
         /*! \name Calculations
 
@@ -191,11 +203,12 @@ namespace QuantLib {
             z(t) = \int_0^t f(\tau) d\tau
             \f]
 
-            \warning This default implementation uses an highly inefficient
+            \warning This default implementation uses a highly inefficient
                      and possibly wildly inaccurate numerical integration.
                      Derived classes should override it if a more efficient
                      implementation is available.
         */
+        // TODO: Fix the implementation to be more accurate
         virtual Rate zeroYieldImpl(Time) const {
             QL_FAIL("Zero rate not implemented for YieldTermStructure");
         }
@@ -215,6 +228,7 @@ namespace QuantLib {
         std::vector<Time> jumpTimes_;
         Size nJumps_ = 0;
         Date latestReference_;
+        ext::shared_ptr<InterestRateIndex> index_;
     };
 
     // inline definitions
@@ -232,7 +246,8 @@ namespace QuantLib {
                                                  Compounding comp,
                                                  Frequency freq,
                                                  bool extrapolate) const {
-        return forwardRate(d, d+p, dayCounter, comp, freq, extrapolate);
+        return forwardRate(d, index_->advance(d),
+            dayCounter, comp, freq, extrapolate);
     }
 
     inline InterestRate YieldTermStructure::termForwardRate(Time t, bool extrapolate) const {

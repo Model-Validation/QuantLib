@@ -26,11 +26,8 @@
 #ifndef quantlib_zero_curve_simple_hpp
 #define quantlib_zero_curve_simple_hpp
 
-#include <ql/math/comparison.hpp>
-#include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/termstructures/interpolatedcurve.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
-#include <ql/utilities/dataformatters.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -38,7 +35,7 @@ namespace QuantLib {
 //! YieldTermStructure based on interpolation of zero rates
 /*! \ingroup yieldtermstructures */
 template <class Interpolator>
-class InterpolatedSimpleZeroCurve : public YieldTermStructure, protected InterpolatedCurve<Interpolator> {
+class InterpolatedSimpleZeroCurve : public YieldTermStructure, public InterpolatedCurve<Interpolator> {
   public:
     // constructor
     InterpolatedSimpleZeroCurve(const std::vector<Date> &dates, const std::vector<Rate> &yields,
@@ -126,7 +123,7 @@ template <class T> DiscountFactor InterpolatedSimpleZeroCurve<T>::discountImpl(T
         R = (zMax * tMax + instFwdMax * (t - tMax)) / t;
     }
 
-	return DiscountFactor(1.0 / (1.0 + R * t));    
+	return static_cast<DiscountFactor>(1.0 / (1.0 + R * t));    
 }
 
 template <class T>

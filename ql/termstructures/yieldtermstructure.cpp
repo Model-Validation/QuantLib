@@ -19,6 +19,8 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+// ReSharper disable CppClangTidyClangDiagnosticFloatEqual
+#include "ql/indexes/iborindex.hpp"
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <utility>
@@ -27,51 +29,83 @@ namespace QuantLib {
 
     namespace {
         // time interval used in finite differences
-        const Time dt = 0.0001;
+        constexpr Time dt = 0.0001;
     }
 
     YieldTermStructure::YieldTermStructure(const DayCounter& dc)
-    : TermStructure(dc), supportsDiscount_(true), supportsZero_(true), isTermForward_(false) {}
+        : TermStructure(dc), supportsDiscount_(true), supportsZero_(true), isTermForward_(false) {
+    }
 
     YieldTermStructure::YieldTermStructure(const Date& referenceDate,
                                            const Calendar& cal,
                                            const DayCounter& dc,
                                            std::vector<Handle<Quote>> jumps,
                                            const std::vector<Date>& jumpDates)
-    : TermStructure(referenceDate, cal, dc), supportsDiscount_(true), supportsZero_(true),
-      isTermForward_(false), jumps_(std::move(jumps)), jumpDates_(jumpDates),
-      jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()) {
+        : TermStructure(referenceDate, cal, dc), supportsDiscount_(true), supportsZero_(true),
+          isTermForward_(false), jumps_(std::move(jumps)), jumpDates_(jumpDates),
+          jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()) {
         setJumps(YieldTermStructure::referenceDate());
         for (Size i = 0; i < nJumps_; ++i)
             registerWith(jumps_[i]);
+        //TODO what should be the default number of settlement days?
+        index_ = ext::make_shared<IborIndex>("Dummy", Period(0, Days),
+                                             0, Currency(),
+                                             calendar_, Following, false,
+                                             TermStructure::dayCounter());
     }
 
     YieldTermStructure::YieldTermStructure(Natural settlementDays,
                                            const Calendar& cal,
                                            const DayCounter& dc,
-                                           std::vector<Handle<Quote> > jumps,
+                                           std::vector<Handle<Quote>> jumps,
                                            const std::vector<Date>& jumpDates)
-    : TermStructure(settlementDays, cal, dc), supportsDiscount_(true), supportsZero_(true),
-      isTermForward_(false), jumps_(std::move(jumps)), jumpDates_(jumpDates),
-      jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()) {
+        : TermStructure(settlementDays, cal, dc), supportsDiscount_(true), supportsZero_(true),
+          isTermForward_(false), jumps_(std::move(jumps)), jumpDates_(jumpDates),
+          jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()) {
         setJumps(YieldTermStructure::referenceDate());
-        for (Size i=0; i<nJumps_; ++i)
+        for (Size i = 0; i < nJumps_; ++i)
             registerWith(jumps_[i]);
+        index_ = ext::make_shared<IborIndex>("Dummy", Period(0, Days), settlementDays,
+                                             Currency(), calendar_, Following, false, dc);
     }
 
+    YieldTermStructure::YieldTermStructure(const Date& referenceDate,
+                                           const ext::shared_ptr<InterestRateIndex>& index,
+                                           std::vector<Handle<Quote>> jumps,
+                                           const std::vector<Date>& jumpDates)
+        : TermStructure(referenceDate, Calendar(index->fixingCalendar()),
+                        DayCounter(index->dayCounter())),
+          supportsDiscount_(true), supportsZero_(true), isTermForward_(false),
+          jumps_(std::move(jumps)), jumpDates_(jumpDates),
+          jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()), index_(index) {
+    }
+
+    YieldTermStructure::YieldTermStructure(const ext::shared_ptr<InterestRateIndex>& index,
+                                           std::vector<Handle<Quote>> jumps,
+                                           const std::vector<Date>& jumpDates)
+        : TermStructure(index->fixingDays(), Calendar(index->fixingCalendar()),
+                        DayCounter(index->dayCounter())),
+          supportsDiscount_(true), supportsZero_(true), isTermForward_(false),
+          jumps_(std::move(jumps)), jumpDates_(jumpDates),
+          jumpTimes_(jumpDates.size()), nJumps_(jumps_.size()), index_(index) {
+    }
+
+
     void YieldTermStructure::setJumps(const Date& referenceDate) {
-        if (jumpDates_.empty() && !jumps_.empty()) { // turn of year dates
+        if (jumpDates_.empty() && !jumps_.empty()) {
+            // turn of year dates
             jumpDates_.resize(nJumps_);
             jumpTimes_.resize(nJumps_);
             Year y = referenceDate.year();
-            for (Size i=0; i<nJumps_; ++i)
-                jumpDates_[i] = Date(31, December, y+i);
-        } else { // fixed dates
+            for (Size i = 0; i < nJumps_; ++i)
+                jumpDates_[i] = Date(31, December, y + static_cast<Year>(i));
+        } else {
+            // fixed dates
             QL_REQUIRE(jumpDates_.size()==nJumps_,
                        "mismatch between number of jumps (" << nJumps_ <<
                        ") and jump dates (" << jumpDates_.size() << ")");
         }
-        for (Size i=0; i<nJumps_; ++i)
+        for (Size i = 0; i < nJumps_; ++i)
             jumpTimes_[i] = timeFromReference(jumpDates_[i]);
         latestReference_ = referenceDate;
     }
@@ -84,8 +118,8 @@ namespace QuantLib {
             return discountImpl(t);
 
         DiscountFactor jumpEffect = 1.0;
-        for (Size i=0; i<nJumps_; ++i) {
-            if (jumpTimes_[i]>0 && jumpTimes_[i]<t) {
+        for (Size i = 0; i < nJumps_; ++i) {
+            if (jumpTimes_[i] > 0 && jumpTimes_[i] < t) {
                 QL_REQUIRE(jumps_[i]->isValid(),
                            "invalid " << io::ordinal(i+1) << " jump quote");
                 DiscountFactor thisJump = jumps_[i]->value();
@@ -106,21 +140,21 @@ namespace QuantLib {
         Time t = timeFromReference(d);
         if (t == 0.0) {
 
-            // t has been calculated with a possibly different daycounter
+            // t has been calculated with a possibly different day-counter
             // but the difference should not matter for very small times
             // This can actually make for wrong fixings since e.g. indexes that imply fixings at evaluation
             // day from curve. The ratio for 365 day count vs 360 day count is roughly 369/365 (or its reciprocal) depending on
-            // on the exact compounding
+            // the exact compounding
             //Real day_fraction_original = this->dayCounter().yearFraction(d, d + 1);
             Real compound = 1.0 / discount(d + 1, extrapolate);
 
             //Real day_fraction_result =
-                //dayCounter.yearFraction(this->referenceDate(), this->referenceDate() + 1);
+            //dayCounter.yearFraction(this->referenceDate(), this->referenceDate() + 1);
 
-            return InterestRate::impliedRate(compound, dayCounter, comp, freq, d, d+1);
+            return InterestRate::impliedRate(compound, dayCounter, comp, freq, d, d + 1);
             //return {day_fraction_original / day_fraction_result * r, dayCounter, comp, freq};
         }
-        Real compound = 1.0/discount(t, extrapolate);
+        Real compound = 1.0 / discount(t, extrapolate);
         return InterestRate::impliedRate(compound,
                                          dayCounter, comp, freq,
                                          referenceDate(), d);
@@ -130,8 +164,9 @@ namespace QuantLib {
                                               Compounding comp,
                                               Frequency freq,
                                               bool extrapolate) const {
-        if (t==0.0) t = dt;
-        Real compound = 1.0/discount(t, extrapolate);
+        if (t == 0.0)
+            t = dt;
+        Real compound = 1.0 / discount(t, extrapolate);
         return InterestRate::impliedRate(compound,
                                          dayCounter(), comp, freq,
                                          t);
@@ -143,20 +178,20 @@ namespace QuantLib {
                                                  Compounding comp,
                                                  Frequency freq,
                                                  bool extrapolate) const {
-        if (d1==d2) {
+        if (d1 == d2) {
             checkRange(d1, extrapolate);
-            Time t1 = std::max(timeFromReference(d1) - dt/2.0, 0.0);
+            Time t1 = std::max(timeFromReference(d1) - dt / 2.0, 0.0);
             Time t2 = t1 + dt;
             Real compound =
-                discount(t1, true)/discount(t2, true);
-            // times have been calculated with a possibly different daycounter
+                discount(t1, true) / discount(t2, true);
+            // times have been calculated with a possibly different day-counter
             // but the difference should not matter for very small times
             return InterestRate::impliedRate(compound,
                                              dayCounter, comp, freq,
                                              dt);
         }
-        QL_REQUIRE(d1 < d2,  d1 << " later than " << d2);
-        Real compound = discount(d1, extrapolate)/discount(d2, extrapolate);
+        QL_REQUIRE(d1 < d2, d1 << " later than " << d2);
+        Real compound = discount(d1, extrapolate) / discount(d2, extrapolate);
         return InterestRate::impliedRate(compound,
                                          dayCounter, comp, freq,
                                          d1, d2);
@@ -170,16 +205,16 @@ namespace QuantLib {
         Real compound;
         if (t2 == t1) {
             checkRange(t1, extrapolate);
-            t1 = std::max(t1 - dt/2.0, 0.0);
+            t1 = std::max(t1 - dt / 2.0, 0.0);
             t2 = t1 + dt;
-            compound = discount(t1, true)/discount(t2, true);
+            compound = discount(t1, true) / discount(t2, true);
         } else {
             QL_REQUIRE(t2>t1, "t2 (" << t2 << ") < t1 (" << t1 << ")");
-            compound = discount(t1, extrapolate)/discount(t2, extrapolate);
+            compound = discount(t1, extrapolate) / discount(t2, extrapolate);
         }
         return InterestRate::impliedRate(compound,
                                          dayCounter(), comp, freq,
-                                         t2-t1);
+                                         t2 - t1);
     }
 
     void YieldTermStructure::update() {
@@ -192,7 +227,7 @@ namespace QuantLib {
         } catch (Error&) {
             if (newReference == Date()) {
                 // the curve couldn't calculate the reference
-                // date. Most of the times, this is because some
+                // date. Most of the time, this is because some
                 // underlying handle wasn't set, so we can just absorb
                 // the exception and continue; the jumps will be set
                 // correctly when a valid underlying is set.
@@ -205,11 +240,21 @@ namespace QuantLib {
         }
     }
 
-    bool YieldTermStructure::supportsDiscount() const { return supportsDiscount_;}
+    bool YieldTermStructure::supportsDiscount() const { return supportsDiscount_; }
 
-    bool YieldTermStructure::supportsZero() const {return supportsZero_;}
+    bool YieldTermStructure::supportsZero() const { return supportsZero_; }
 
     bool YieldTermStructure::isTermForward() const {
         return isTermForward_;
     }
+
+    ext::shared_ptr<InterestRateIndex> YieldTermStructure::index() const {
+        return index_;
+    }
+
+    Period YieldTermStructure::tenor() const {
+        return index_->tenor();
+    }
+
+
 }

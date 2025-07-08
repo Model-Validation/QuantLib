@@ -4,7 +4,7 @@
  Copyright (C) 2005, 2006, 2007, 2008, 2009 StatPro Italia srl
  Copyright (C) 2009, 2015 Ferdinando Ametrano
  Copyright (C) 2015 Paolo Mazzocchi
- Copyright (C) 2024 SEB AB STh
+  Copyright (C) 2024 SEB AB Sverrir Thorvaldsson
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -91,22 +91,6 @@ namespace QuantLib {
 
     #ifndef __DOXYGEN__
     // template definitions
-
-    //template <class T>
-    //Rate InterpolatedInstantaneousForwardCurve<T>::zeroYieldImpl(Time t) const {
-    //    if (t == 0.0)
-    //        return this->forwardImpl( 1.0e-20); // TODO this is a hack, need to address sidedness
-
-    //    Real integral;
-    //    if (t <= this->times_.back()) {
-    //        integral = this->interpolation_.primitive(t, true);
-    //    } else {
-    //        // flat fwd extrapolation
-    //        integral = this->interpolation_.primitive(this->times_.back(), true) +
-    //                   this->data_.back() * (t - this->times_.back());
-    //    }
-    //    return integral / t;
-    //}
 
     template <class T>
     DiscountFactor InterpolatedInstantaneousForwardCurve<T>::discountImpl(Time t) const

@@ -30,8 +30,6 @@
 #include <ql/termstructures/interpolatedcurve.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/interestrate.hpp>
-#include <ql/math/comparison.hpp>
-#include <ql/utilities/dataformatters.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -40,15 +38,15 @@ namespace QuantLib {
     /*! \ingroup yieldtermstructures */
     template <class Interpolator>
     class InterpolatedZeroCurve : public ZeroYieldStructure,
-                                  protected InterpolatedCurve<Interpolator> {
-      public:
+                                  public InterpolatedCurve<Interpolator> {
+    public:
         // constructor
         InterpolatedZeroCurve(
             const std::vector<Date>& dates,
             const std::vector<Rate>& yields,
             const DayCounter& dayCounter,
             const Calendar& calendar = Calendar(),
-            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Handle<Quote>>& jumps = {},
             const std::vector<Date>& jumpDates = {},
             const Interpolator& interpolator = {},
             Compounding compounding = Continuous,
@@ -61,6 +59,20 @@ namespace QuantLib {
             const Interpolator& interpolator,
             Compounding compounding = Continuous,
             Frequency frequency = Annual);
+        InterpolatedZeroCurve(const std::vector<Date>& dates,
+                              const std::vector<Rate>& yields,
+                              const ext::shared_ptr<IborIndex>& index,
+                              const std::vector<Handle<Quote>>& jumps = {},
+                              const std::vector<Date>& jumpDates = {},
+                              const Interpolator& interpolator = {},
+                              Compounding compounding = Continuous,
+                              Frequency frequency = Annual);
+        InterpolatedZeroCurve(const std::vector<Date>& dates,
+                              const std::vector<Rate>& yields,
+                              const ext::shared_ptr<IborIndex>& index,
+                              const Interpolator& interpolator,
+                              Compounding compounding = Continuous,
+                              Frequency frequency = Annual);
         InterpolatedZeroCurve(
             const std::vector<Date>& dates,
             const std::vector<Rate>& yields,
@@ -78,33 +90,43 @@ namespace QuantLib {
         const std::vector<Date>& dates() const;
         const std::vector<Real>& data() const;
         const std::vector<Rate>& zeroRates() const;
-        std::vector<std::pair<Date, Real> > nodes() const;
+        std::vector<std::pair<Date, Real>> nodes() const;
         //@}
 
-      protected:
+    protected:
         explicit InterpolatedZeroCurve(
             const DayCounter&,
             const Interpolator& interpolator = {});
         InterpolatedZeroCurve(
             const Date& referenceDate,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Handle<Quote>>& jumps = {},
             const std::vector<Date>& jumpDates = {},
             const Interpolator& interpolator = {});
         InterpolatedZeroCurve(
             Natural settlementDays,
             const Calendar&,
             const DayCounter&,
-            const std::vector<Handle<Quote> >& jumps = {},
+            const std::vector<Handle<Quote>>& jumps = {},
             const std::vector<Date>& jumpDates = {},
             const Interpolator& interpolator = {});
+        InterpolatedZeroCurve(const Date& referenceDate,
+                              const ext::shared_ptr<IborIndex>& index,
+                              const std::vector<Handle<Quote>>& jumps = {},
+                              const std::vector<Date>& jumpDates = {},
+                              const Interpolator& interpolator = {});
+        InterpolatedZeroCurve(const Date& referenceDate,
+                              const ext::shared_ptr<IborIndex>& index,
+                              const Interpolator& interpolator);
 
         //! \name ZeroYieldStructure implementation
         //@{
         Rate zeroYieldImpl(Time t) const override;
+
         //@}
         mutable std::vector<Date> dates_;
-      private:
+
+    private:
         void initialize(const Compounding& compounding, const Frequency& frequency);
     };
 
@@ -118,7 +140,7 @@ namespace QuantLib {
     template <class T>
     inline Date InterpolatedZeroCurve<T>::maxDate() const {
         if (this->maxDate_ != Date())
-           return this->maxDate_;
+            return this->maxDate_;
         return dates_.back();
     }
 
@@ -145,15 +167,15 @@ namespace QuantLib {
     }
 
     template <class T>
-    inline std::vector<std::pair<Date, Real> >
+    inline std::vector<std::pair<Date, Real>>
     InterpolatedZeroCurve<T>::nodes() const {
-        std::vector<std::pair<Date, Real> > results(dates_.size());
-        for (Size i=0; i<dates_.size(); ++i)
+        std::vector<std::pair<Date, Real>> results(dates_.size());
+        for (Size i = 0; i < dates_.size(); ++i)
             results[i] = std::make_pair(dates_[i], this->data_[i]);
         return results;
     }
 
-    #ifndef __DOXYGEN__
+#ifndef __DOXYGEN__
 
     // template definitions
 
@@ -165,92 +187,154 @@ namespace QuantLib {
         // flat fwd extrapolation
         Time tMax = this->times_.back();
         Rate zMax = this->data_.back();
-        Rate instFwdMax = zMax + tMax * this->interpolation_.derivative(tMax);
-        return (zMax * tMax + instFwdMax * (t-tMax)) / t;
+        // TODO replace this with true derivative once transformation derivatives taken care of
+        Time delta = std::min(1 / 12.0, (tMax - this->times_.front()) / 10.0);
+        Rate instFwdMax = zMax + tMax * (
+                              this->interpolation_(tMax) - this->interpolation_(tMax - delta)) /
+                          delta;
+        return (zMax * tMax + instFwdMax * (t - tMax)) / t;
     }
 
     template <class T>
     InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                    const DayCounter& dayCounter,
-                                    const T& interpolator)
-    : ZeroYieldStructure(dayCounter), InterpolatedCurve<T>(interpolator) {}
-
-    template <class T>
-    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                    const Date& referenceDate,
-                                    const DayCounter& dayCounter,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates,
-                                    const T& interpolator)
-    : ZeroYieldStructure(referenceDate, Calendar(), dayCounter, jumps, jumpDates),
-      InterpolatedCurve<T>(interpolator) {}
-
-    template <class T>
-    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                    Natural settlementDays,
-                                    const Calendar& calendar,
-                                    const DayCounter& dayCounter,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates,
-                                    const T& interpolator)
-    : ZeroYieldStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
-      InterpolatedCurve<T>(interpolator) {}
-
-    template <class T>
-    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                    const std::vector<Date>& dates,
-                                    const std::vector<Rate>& yields,
-                                    const DayCounter& dayCounter,
-                                    const Calendar& calendar,
-                                    const std::vector<Handle<Quote> >& jumps,
-                                    const std::vector<Date>& jumpDates,
-                                    const T& interpolator,
-                                    Compounding compounding,
-                                    Frequency frequency)
-    : ZeroYieldStructure(dates.at(0), calendar, dayCounter, jumps, jumpDates),
-      InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
-      dates_(dates)
-    {
-        initialize(compounding,frequency);
+        const DayCounter& dayCounter,
+        const T& interpolator)
+        : ZeroYieldStructure(dayCounter), InterpolatedCurve<T>(interpolator) {
     }
 
     template <class T>
     InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                               const std::vector<Date>& dates,
-                                               const std::vector<Rate>& yields,
-                                               const DayCounter& dayCounter,
-                                               const Calendar& calendar,
-                                               const T& interpolator,
-                                               Compounding compounding,
-                                               Frequency frequency)
-    : ZeroYieldStructure(dates.at(0), calendar, dayCounter),
-      InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
-      dates_(dates)
-    {
-        initialize(compounding,frequency);
+        const Date& referenceDate,
+        const DayCounter& dayCounter,
+        const std::vector<Handle<Quote>>& jumps,
+        const std::vector<Date>& jumpDates,
+        const T& interpolator)
+        : ZeroYieldStructure(referenceDate, Calendar(), dayCounter, jumps, jumpDates),
+          InterpolatedCurve<T>(interpolator) {
     }
 
     template <class T>
     InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
-                                               const std::vector<Date>& dates,
-                                               const std::vector<Rate>& yields,
-                                               const DayCounter& dayCounter,
-                                               const T& interpolator,
-                                               Compounding compounding,
-                                               Frequency frequency)
-    : ZeroYieldStructure(dates.at(0), Calendar(), dayCounter),
-      InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
-      dates_(dates)
-    {
-        initialize(compounding,frequency);
+        Natural settlementDays,
+        const Calendar& calendar,
+        const DayCounter& dayCounter,
+        const std::vector<Handle<Quote>>& jumps,
+        const std::vector<Date>& jumpDates,
+        const T& interpolator)
+        : ZeroYieldStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
+          InterpolatedCurve<T>(interpolator) {
     }
 
-    #endif
+    template <class Interpolator>
+    InterpolatedZeroCurve<Interpolator>::InterpolatedZeroCurve(const Date& referenceDate,
+                                                               const ext::shared_ptr<IborIndex>&
+                                                               index,
+                                                               const std::vector<Handle<Quote>>&
+                                                               jumps,
+                                                               const std::vector<Date>& jumpDates,
+                                                               const Interpolator& interpolator)
+        : ZeroYieldStructure(
+              referenceDate, Calendar(index->fixingCalendar()), DayCounter(index->dayCounter()),
+              jumps, jumpDates),
+          InterpolatedCurve<Interpolator>(interpolator) {
+    }
+
+
+    template <class Interpolator>
+    InterpolatedZeroCurve<Interpolator>::InterpolatedZeroCurve(const Date& referenceDate,
+                                                               const ext::shared_ptr<IborIndex>&
+                                                               index,
+                                                               const Interpolator& interpolator)
+        : ZeroYieldStructure(referenceDate,
+                             Calendar(index->fixingCalendar()), DayCounter(index->dayCounter())),
+          InterpolatedCurve<Interpolator>(interpolator) {
+    }
+
 
     template <class T>
-    void InterpolatedZeroCurve<T>::initialize(const Compounding& compounding, 
-                                              const Frequency& frequency)
-    {
+    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
+        const std::vector<Date>& dates,
+        const std::vector<Rate>& yields,
+        const DayCounter& dayCounter,
+        const Calendar& calendar,
+        const std::vector<Handle<Quote>>& jumps,
+        const std::vector<Date>& jumpDates,
+        const T& interpolator,
+        Compounding compounding,
+        Frequency frequency)
+        : ZeroYieldStructure(dates.at(0), calendar, dayCounter, jumps, jumpDates),
+          InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
+          dates_(dates) {
+        initialize(compounding, frequency);
+    }
+
+    template <class T>
+    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
+        const std::vector<Date>& dates,
+        const std::vector<Rate>& yields,
+        const DayCounter& dayCounter,
+        const Calendar& calendar,
+        const T& interpolator,
+        Compounding compounding,
+        Frequency frequency)
+        : ZeroYieldStructure(dates.at(0), calendar, dayCounter),
+          InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
+          dates_(dates) {
+        initialize(compounding, frequency);
+    }
+
+    template <class Interpolator>
+    InterpolatedZeroCurve<Interpolator>::InterpolatedZeroCurve(
+        const std::vector<Date>& dates,
+        const std::vector<Rate>& yields,
+        const ext::shared_ptr<IborIndex>& index,
+        const std::vector<Handle<Quote>>& jumps,
+        const std::vector<Date>& jumpDates,
+        const Interpolator& interpolator,
+        Compounding compounding,
+        Frequency frequency)
+        : ZeroYieldStructure(dates.at(0), Calendar(index->fixingCalendar()),
+                             DayCounter(index->dayCounter()), jumps, jumpDates),
+          InterpolatedCurve<Interpolator>(std::vector<Time>(), yields, interpolator),
+          dates_(dates) {
+        initialize(compounding, frequency);
+    }
+
+    template <class Interpolator>
+    InterpolatedZeroCurve<Interpolator>::InterpolatedZeroCurve(const std::vector<Date>& dates,
+                                                               const std::vector<Rate>& yields,
+                                                               const ext::shared_ptr<IborIndex>&
+                                                               index,
+                                                               const Interpolator& interpolator,
+                                                               Compounding compounding,
+                                                               Frequency frequency)
+        : ZeroYieldStructure(
+              dates.at(0), Calendar(index->fixingCalendar()), DayCounter(index->dayCounter())),
+          InterpolatedCurve<Interpolator>(std::vector<Time>(), yields, interpolator),
+          dates_(dates) {
+        initialize(compounding, frequency);
+    }
+
+
+    template <class T>
+    InterpolatedZeroCurve<T>::InterpolatedZeroCurve(
+        const std::vector<Date>& dates,
+        const std::vector<Rate>& yields,
+        const DayCounter& dayCounter,
+        const T& interpolator,
+        Compounding compounding,
+        Frequency frequency)
+        : ZeroYieldStructure(dates.at(0), Calendar(), dayCounter),
+          InterpolatedCurve<T>(std::vector<Time>(), yields, interpolator),
+          dates_(dates) {
+        initialize(compounding, frequency);
+    }
+
+#endif
+
+    template <class T>
+    void InterpolatedZeroCurve<T>::initialize(const Compounding& compounding,
+                                              const Frequency& frequency) {
         QL_REQUIRE(dates_.size() >= T::requiredPoints,
                    "not enough input dates given");
         QL_REQUIRE(this->data_.size() == dates_.size(),
@@ -263,11 +347,13 @@ namespace QuantLib {
 
             // The first time is 0.0, so we can't use it.
             // We fall back to about one day.
-            Time dt = 1.0/365;
+            // TODO this is sus and should be fixed
+            Time dt = 1.0 / 365;
             InterestRate r(this->data_[0], dayCounter(), compounding, frequency);
             this->data_[0] = r.equivalentRate(Continuous, NoFrequency, dt);
 
-            for (Size i=1; i<dates_.size(); ++i) {
+            for (Size i = 1; i < dates_.size(); ++i) {
+                // ReSharper disable once CppDeclarationHidesLocal
                 InterestRate r(this->data_[i], dayCounter(), compounding, frequency);
                 this->data_[i] = r.equivalentRate(Continuous, NoFrequency, this->times_[i]);
             }

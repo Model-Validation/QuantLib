@@ -152,6 +152,30 @@ namespace QuantLib {
           accuracy_(1.0e-12), bootstrap_(bootstrap) {
             bootstrap_.setup(this);
         }
+
+        PiecewiseYieldCurve(const Date& referenceDate,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
+                            const ext::shared_ptr<IborIndex>& index,
+                            const Interpolator& i,
+                            bootstrap_type bootstrap = bootstrap_type())
+        : base_curve(referenceDate, index, i), instruments_(std::move(instruments)),
+          accuracy_(1.0e-12), bootstrap_(std::move(bootstrap)) {
+            bootstrap_.setup(this);
+        }
+
+        PiecewiseYieldCurve(const Date& referenceDate,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
+                            const ext::shared_ptr<IborIndex>& index,
+                            const std::vector<Handle<Quote>>& jumps = {},
+                            const std::vector<Date>& jumpDates = {},
+                            const Interpolator& i = {},
+                            bootstrap_type bootstrap = {})
+        : base_curve(referenceDate, index, jumps, jumpDates, i),
+          instruments_(std::move(instruments)), accuracy_(1.0e-12),
+          bootstrap_(std::move(bootstrap)) {
+            bootstrap_.setup(this);
+        }
+
         //@}
         //! \name TermStructure interface
         //@{
