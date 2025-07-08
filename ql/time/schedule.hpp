@@ -27,7 +27,6 @@
 #define quantlib_schedule_hpp
 
 #include <ql/time/calendars/nullcalendar.hpp>
-#include <ql/utilities/null.hpp>
 #include <ql/time/period.hpp>
 #include <ql/time/dategenerationrule.hpp>
 #include <ql/errors.hpp>
@@ -100,7 +99,8 @@ namespace QuantLib {
         typedef std::vector<Date>::const_iterator const_iterator;
         const_iterator begin() const { return dates_.begin(); }
         const_iterator end() const { return dates_.end(); }
-        const_iterator lower_bound(const Date& d = Date()) const;
+        // ReSharper disable once CppInconsistentNaming
+        const_iterator lower_bound(const Date& d = Date()) const;  // NOLINT(readability-inconsistent-declaration-parameter-name)
         //@}
         //! \name Utilities
         //@{
@@ -152,7 +152,24 @@ namespace QuantLib {
         Date firstDate_, nextToLastDate_;
     };
 
-    /*! Helper function for returning the date on or before date \p d that is the 20th of the month and obeserves the 
+    /*! Return the CDS maturity date given the CDS trade date, \p tradeDate, the CDS \p tenor and a
+       CDS \p rule.
+
+        A \c Null<Date>() is returned when a \p rule of \c CDS2015 and a \p tenor length of zero
+       fail to yield a valid CDS maturity date.
+
+        \warning An exception will be thrown if the \p rule is not \c CDS2015, \c CDS or \c OldCDS.
+
+        \warning An exception will be thrown if the \p rule is \c OldCDS and a \p tenor of 0 months
+       is provided. This restriction can be removed if 0M tenor was available before the CDS Big
+       Bang 2009.
+
+        \warning An exception will be thrown if the \p tenor is not a multiple of 3 months. For the
+       avoidance of doubt, a \p tenor of 0 months is supported.
+    */
+    Date cdsMaturity(const Date& tradeDate, const Period& tenor, DateGeneration::Rule rule);
+
+    /*! Helper function for returning the date on or before date \p d that is the 20th of the month and observes the 
         given date generation \p rule if it is relevant.
     */
     Date previousTwentieth(const Date& d, DateGeneration::Rule rule);
