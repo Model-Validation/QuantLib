@@ -26,7 +26,6 @@
 
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
-#include <ql/utilities/dataformatters.hpp>
 
 namespace QuantLib {
 
@@ -39,7 +38,7 @@ namespace QuantLib {
 
 
     struct MixedInterpolation {
-        enum Behavior {
+        enum Behavior {  // NOLINT(performance-enum-size)
             ShareRanges,  /*!< Define both interpolations over the
                                whole range defined by the passed
                                iterators. This is the default
@@ -99,15 +98,15 @@ namespace QuantLib {
         template <class I1, class I2>
         Interpolation interpolate(const I1& xBegin, const I1& xEnd,
                                   const I2& yBegin) const {
-            return MixedLinearCubicInterpolation(xBegin, xEnd,
-                                                 yBegin, n_, behavior_,
-                                                 da_, monotonic_,
-                                                 leftType_, leftValue_,
-                                                 rightType_, rightValue_);
+            return static_cast<Interpolation>(MixedLinearCubicInterpolation(xBegin, xEnd,
+                yBegin, n_, behavior_,
+                da_, monotonic_,
+                leftType_, leftValue_,
+                rightType_, rightValue_));
         }
         // fix below
-        static const bool global = true;
-        static const Size requiredPoints = 3;
+        static constexpr bool global = true;
+        static constexpr Size requiredPoints = 3;
       private:
         Size n_;
         MixedInterpolation::Behavior behavior_;
@@ -217,8 +216,8 @@ namespace QuantLib {
                                    const Interpolator2& factory2 = Interpolator2())
             : Interpolation::templateImpl<I1,I2>(
                                xBegin, xEnd, yBegin,
-                               std::max(Size(Interpolator1::requiredPoints),
-                                        Size(Interpolator2::requiredPoints))),
+                               std::max(static_cast<Size>(Interpolator1::requiredPoints),
+                                        static_cast<Size>(Interpolator2::requiredPoints))),
               n_(n) {
                 xBegin2_ = this->xBegin_ + n_;
                 yBegin2_ = this->yBegin_ + n_;
@@ -249,33 +248,36 @@ namespace QuantLib {
                 }
             }
 
-            void update() {
+            void update() override {
                 interpolation1_.update();
-                interpolation2_.update();
+                if (this->xEnd_ > xBegin2_) {
+                    interpolation2_.update();
+                }
             }
-            Real value(Real x) const {
-                if (x<*(this->xBegin2_))
+            Real value(Real x) const override {
+                // TODO this = sign is maybe not correct, but needed to avoid crashing
+                if (x<=*(this->xBegin2_))
                     return interpolation1_(x, true);
                 return interpolation2_(x, true);
             }
-            Real primitive(Real x) const {
+            Real primitive(Real x) const override {
                 if (x<*(this->xBegin2_))
                     return interpolation1_.primitive(x, true);
                 return interpolation2_.primitive(x, true) -
                     interpolation2_.primitive(*xBegin2_, true) +
                     interpolation1_.primitive(*xBegin2_, true);
             }
-            Real derivative(Real x) const {
+            Real derivative(Real x) const override {
                 if (x<*(this->xBegin2_))
                     return interpolation1_.derivative(x, true);
                 return interpolation2_.derivative(x, true);
             }
-            Real secondDerivative(Real x) const {
+            Real secondDerivative(Real x) const override {
                 if (x<*(this->xBegin2_))
                     return interpolation1_.secondDerivative(x, true);
                 return interpolation2_.secondDerivative(x, true);
             }
-            Size switchIndex() { return n_; }
+            Size switchIndex() const { return n_; }
           private:
             I1 xBegin2_;
             I2 yBegin2_;
@@ -283,6 +285,70 @@ namespace QuantLib {
             Interpolation interpolation1_, interpolation2_;
         };
 
+        // A BSplineInterpolator is e.g. the factory RateTimeBSpline or BSplineModel
+        template <class I1, class I2, class BSplineInterpolator1, class BSplineInterpolator2>
+        class MixedBSplineInterpolationImpl : public Interpolation::templateImpl<I1, I2> {
+          public:
+            MixedBSplineInterpolationImpl(
+                const I1& xBegin,
+                const I1& xEnd,
+                const I2& yBegin,
+                const BSplineInterpolator1& factory1 = BSplineInterpolator1(),
+                const BSplineInterpolator2& factory2 = BSplineInterpolator2())
+            : Interpolation::templateImpl<I1, I2>(
+                  xBegin,
+                  xEnd,
+                  yBegin,
+                  std::max(static_cast<Size>(BSplineInterpolator1::requiredPoints),
+                           static_cast<Size>(BSplineInterpolator2::requiredPoints)))
+            {
+                QL_REQUIRE(factory1.getEndPoint() == factory2.getStartPoint(), "Spline structures must have exactly matching end points");
+                switchPoint_ = factory1.getEndPoint();
+                xBegin2_ = std::lower_bound(this->xBegin_, this->xEnd_ + 1, switchPoint_); // Should be binary search
+                yBegin2_ = this->yBegin_ +
+                           std::distance(this->xBegin_, this->xBegin2_); // Add pointer distance
+
+                interpolation1_ = factory1.interpolate(this->xBegin_, this->xBegin2_ + 1, this->yBegin_);
+                interpolation2_ = factory2.interpolate(this->xBegin2_, this->xEnd_, yBegin2_);
+            }
+
+            void update() override {
+                interpolation1_.update();
+                if (this->xEnd_ > this->xBegin2_) {
+                    interpolation2_.update();
+                }
+            }
+            Real value(Real x) const override {
+                // TODO this = sign is maybe not correct, but needed to avoid crashing
+                if (x <= *(this->xBegin2_))
+                    return interpolation1_(x, true);
+                return interpolation2_(x, true);
+            }
+            Real primitive(Real x) const override {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.primitive(x, true);
+                return interpolation2_.primitive(x, true) -
+                       interpolation2_.primitive(*xBegin2_, true) +
+                       interpolation1_.primitive(*xBegin2_, true);
+            }
+            Real derivative(Real x) const override {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.derivative(x, true);
+                return interpolation2_.derivative(x, true);
+            }
+            Real secondDerivative(Real x) const override {
+                if (x < *(this->xBegin2_))
+                    return interpolation1_.secondDerivative(x, true);
+                return interpolation2_.secondDerivative(x, true);
+            }
+            Size switchPoint() const { return this->switchPoint_; }
+
+          private:
+            I1 xBegin2_;
+            I2 yBegin2_;
+            Real switchPoint_;
+            Interpolation interpolation1_, interpolation2_;
+        };
     }
 
 }

@@ -31,6 +31,8 @@
 #include <vector>
 
 namespace QuantLib {
+    template <class Traits>
+    class SpreadedInterpolation;
 
     //! Helper class to build interpolated term structures
     /*! Interpolated term structures can use protected or private
@@ -40,6 +42,7 @@ namespace QuantLib {
     template <class Interpolator>
     class InterpolatedCurve {
         template <class Traits>
+        friend class SpreadedInterpolation;
         friend class IsdaCdsEngine;
 
       public:
