@@ -370,6 +370,12 @@ set(QL_SOURCES
     math/integrals/integral.cpp
     math/integrals/kronrodintegral.cpp
     math/integrals/segmentintegral.cpp
+    math/interpolations/bsplineinterpolation/bsplineevaluator.cpp
+    math/interpolations/bsplineinterpolation/bsplinestructure.cpp
+    math/interpolations/bsplineinterpolation/eigenutilities.cpp
+    math/interpolations/bsplineinterpolation/scssolver.cpp
+    math/interpolations/bsplineinterpolation/splineconstraints.cpp
+    math/interpolations/bsplineinterpolation/splinesegment.cpp
     math/interpolations/chebyshevinterpolation.cpp
     math/matrix.cpp
     math/matrixutilities/basisincompleteordered.cpp
@@ -872,6 +878,8 @@ set(QL_SOURCES
     termstructures/yield/oisratehelper.cpp
     termstructures/yield/overnightindexfutureratehelper.cpp
     termstructures/yield/ratehelpers.cpp
+    termstructures/yield/rtstructure.cpp
+    termstructures/yield/termforwardratestructure.cpp
     termstructures/yield/zeroyieldstructure.cpp
     termstructures/yieldtermstructure.cpp
     time/asx.cpp
@@ -1461,6 +1469,15 @@ set(QL_HEADERS
     math/interpolations/backwardflatlinearinterpolation.hpp
     math/interpolations/bicubicsplineinterpolation.hpp
     math/interpolations/bilinearinterpolation.hpp
+    math/interpolations/bsplineinterpolation/bsplineevaluator.hpp
+    math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp
+    math/interpolations/bsplineinterpolation/bsplinestructure.hpp
+    math/interpolations/bsplineinterpolation/eigenutilities.hpp
+    math/interpolations/bsplineinterpolation/scssolver.hpp
+    math/interpolations/bsplineinterpolation/splineconstraints.hpp
+    math/interpolations/bsplineinterpolation/splinesegment.hpp
+    math/interpolations/ratetimeinterpolation.hpp
+    math/interpolations/spreadedinterpolation.hpp
     math/interpolations/chebyshevinterpolation.hpp
     math/interpolations/convexmonotoneinterpolation.hpp
     math/interpolations/cubicinterpolation.hpp
@@ -2151,6 +2168,11 @@ set(QL_HEADERS
     termstructures/yield/piecewisezerospreadedtermstructure.hpp
     termstructures/yield/quantotermstructure.hpp
     termstructures/yield/ratehelpers.hpp
+    termstructures/yield/instantaneousforwardcurve.hpp
+    termstructures/yield/rtcurve.hpp
+    termstructures/yield/rtstructure.hpp
+    termstructures/yield/termforwardcurve.hpp
+    termstructures/yield/termforwardratestructure.hpp
     termstructures/yield/ultimateforwardtermstructure.hpp
     termstructures/yield/zerocurve.hpp
     termstructures/yield/zerospreadedtermstructure.hpp
@@ -2293,6 +2315,7 @@ set(QL_GENERATED_HEADERS
     ${PROJECT_BINARY_DIR}/ql/math/distributions/all.hpp
     ${PROJECT_BINARY_DIR}/ql/math/integrals/all.hpp
     ${PROJECT_BINARY_DIR}/ql/math/interpolations/all.hpp
+    ${PROJECT_BINARY_DIR}/ql/math/interpolations/bsplineinterpolation/all.hpp
     ${PROJECT_BINARY_DIR}/ql/math/matrixutilities/all.hpp
     ${PROJECT_BINARY_DIR}/ql/math/ode/all.hpp
     ${PROJECT_BINARY_DIR}/ql/math/optimization/all.hpp
@@ -2410,7 +2433,8 @@ target_include_directories(ql_library PUBLIC
 
 target_include_directories(ql_library SYSTEM PUBLIC
     ${Boost_INCLUDE_DIRS}
-    ${OpenMP_CXX_INCLUDE_DIRS})
+    ${OpenMP_CXX_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR})
 
 target_link_libraries(ql_library PUBLIC
     ${OpenMP_CXX_LIBRARIES})
