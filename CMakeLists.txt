@@ -166,6 +166,8 @@ if (CMAKE_CXX_COMPILER STREQUAL "icpx")
 endif()
 
 find_package(Boost ${QL_BOOST_VERSION} REQUIRED)
+find_package(scs REQUIRED)
+
 
 # Do not warn about Boost versions higher than 1.58.0
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -258,7 +260,7 @@ endforeach()
 
 # Add subdirectories
 add_subdirectory(ql)
-target_link_libraries(ql_library PUBLIC Boost::boost)
+target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir)
 if (QL_BUILD_EXAMPLES)
     add_subdirectory(Examples)
 endif()
