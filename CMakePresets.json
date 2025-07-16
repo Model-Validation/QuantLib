@@ -20,7 +20,9 @@
       "hidden": true,
       "inherits": "windows-base",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "cl.exe"
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "Boost_DIR": "C:\\local\\boost_1_88_0\\lib64-msvc-14.3\\cmake\\Boost-1.88.0",
+        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0"
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -33,7 +35,9 @@
       "hidden": true,
       "inherits": "windows-base",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang-cl.exe"
+        "CMAKE_CXX_COMPILER": "clang-cl.exe",
+        "Boost_DIR": "C:\\local\\boost_1_88_0\\lib64-msvc-14.3\\cmake\\Boost-1.88.0",
+        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0"
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {

@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.15.0)
 # For MSVC RUNTIME LIBRARY, need CMP0091=NEW and cmake 3.15+
 cmake_policy(SET CMP0091 NEW)
 
+# --- Opt-in to modern CMake policies for finding packages ---
+cmake_policy(SET CMP0144 NEW) # Use <PACKAGENAME>_ROOT variables like BOOST_ROOT
+cmake_policy(SET CMP0167 NEW) # Use the modern Boost::* targets, not the old FindBoost module
+
 # Version info
 set(QUANTLIB_VERSION_MAJOR 1)
 set(QUANTLIB_VERSION_MINOR 39)
@@ -162,6 +166,8 @@ if (CMAKE_CXX_COMPILER STREQUAL "icpx")
 endif()
 
 find_package(Boost ${QL_BOOST_VERSION} REQUIRED)
+find_package(scs REQUIRED)
+
 
 # Do not warn about Boost versions higher than 1.58.0
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -254,6 +260,7 @@ endforeach()
 
 # Add subdirectories
 add_subdirectory(ql)
+target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir)
 if (QL_BUILD_EXAMPLES)
     add_subdirectory(Examples)
 endif()
