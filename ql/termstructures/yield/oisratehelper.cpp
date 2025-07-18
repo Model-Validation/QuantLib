@@ -18,6 +18,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
+// ReSharper disable CppClangTidyClangDiagnosticCoveredSwitchDefault
 #include <ql/instruments/makeois.hpp>
 #include <ql/instruments/simplifynotificationgraph.hpp>
 #include <ql/cashflows/couponpricer.hpp>
@@ -29,7 +30,8 @@
 namespace QuantLib {
 
     OISRateHelper::OISRateHelper(Natural settlementDays,
-                                 const Period& tenor, // swap maturity
+                                 const Period& tenor,
+                                 // swap maturity
                                  const Handle<Quote>& fixedRate,
                                  const ext::shared_ptr<OvernightIndex>& overnightIndex,
                                  Handle<YieldTermStructure> discount,
@@ -51,15 +53,16 @@ namespace QuantLib {
                                  bool applyObservationShift,
                                  ext::shared_ptr<FloatingRateCouponPricer> pricer,
                                  DateGeneration::Rule rule)
-    : RelativeDateRateHelper(fixedRate), settlementDays_(settlementDays), tenor_(tenor),
-      discountHandle_(std::move(discount)), telescopicValueDates_(telescopicValueDates),
-      paymentLag_(paymentLag), paymentConvention_(paymentConvention),
-      paymentFrequency_(paymentFrequency), paymentCalendar_(std::move(paymentCalendar)),
-      forwardStart_(forwardStart), overnightSpread_(overnightSpread), pillarChoice_(pillar),
-      averagingMethod_(averagingMethod), endOfMonth_(endOfMonth),
-      fixedPaymentFrequency_(fixedPaymentFrequency), fixedCalendar_(std::move(fixedCalendar)),
-      lookbackDays_(lookbackDays), lockoutDays_(lockoutDays), applyObservationShift_(applyObservationShift),
-      pricer_(std::move(pricer)), rule_(rule) {
+        : RelativeDateRateHelper(fixedRate), settlementDays_(settlementDays), tenor_(tenor),
+          discountHandle_(std::move(discount)), telescopicValueDates_(telescopicValueDates),
+          paymentLag_(paymentLag), paymentConvention_(paymentConvention),
+          paymentFrequency_(paymentFrequency), paymentCalendar_(std::move(paymentCalendar)),
+          forwardStart_(forwardStart), overnightSpread_(overnightSpread), pillarChoice_(pillar),
+          averagingMethod_(averagingMethod), endOfMonth_(endOfMonth),
+          fixedPaymentFrequency_(fixedPaymentFrequency), fixedCalendar_(std::move(fixedCalendar)),
+          lookbackDays_(lookbackDays), lockoutDays_(lockoutDays),
+          applyObservationShift_(applyObservationShift),
+          pricer_(std::move(pricer)), rule_(rule) {
         initialize(overnightIndex, customPillarDate);
     }
 
@@ -85,15 +88,16 @@ namespace QuantLib {
                                  bool applyObservationShift,
                                  ext::shared_ptr<FloatingRateCouponPricer> pricer,
                                  DateGeneration::Rule rule)
-    : RelativeDateRateHelper(fixedRate, false), startDate_(startDate), endDate_(endDate),
-      discountHandle_(std::move(discount)), telescopicValueDates_(telescopicValueDates),
-      paymentLag_(paymentLag), paymentConvention_(paymentConvention),
-      paymentFrequency_(paymentFrequency), paymentCalendar_(std::move(paymentCalendar)),
-      overnightSpread_(overnightSpread), pillarChoice_(pillar),
-      averagingMethod_(averagingMethod), endOfMonth_(endOfMonth),
-      fixedPaymentFrequency_(fixedPaymentFrequency), fixedCalendar_(std::move(fixedCalendar)),
-      lookbackDays_(lookbackDays), lockoutDays_(lockoutDays), applyObservationShift_(applyObservationShift),
-      pricer_(std::move(pricer)), rule_(rule) {
+        : RelativeDateRateHelper(fixedRate, false), startDate_(startDate), endDate_(endDate),
+          discountHandle_(std::move(discount)), telescopicValueDates_(telescopicValueDates),
+          paymentLag_(paymentLag), paymentConvention_(paymentConvention),
+          paymentFrequency_(paymentFrequency), paymentCalendar_(std::move(paymentCalendar)),
+          overnightSpread_(overnightSpread), pillarChoice_(pillar),
+          averagingMethod_(averagingMethod), endOfMonth_(endOfMonth),
+          fixedPaymentFrequency_(fixedPaymentFrequency), fixedCalendar_(std::move(fixedCalendar)),
+          lookbackDays_(lookbackDays), lockoutDays_(lockoutDays),
+          applyObservationShift_(applyObservationShift),
+          pricer_(std::move(pricer)), rule_(rule) {
         initialize(overnightIndex, customPillarDate);
     }
 
@@ -117,21 +121,21 @@ namespace QuantLib {
         // input discount curve Handle might be empty now but it could
         //    be assigned a curve later; use a RelinkableHandle here
         auto tmp = MakeOIS(tenor_, overnightIndex_, 0.0, forwardStart_)
-            .withDiscountingTermStructure(discountRelinkableHandle_)
-            .withSettlementDays(settlementDays_)  // resets effectiveDate
-            .withEffectiveDate(startDate_)
-            .withTerminationDate(endDate_)
-            .withTelescopicValueDates(telescopicValueDates_)
-            .withPaymentLag(paymentLag_)
-            .withPaymentAdjustment(paymentConvention_)
-            .withPaymentFrequency(paymentFrequency_)
-            .withPaymentCalendar(paymentCalendar_)
-            .withOvernightLegSpread(overnightSpread_)
-            .withAveragingMethod(averagingMethod_)
-            .withLookbackDays(lookbackDays_)
-            .withLockoutDays(lockoutDays_)
-            .withRule(rule_)
-            .withObservationShift(applyObservationShift_);
+                   .withDiscountingTermStructure(discountRelinkableHandle_)
+                   .withSettlementDays(settlementDays_) // resets effectiveDate
+                   .withEffectiveDate(startDate_)
+                   .withTerminationDate(endDate_)
+                   .withTelescopicValueDates(telescopicValueDates_)
+                   .withPaymentLag(paymentLag_)
+                   .withPaymentAdjustment(paymentConvention_)
+                   .withPaymentFrequency(paymentFrequency_)
+                   .withPaymentCalendar(paymentCalendar_)
+                   .withOvernightLegSpread(overnightSpread_)
+                   .withAveragingMethod(averagingMethod_)
+                   .withLookbackDays(lookbackDays_)
+                   .withLockoutDays(lockoutDays_)
+                   .withRule(rule_)
+                   .withObservationShift(applyObservationShift_);
         if (endOfMonth_) {
             tmp.withEndOfMonth(*endOfMonth_);
         }
@@ -156,25 +160,25 @@ namespace QuantLib {
         latestRelevantDate_ = latestDate_ = std::max(maturityDate_, lastPaymentDate);
 
         switch (pillarChoice_) {
-          case Pillar::MaturityDate:
-            pillarDate_ = maturityDate_;
-            break;
-          case Pillar::LastRelevantDate:
-            pillarDate_ = latestRelevantDate_;
-            break;
-          case Pillar::CustomDate:
-            // pillarDate_ already assigned at construction time
-            QL_REQUIRE(pillarDate_ >= earliestDate_,
-                       "pillar date (" << pillarDate_ << ") must be later "
-                       "than or equal to the instrument's earliest date (" <<
-                       earliestDate_ << ")");
-            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
-                       "pillar date (" << pillarDate_ << ") must be before "
-                       "or equal to the instrument's latest relevant date (" <<
-                       latestRelevantDate_ << ")");
-            break;
-          default:
-            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
+            case Pillar::MaturityDate:
+                pillarDate_ = maturityDate_;
+                break;
+            case Pillar::LastRelevantDate:
+                pillarDate_ = latestRelevantDate_;
+                break;
+            case Pillar::CustomDate:
+                // pillarDate_ already assigned at construction time
+                QL_REQUIRE(pillarDate_ >= earliestDate_,
+                           "pillar date (" << pillarDate_ << ") must be later "
+                           "than or equal to the instrument's earliest date (" <<
+                           earliestDate_ << ")");
+                QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                           "pillar date (" << pillarDate_ << ") must be before "
+                           "or equal to the instrument's latest relevant date (" <<
+                           latestRelevantDate_ << ")");
+                break;
+            default:
+                QL_FAIL("unknown Pillar::Choice(" << static_cast<Integer>(pillarChoice_) << ")");
         }
     }
 
@@ -228,10 +232,12 @@ namespace QuantLib {
                                            Natural lockoutDays,
                                            bool applyObservationShift,
                                            const ext::shared_ptr<FloatingRateCouponPricer>& pricer)
-    : OISRateHelper(startDate, endDate, fixedRate, overnightIndex, std::move(discount), telescopicValueDates,
-                    paymentLag, paymentConvention, paymentFrequency, paymentCalendar, overnightSpread,
-                    Pillar::LastRelevantDate, Date(), averagingMethod, endOfMonth, fixedPaymentFrequency,
-                    fixedCalendar, lookbackDays, lockoutDays, applyObservationShift, pricer) {}
+        : OISRateHelper(startDate, endDate, fixedRate, overnightIndex, std::move(discount),
+                        telescopicValueDates, paymentLag, paymentConvention, paymentFrequency,
+                        paymentCalendar, overnightSpread, Pillar::LastRelevantDate, Date(),
+                        averagingMethod, endOfMonth, fixedPaymentFrequency, fixedCalendar,
+                        lookbackDays, lockoutDays, applyObservationShift, pricer) {
+    }
 
     DatedOISRateHelper::DatedOISRateHelper(const Date& startDate,
                                            const Date& endDate,
@@ -249,8 +255,11 @@ namespace QuantLib {
                                            ext::optional<bool> endOfMonth,
                                            ext::optional<Frequency> fixedPaymentFrequency,
                                            const Calendar& fixedCalendar)
-    : DatedOISRateHelper(startDate, endDate, fixedRate, overnightIndex, std::move(discount), telescopicValueDates,
-                         averagingMethod, paymentLag, paymentConvention, paymentFrequency, paymentCalendar,
-                         overnightSpread, endOfMonth, fixedPaymentFrequency, fixedCalendar) {}
+    // ReSharper disable once CppDeprecatedEntity
+        : DatedOISRateHelper(startDate, endDate, fixedRate, overnightIndex, std::move(discount),
+                             telescopicValueDates, averagingMethod, paymentLag, paymentConvention,
+                             paymentFrequency, paymentCalendar, overnightSpread, endOfMonth,
+                             fixedPaymentFrequency, fixedCalendar) {
+    }
 
 }
