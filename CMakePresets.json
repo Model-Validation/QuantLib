@@ -13,17 +13,21 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "Boost_DIR": "C:/local/boost_1_88_0/lib64-msvc-14.3/cmake/Boost-1.88.0/",
+        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0",
+        "scs_DIR": "C:/Users/s6068C/Documents/github/scs/out/install/x64-Debug/CMake",
+        "QL_USE_STD_ANY": "ON",
+        "QL_BUILD_EXAMPLES": "OFF",
+        "QL_BUILD_TEST_SUITE": "OFF"
       }
     },
     {
       "name": "windows-msvc-base",
       "hidden": true,
       "inherits": "windows-base",
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "cl.exe",
-        "Boost_DIR": "C:\\local\\boost_1_88_0\\lib64-msvc-14.3\\cmake\\Boost-1.88.0",
-        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0"
-      },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "intelliSenseMode": "windows-msvc-x64"
@@ -34,11 +38,6 @@
       "name": "windows-clang-base",
       "hidden": true,
       "inherits": "windows-base",
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang-cl.exe",
-        "Boost_DIR": "C:\\local\\boost_1_88_0\\lib64-msvc-14.3\\cmake\\Boost-1.88.0",
-        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0"
-      },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "intelliSenseMode": "windows-clang-x64"
