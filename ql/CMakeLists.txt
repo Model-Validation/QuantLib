@@ -156,6 +156,7 @@ set(QL_SOURCES
     experimental/inflation/cpicapfloortermpricesurface.cpp
     experimental/inflation/yoycapfloortermpricesurface.cpp
     experimental/inflation/yoyoptionlethelpers.cpp
+    experimental/isda/isdacdsinterface.cpp
     experimental/lattices/extendedbinomialtree.cpp
     experimental/math/convolvedstudentt.cpp
     experimental/math/fireflyalgorithm.cpp
@@ -1170,6 +1171,7 @@ set(QL_HEADERS
     experimental/inflation/yoyinflationoptionletvolatilitystructure2.hpp
     experimental/inflation/yoyoptionlethelpers.hpp
     experimental/inflation/yoyoptionletstripper.hpp
+    experimental/isda/isdacdsinterface.hpp
     experimental/lattices/extendedbinomialtree.hpp
     experimental/math/claytoncopularng.hpp
     experimental/math/convolvedstudentt.hpp
@@ -2290,6 +2292,7 @@ set(QL_GENERATED_HEADERS
     ${PROJECT_BINARY_DIR}/ql/experimental/forward/all.hpp
     ${PROJECT_BINARY_DIR}/ql/experimental/fx/all.hpp
     ${PROJECT_BINARY_DIR}/ql/experimental/inflation/all.hpp
+    ${PROJECT_BINARY_DIR}/ql/experimental/isda/all.hpp
     ${PROJECT_BINARY_DIR}/ql/experimental/lattices/all.hpp
     ${PROJECT_BINARY_DIR}/ql/experimental/math/all.hpp
     ${PROJECT_BINARY_DIR}/ql/experimental/mcbasket/all.hpp
