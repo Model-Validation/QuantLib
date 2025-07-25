@@ -50,13 +50,19 @@ namespace SCS {
          * \param cp_linearForm Linear form vector.
          * \param nEqualities Number of equality constraints.
          * \param nInequalities Number of inequality constraints.
+         * \param eps_abs Absolute tolerance for convergence (default: 1e-12).
+         * \param eps_rel Relative tolerance for convergence (default: 1e-12).
+         * \param eps_infeas Infeasibility tolerance (default: 1e-13).
          */
         SCSSolver(const Eigen::SparseMatrix<double>& P_quadForm,
                   const Eigen::SparseMatrix<double>& A_constraints,
                   const Eigen::VectorXd& bp_rhs,
                   const Eigen::VectorXd& cp_linearForm,
                   QuantLib::Size nEqualities,
-                  QuantLib::Size nInequalities);
+                  QuantLib::Size nInequalities,
+                  double eps_abs = 1e-12,
+                  double eps_rel = 1e-12,
+                  double eps_infeas = 1e-13);
 
         /*!
          * \brief Destructor for SCSSolver.
@@ -134,6 +140,11 @@ namespace SCS {
         scs_int nConstraints_;  /*!< Number of constraints. */
         scs_int nEqualities_;   /*!< Number of equality constraints. */
         scs_int nInequalities_; /*!< Number of inequality constraints. */
+
+        // Add tolerances to constructor
+        double epsAbsolute_ = 1e-12;
+        double epsRelative_ = 1e-12;
+        double epsInfeasible_ = 1e-13;
 
         //bool is_updated_b_but_data_not_reset_; /*!< Flag indicating if b is updated but data not
         //                                          reset. */

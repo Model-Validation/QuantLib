@@ -46,11 +46,15 @@ namespace SCS {
     }
 
     SCSSolver::SCSSolver(const Eigen::SparseMatrix<double>& P_quadForm,
-                         const Eigen::SparseMatrix<double>& A_constraints,
-                         const Eigen::VectorXd& bp_rhs,
-                         const Eigen::VectorXd& cp_linearForm,
-                         Size nEqualities,
-                         Size nInequalities) {
+                        const Eigen::SparseMatrix<double>& A_constraints,
+                        const Eigen::VectorXd& bp_rhs,
+                        const Eigen::VectorXd& cp_linearForm,
+                        Size nEqualities,
+                        Size nInequalities,
+                        double epsAbsolute,
+                        double epsRelative,
+                        double epsInfeasible)
+        : epsAbsolute_(epsAbsolute), epsRelative_(epsRelative), epsInfeasible_(epsInfeasible) {
         convertEigenToCSC(P_quadForm.triangularView<Eigen::Upper>(), scs_P_x_, scs_P_i_, scs_P_p_);
         convertEigenToCSC(A_constraints, scs_A_x_, scs_A_i_, scs_A_p_);
         scs_b_ = bp_rhs;
@@ -116,12 +120,11 @@ namespace SCS {
             sizeof(scs_float))); // Seems to be for all constraints, not just inequality constraints
 
         scs_set_default_settings(&scs_settings_);
-        // Disable verbose output
         scs_settings_.verbose = 0;
-        // TODO: One should be able to set these
-        scs_settings_.eps_abs = 1e-12;
-        scs_settings_.eps_rel = 1e-12;
-        scs_settings_.eps_infeas = 1e-13;
+        // Use member variables for tolerances
+        scs_settings_.eps_abs = epsAbsolute_;
+        scs_settings_.eps_rel = epsRelative_;
+        scs_settings_.eps_infeas = epsInfeasible_;
 
         scs_work_ = scs_init(&scs_data_, &scs_cone_, &scs_settings_);
 

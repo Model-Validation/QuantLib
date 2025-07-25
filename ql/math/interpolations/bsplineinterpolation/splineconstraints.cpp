@@ -20,42 +20,41 @@
 // ReSharper disable CppClangTidyBugproneNarrowingConversions
 #include "splineconstraints.hpp"
 #include "eigenutilities.hpp"
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <utility>
-#include <vector>
-#include <tuple>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <ql/errors.hpp>
 #include <ql/types.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <algorithm>
 #include <iomanip>
+#include <iostream>
+#include <numeric>
 #include <scs_types.h>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace QuantLib {
-    SplineConstraints::SplineConstraints(
-        Size numVariables,
-        const std::vector<std::vector<double>>& P_quadForm,
-        const std::vector<std::vector<double>>& A_constraints,
-        const std::vector<double>& b_rhs,
-        const std::vector<double>& c_linearForm,
-        const std::vector<ConstraintType>& constraintTypes,
-        bool fitData
-        // Size nParameters,
-        // const std::vector<double>& parameters,
-        // const std::vector<std::vector<double>>& B_parameterMatrix,
-        // const std::vector<std::vector<double>>& C_parameterMatrix)
-        )
-    : numVariables_(numVariables), numEqualities_(0), numInequalities_(0), numParameters_(0),
-      fitData_(fitData), scsDataIsUpToDate_(false), isSolved_(false) {
+    SplineConstraints::SplineConstraints(Size numVariables,
+                                         const std::vector<std::vector<double>>& P_quadForm,
+                                         const std::vector<std::vector<double>>& A_constraints,
+                                         const std::vector<double>& b_rhs,
+                                         const std::vector<double>& c_linearForm,
+                                         const std::vector<ConstraintType>& constraintTypes,
+                                         bool fitData,
+                                         double epsAbsolute,
+                                         double epsRelative,
+                                         double epsInfeasible)
+    : fitData_(fitData), numVariables_(numVariables), numEqualities_(0), numInequalities_(0),
+      numParameters_(0), scsDataIsUpToDate_(false), isSolved_(false), epsAbsolute_(epsAbsolute),
+      epsRelative_(epsRelative), epsInfeasible_(epsInfeasible) {
         if (!P_quadForm.empty()) {
             P_ = EigenUtilities::convertToEigenSparseMatrix(P_quadForm);
         } else {
             P_ = Eigen::SparseMatrix<double>(numVariables, numVariables); // zero matrix
         }
 
-        QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables && static_cast<Size>(P_.cols()) == numVariables,
+        QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables &&
+                       static_cast<Size>(P_.cols()) == numVariables,
                    "Matrix P_quadForm must be " << numVariables << "x" << numVariables
                                                 << ". Provided: " << P_.rows() << "x" << P_.cols());
 
@@ -96,8 +95,8 @@ namespace QuantLib {
             isOrdered_ = true;
         } else {
             constraintTypes_ = std::vector<ConstraintType>(constraintTypes);
-            numEqualities_ = std::count(constraintTypes_.begin(), constraintTypes_.end(),
-									  ConstraintType::Equal);
+            numEqualities_ =
+                std::count(constraintTypes_.begin(), constraintTypes_.end(), ConstraintType::Equal);
             numInequalities_ = numConstraints_ - numEqualities_;
             isOrdered_ = false;
         }
@@ -112,12 +111,17 @@ namespace QuantLib {
                                          const std::vector<double>& b_rhs,
                                          const std::vector<double>& c_linearForm,
                                          const std::vector<ConstraintType>& constraintTypes,
-                                         bool fitData)
-    : numVariables_(numVariables), numEqualities_(0), numInequalities_(0), numParameters_(0),
-      P_(P_quadForm), A_triplets_(A_triplets), b_list_(b_rhs), fitData_(fitData),
-      scsDataIsUpToDate_(false), isSolved_(false) {
+                                         bool fitData,
+                                         double epsAbsolute,
+                                         double epsRelative,
+                                         double epsInfeasible)
+    : fitData_(fitData), numVariables_(numVariables), numEqualities_(0), numInequalities_(0),
+      numParameters_(0), P_(P_quadForm), A_triplets_(A_triplets), b_list_(b_rhs),
+      scsDataIsUpToDate_(false), isSolved_(false), epsAbsolute_(epsAbsolute), epsRelative_(epsRelative),
+      epsInfeasible_(epsInfeasible) {
 
-        QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables && static_cast<Size>(P_.cols()) == numVariables,
+        QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables &&
+                       static_cast<Size>(P_.cols()) == numVariables,
                    "Matrix P_quadForm must be " << numVariables << "x" << numVariables
                                                 << ". Provided: " << P_.rows() << "x" << P_.cols());
 
@@ -175,9 +179,9 @@ namespace QuantLib {
         hasParameters_ = false;
     }
 
-    //SplineConstraints::SplineConstraints(const SplineConstraints& other) {
-    //    *this = other;
-    //}
+    // SplineConstraints::SplineConstraints(const SplineConstraints& other) {
+    //     *this = other;
+    // }
 
     void SplineConstraints::updateOrdering() {
         // Create trivial permutation
@@ -214,22 +218,23 @@ namespace QuantLib {
             B_.setFromTriplets(reorderedTriplets.begin(), reorderedTriplets.end());
         }
 
-        //auto begin = PermutationIterator::make_permutation_iterator(A_triplets_.begin(), permutation_);
-        //auto end = PermutationIterator::make_permutation_iterator(A_triplets_.end(), permutation_);
-        //A_.setFromTriplets(begin, end);
+        // auto begin = PermutationIterator::make_permutation_iterator(A_triplets_.begin(),
+        // permutation_); auto end =
+        // PermutationIterator::make_permutation_iterator(A_triplets_.end(), permutation_);
+        // A_.setFromTriplets(begin, end);
 
-        //if (hasParameters_) {
-        //    auto B_begin = make_permutation_iterator(B_triplets_.begin(), permutation_);
-        //    auto B_end = make_permutation_iterator(B_triplets_.end(), permutation_);
-        //    B_.setFromTriplets(B_begin, B_end);
-        //}
-        // Reorder rhs values and constraints
+        // if (hasParameters_) {
+        //     auto B_begin = make_permutation_iterator(B_triplets_.begin(), permutation_);
+        //     auto B_end = make_permutation_iterator(B_triplets_.end(), permutation_);
+        //     B_.setFromTriplets(B_begin, B_end);
+        // }
+        //  Reorder rhs values and constraints
         std::vector<double> reorderedB(numConstraints_);
-        //std::vector<ConstraintType> reorderedConstraintTypes(numConstraints_);
+        // std::vector<ConstraintType> reorderedConstraintTypes(numConstraints_);
         numEqualities_ = numInequalities_ = 0;
         for (Size i = 0; i < numConstraints_; ++i) {
             reorderedB[i] = b_list_[permutation_[i]];
-            //reorderedConstraintTypes[i] = constraintTypes_[permutation_[i]];
+            // reorderedConstraintTypes[i] = constraintTypes_[permutation_[i]];
             if (constraintTypes_[i] == ConstraintType::Equal) {
                 numEqualities_++;
             } else {
@@ -239,20 +244,21 @@ namespace QuantLib {
         b_list_ = reorderedB;
         b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), numConstraints_);
 
-        //constraintTypes_ = reorderedConstraintTypes;
+        // constraintTypes_ = reorderedConstraintTypes;
 
-        //QL_ASSERT(
-        //    (numEqualities_ == 0 || constraintTypes_[numEqualities_ - 1] == ConstraintType::Equal) &&
-        //        (numInequalities_ == 0 ||
-        //         constraintTypes_[numEqualities_] == ConstraintType::LessEqual),
-        //    "Something went wrong with reordering constraints.");
+        // QL_ASSERT(
+        //     (numEqualities_ == 0 || constraintTypes_[numEqualities_ - 1] ==
+        //     ConstraintType::Equal) &&
+        //         (numInequalities_ == 0 ||
+        //          constraintTypes_[numEqualities_] == ConstraintType::LessEqual),
+        //     "Something went wrong with reordering constraints.");
         isOrdered_ = true;
     }
 
-    //void SplineConstraints::setParameterMatrixB(
-    //    Size nParameters, const std::vector<std::vector<double>>& B_parameterMatrix) {
-    //    numParameters_ = nParameters;
-    //    hasParameters_ = true;
+    // void SplineConstraints::setParameterMatrixB(
+    //     Size nParameters, const std::vector<std::vector<double>>& B_parameterMatrix) {
+    //     numParameters_ = nParameters;
+    //     hasParameters_ = true;
 
     //    QL_REQUIRE(B_parameterMatrix.empty() ||
     //                   (B_parameterMatrix.size() == numConstraints_ &&
@@ -268,21 +274,26 @@ namespace QuantLib {
     //}
 
     void SplineConstraints::addParameters(Size nNewParameters,
-                                          Eigen::SparseMatrix<double>& B_new,
-                                          Eigen::SparseMatrix<double>& C_new) {
+                                          const Eigen::SparseMatrix<double>& B_new,
+                                          const Eigen::SparseMatrix<double>& C_new) {
         numParameters_ += nNewParameters;
         parameters_list_.resize(numParameters_);
-        parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), numParameters_); // Zero initialized (Eigen::VectorXd::Zero(numParameters_)
+        parameters_ = Eigen::Map<Eigen::VectorXd>(
+            parameters_list_.data(),
+            numParameters_); // Zero initialized (Eigen::VectorXd::Zero(numParameters_)
         hasParameters_ = true;
 
-        //QL_REQUIRE(static_cast<Size>(B_new.rows()) == numConstraints_ && static_cast<Size>(B_new.cols()) == nNewParameters,
-        //           "Matrix B_new must be " << numConstraints_ << "x" << nNewParameters
-        //                                   << ". Provided: " << B_new.rows() << "x"
-        //                                   << B_new.cols());
+        // QL_REQUIRE(static_cast<Size>(B_new.rows()) == numConstraints_ &&
+        // static_cast<Size>(B_new.cols()) == nNewParameters,
+        //            "Matrix B_new must be " << numConstraints_ << "x" << nNewParameters
+        //                                    << ". Provided: " << B_new.rows() << "x"
+        //                                    << B_new.cols());
 
-        //QL_REQUIRE(static_cast<Size>(C_new.rows()) == numVariables_ && static_cast<Size>(C_new.cols()) == nNewParameters,
-        //           "Matrix C_new must be " << numVariables_ << "x" << nNewParameters << ". Provided: "
-        //                                   << C_new.rows() << "x" << C_new.cols());
+        // QL_REQUIRE(static_cast<Size>(C_new.rows()) == numVariables_ &&
+        // static_cast<Size>(C_new.cols()) == nNewParameters,
+        //            "Matrix C_new must be " << numVariables_ << "x" << nNewParameters << ".
+        //            Provided: "
+        //                                    << C_new.rows() << "x" << C_new.cols());
 
 
         std::vector<Eigen::Triplet<double>> B_new_triplets =
@@ -299,7 +310,8 @@ namespace QuantLib {
 
     void SplineConstraints::push() {
         constraintStack_.emplace(numConstraints_, numParameters_, A_triplets_.size(),
-                                 B_triplets_.size(), C_triplets_.size(), numEqualities_, numInequalities_);
+                                 B_triplets_.size(), C_triplets_.size(), numEqualities_,
+                                 numInequalities_);
     }
 
     void SplineConstraints::pop() {
@@ -327,7 +339,8 @@ namespace QuantLib {
         }
     }
 
-    Eigen::SparseMatrix<Real> SplineConstraints::getSliceOfA(Integer firstRow, Integer lastRow) const {
+    Eigen::SparseMatrix<Real> SplineConstraints::getSliceOfA(Integer firstRow,
+                                                             Integer lastRow) const {
         std::vector<Eigen::Triplet<double>> subTriplets;
 
         // Filter triplets for rows >= firstRow
@@ -344,10 +357,10 @@ namespace QuantLib {
         return subMatrix;
     }
 
-    //void SplineConstraints::setParameterMatrixC(
-    //    Size nParameters, const std::vector<std::vector<double>>& C_parameterMatrix) {
-    //    numParameters_ = nParameters;
-    //    hasParameters_ = true;
+    // void SplineConstraints::setParameterMatrixC(
+    //     Size nParameters, const std::vector<std::vector<double>>& C_parameterMatrix) {
+    //     numParameters_ = nParameters;
+    //     hasParameters_ = true;
 
     //    QL_REQUIRE(C_parameterMatrix.empty() ||
     //                   (C_parameterMatrix.size() == numVariables_ &&
@@ -392,7 +405,8 @@ namespace QuantLib {
             numInequalities_++;
         }
         numConstraints_++; // Increase the number of constraints
-        QL_REQUIRE(numConstraints_ == numEqualities_ + numInequalities_, "Wrong parity for equalities and inequalities");
+        QL_REQUIRE(numConstraints_ == numEqualities_ + numInequalities_,
+                   "Wrong parity for equalities and inequalities");
 
         scsDataIsUpToDate_ = false;
         isOrdered_ = false;
@@ -439,7 +453,7 @@ namespace QuantLib {
     //    addObjectiveFunction(P_eigen, c_eigen);
     //}
 
-    //// Empty and zero structures must be explict, all dimensions need to check
+    //// Empty and zero structures must be explicit, all dimensions need to check
     // void SplineConstraints::addObjectiveFunction(const Eigen::SparseMatrix<double>& P,
     //                                              const Eigen::VectorXd& c) {
     //     P_ += P;
@@ -449,7 +463,8 @@ namespace QuantLib {
     //}
 
     // I use these in the debugger sometimes TODO find a better solution
-    [[maybe_unused]] static std::string matrixToString(const Eigen::SparseMatrix<double>& matrix) {  // NOLINT(misc-use-anonymous-namespace)
+    [[maybe_unused]] static std::string matrixToString(
+        const Eigen::SparseMatrix<double>& matrix) { // NOLINT(misc-use-anonymous-namespace)
         std::ostringstream oss;
 
         // Add the initial opening brace
@@ -460,8 +475,8 @@ namespace QuantLib {
             oss << "  {"; // Start each row with an opening brace
 
             for (int j = 0; j < matrix.cols(); ++j) {
-                double value = matrix.coeff(i, j);                  // Get the value at (i, j)
-                //oss << std::fixed << std::setprecision(1) << value;
+                double value = matrix.coeff(i, j); // Get the value at (i, j)
+                // oss << std::fixed << std::setprecision(1) << value;
                 oss << value;
 
                 // Add a comma and space unless it's the last column
@@ -482,7 +497,8 @@ namespace QuantLib {
         return oss.str(); // Convert the string stream to a string
     }
 
-    [[maybe_unused]] static std::string vectorToString(const Eigen::VectorXd& matrix) {  // NOLINT(misc-use-anonymous-namespace)
+    [[maybe_unused]] static std::string
+    vectorToString(const Eigen::VectorXd& matrix) { // NOLINT(misc-use-anonymous-namespace)
         std::ostringstream oss;
 
         oss << "{"; // Start each row with an opening brace
@@ -517,17 +533,15 @@ namespace QuantLib {
             C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
             Eigen::VectorXd bp = b_ + B_ * parameters_;
             Eigen::VectorXd cp = c_ + C_ * parameters_;
-            // TODO: Remove this, just for debug
-            //vectorToString(bp);
-                // scsData_ = SCS::SCSSolver(P_, A_, bp, cp, numEqualities_, numInequalities_);
-            scsData_ = new SCS::SCSSolver(P_, A_, bp, cp, numEqualities_, numInequalities_);
+            scsData_ = new SCS::SCSSolver(P_, A_, bp, cp, numEqualities_, numInequalities_,
+                                          epsAbsolute_, epsRelative_, epsInfeasible_);
         } else {
-            //scsData_ = SCS::SCSSolver(P_, A_, b_, c_, numEqualities_, numInequalities_);
-            scsData_ = new SCS::SCSSolver(P_, A_, b_, c_, numEqualities_, numInequalities_);
+            scsData_ = new SCS::SCSSolver(P_, A_, b_, c_, numEqualities_, numInequalities_,
+                                          epsAbsolute_, epsRelative_, epsInfeasible_);
         }
 
         // TODO: Remove this, just for debug
-        //matrixToString(A_);
+        // matrixToString(A_);
         scsDataIsUpToDate_ = true;
         warmStart_ = 0;
     }
