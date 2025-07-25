@@ -45,37 +45,40 @@ namespace QuantLib {
     BSplineStructure::BSplineStructure(
         const std::vector<ext::shared_ptr<BSplineSegment>>& splineSegments,
         const ext::shared_ptr<SplineConstraints>& splineConstraints,
-        bool useSegmentNodes, bool rejectZeroNode) :
-        splineSegments_(splineSegments), splineConstraints_(splineConstraints),
-    rejectZeroNode_(rejectZeroNode), useSegmentNodes_(useSegmentNodes) {
+        bool useSegmentNodes,
+        bool rejectZeroNode) : splineSegments_(splineSegments),
+                               splineConstraints_(splineConstraints),
+                               rejectZeroNode_(rejectZeroNode), useSegmentNodes_(useSegmentNodes) {
         // Create a vector to store the second element of the range for all but the last segment
         segmentNodes_.reserve(splineSegments.size() - 1); // Reserve space for efficiency
 
         for (Size i = 0; i < splineSegments.size() - 1; ++i) {
             auto range = splineSegments[i]->range(); // Assume range() returns std::pair
-            segmentNodes_.push_back(range.second);   // Add the second element to the vector
+            segmentNodes_.push_back(range.second); // Add the second element to the vector
         }
     }
 
     void BSplineStructure::addInterpolationNodes(const std::vector<Real>& interpolationNodes,
-                                            BSplineSegment::Side side, Size nParameters) const {
+                                                 BSplineSegment::Side side,
+                                                 Size nParameters) const {
         const Size nInterpolationNodes = interpolationNodes.size();
         const Size nConstraints = splineConstraints_->getNConstraints();
         const Size nVariables = splineConstraints_->getNumVariables();
 
         for (const Real interpolationNode : interpolationNodes) {
             Eigen::VectorXd row = evaluateAll(interpolationNode, side);
-            splineConstraints_->addLinearConstraint(row, 0.0, SplineConstraints::ConstraintType::Equal);
+            splineConstraints_->addLinearConstraint(
+                row, 0.0, SplineConstraints::ConstraintType::Equal);
         }
 
         // We still have the old constraint count
         Eigen::SparseMatrix<Real> B_new(nConstraints + nInterpolationNodes,
-                                        nParameters+nInterpolationNodes);
-        for (Size i = 0; i < nInterpolationNodes ; ++i) {
-            B_new.insert(nConstraints + i, nParameters+i) = 1.0;
+                                        nParameters + nInterpolationNodes);
+        for (Size i = 0; i < nInterpolationNodes; ++i) {
+            B_new.insert(nConstraints + i, nParameters + i) = 1.0;
         }
 
-        Eigen::SparseMatrix<double> C_new(nVariables, nParameters+nInterpolationNodes);
+        Eigen::SparseMatrix<double> C_new(nVariables, nParameters + nInterpolationNodes);
 
         splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
     }
@@ -106,10 +109,6 @@ namespace QuantLib {
             values.insert(values.end(), valuesOrg.begin(), valuesOrg.end());
         }
         std::vector<Real> transformedValues = transform(interpolationNodes, values);
-        const Size nConstraintsBefore = splineConstraints_->getNConstraints();
-
-        splineConstraints_->push();
-        addInterpolationNodes(interpolationNodes);
 
         // The segment nodes is another semi-hack, the idea to assign special nodes to have a special role actually
         // is a reasonable way to push non-linearity to the bootstrapper and keep the curve problem in each
@@ -128,8 +127,8 @@ namespace QuantLib {
             auto lower = interpolationNodes.begin();
 
             for (Real segmentNode : segmentNodes_) {
-                lower = std::lower_bound(lower, interpolationNodes.end(),segmentNode - tolerance_);
-                if (lower != interpolationNodes.end()  && * lower <= segmentNode + tolerance_) {
+                lower = std::lower_bound(lower, interpolationNodes.end(), segmentNode - tolerance_);
+                if (lower != interpolationNodes.end() && *lower <= segmentNode + tolerance_) {
                     const Size index = std::distance(interpolationNodes.begin(), lower);
                     segmentNodes.emplace_back(segmentNode);
                     segmentNodeValues.emplace_back(values[index]);
@@ -144,11 +143,16 @@ namespace QuantLib {
 
             transformedValues.reserve(transformedValues.size() + transformedValues2.size());
             transformedValues.insert(transformedValues.end(), transformedValues2.begin(),
-                                      transformedValues2.end());
-            addInterpolationNodes(segmentNodes, BSplineSegment::Side::Left, interpolationNodes.size());
+                                     transformedValues2.end());
+            addInterpolationNodes(segmentNodes, BSplineSegment::Side::Left,
+                                  interpolationNodes.size());
         } else {
             transformedValues = transform(interpolationNodes, values);
         }
+
+        const Size nConstraintsBefore = splineConstraints_->getNConstraints();
+        splineConstraints_->push();
+        addInterpolationNodes(interpolationNodes);
 
         Eigen::VectorXd solution;
         if (splineConstraints_->fitData_) {
@@ -160,7 +164,7 @@ namespace QuantLib {
             splineConstraints_->pop();
 
             interpolationBVec_ = Eigen::Map<const Eigen::VectorXd>(transformedValues.data(),
-                                                                   transformedValues.size());
+                transformedValues.size());
 
             if (firstRow == 0) {
                 Eigen::SparseQR<Eigen::SparseMatrix<Real>, Eigen::COLAMDOrdering<int>> solver;
@@ -186,8 +190,9 @@ namespace QuantLib {
     }
 
     // ReSharper disable once CppInconsistentNaming
-    std::vector<Real> BSplineStructure::interpolate_swig(const std::vector<Real>& interpolationNodes,
-                                                         const std::vector<Real>& values) {
+    std::vector<Real> BSplineStructure::interpolate_swig(
+        const std::vector<Real>& interpolationNodes,
+        const std::vector<Real>& values) {
         Eigen::VectorXd result = interpolate(interpolationNodes, values);
         return {result.data(), result.data() + result.size()};
     }
@@ -219,12 +224,10 @@ namespace QuantLib {
     }
 
     // ReSharper disable once CppInconsistentNaming
-    std::vector<Real>
-    BSplineStructure::solve_swig(const std::vector<Real>& parameters) const {
+    std::vector<Real> BSplineStructure::solve_swig(const std::vector<Real>& parameters) const {
         Eigen::VectorXd result = solve(parameters);
         return {result.data(), result.data() + result.size()};
     }
-
 
     Eigen::VectorXd BSplineStructure::evaluateAll(const Real x,
                                                   const BSplineSegment::Side side) const {
@@ -288,7 +291,8 @@ namespace QuantLib {
             augmentedCoefficients.segment(nVars, e) = extraCoefficients;
             for (Size j = 0; j < e; ++j) {
                 extraCoefficients[j] = splineSegment->value(
-                    augmentedCoefficients, splineSegment->range().second, nu + static_cast<Integer>(j), BSplineSegment::Side::Left);
+                    augmentedCoefficients, splineSegment->range().second,
+                    nu + static_cast<Integer>(j), BSplineSegment::Side::Left);
             }
             cumVariables += nVars;
         }
@@ -311,7 +315,7 @@ namespace QuantLib {
     }
 
     std::pair<Real, Real> BSplineStructure::range() const {
-        Real left  = this->splineSegments_.front()->range().first;
+        Real left = this->splineSegments_.front()->range().first;
         Real right = this->splineSegments_.back()->range().second;
 
         return {left, right};
@@ -345,7 +349,8 @@ namespace QuantLib {
             while (segmentIndex < numSegments) {
                 auto [left, right] = splineSegments_[segmentIndex]->range();
                 // TODO: endpoints are not handled correctly, use side variables
-                if ((x < left && segmentIndex == 0) || ((x >= left && x < right) && side == BSplineSegment::Side::Right) ||
+                if ((x < left && segmentIndex == 0) || (
+                        (x >= left && x < right) && side == BSplineSegment::Side::Right) ||
                     ((x > left && x <= right) && side == BSplineSegment::Side::Left) ||
                     (segmentIndex == numSegments - 1 && x >= right)) {
                     // Apply the transformation
@@ -356,7 +361,7 @@ namespace QuantLib {
                 // Move to the next segment
                 if (x < left) {
                     QL_FAIL("x = " << x << " is on the left of the range [" << left
-                                   << ", " << right << "], this should not happen.");
+                        << ", " << right << "], this should not happen.");
                 }
                 ++segmentIndex;
             }

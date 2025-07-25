@@ -70,9 +70,7 @@ namespace PermutationIterators {
          * \brief Dereference the iterator to get the permuted triplet.
          * \return The permuted triplet.
          */
-        Triplet operator*() const {
-            return {permutation_[it_->row()], it_->col(), it_->value()};
-        }
+        Triplet operator*() const { return {permutation_[it_->row()], it_->col(), it_->value()}; }
 
       private:
         Iterator it_;
@@ -126,7 +124,7 @@ namespace QuantLib {
         /*!
          * \brief Enum representing the type of constraint.
          */
-        enum class ConstraintType { Equal, LessEqual};  // NOLINT(performance-enum-size)
+        enum class ConstraintType { Equal, LessEqual }; // NOLINT(performance-enum-size)
 
         /*!
          * \brief Default destructor for SplineConstraints.
@@ -142,6 +140,12 @@ namespace QuantLib {
          * \param c_linearForm Linear form vector.
          * \param constraintTypes Vector of constraint types.
          * \param fitData Whether to fit data or set as constraints
+         * \param epsAbsolute Termination criterion for absolute error, see e.g.
+         * https://www.cvxgrp.org/scs/algorithm/index.html#termination
+         * \param epsRelative Termination criterion for relative error, see e.g.
+         * https://www.cvxgrp.org/scs/algorithm/index.html#termination
+         * \param epsInfeasible Termination criterion for infeasibility i.e. primal or dual
+         * unbounded, see e.g. https://www.cvxgrp.org/scs/algorithm/index.html#termination
          */
         SplineConstraints(Size numVariables,
                           const std::vector<std::vector<double>>& P_quadForm = {},
@@ -149,7 +153,10 @@ namespace QuantLib {
                           const std::vector<double>& b_rhs = {},
                           const std::vector<double>& c_linearForm = {},
                           const std::vector<ConstraintType>& constraintTypes = {},
-                          bool fitData = false);
+                          bool fitData = false,
+                          double epsAbsolute = 1e-12,
+                          double epsRelative = 1e-12,
+                          double epsInfeasible = 1e-13);
 
         /*!
          * \brief Constructor for SplineConstraints with specified Eigen matrices and vectors.
@@ -160,6 +167,12 @@ namespace QuantLib {
          * \param c_linearForm Linear form vector.
          * \param constraintTypes Vector of constraint types.
          * \param fitData Whether to fit data or set as constraints
+         * \param epsAbsolute Termination criterion for absolute error, see e.g.
+         * https://www.cvxgrp.org/scs/algorithm/index.html#termination
+         * \param epsRelative Termination criterion for relative error, see e.g.
+         * https://www.cvxgrp.org/scs/algorithm/index.html#termination
+         * \param epsInfeasible Termination criterion for infeasibility i.e. primal or dual
+         * unbounded, see e.g. https://www.cvxgrp.org/scs/algorithm/index.html#termination
          */
         SplineConstraints(Size numVariables,
                           const Eigen::SparseMatrix<double>& P_quadForm,
@@ -167,7 +180,10 @@ namespace QuantLib {
                           const std::vector<double>& b_rhs = {},
                           const std::vector<double>& c_linearForm = {},
                           const std::vector<ConstraintType>& constraintTypes = {},
-                          bool fitData = false);
+                          bool fitData = false,
+                          double epsAbsolute = 1e-12,
+                          double epsRelative = 1e-12,
+                          double epsInfeasible = 1e-13);
 
         ///*!
         // * \brief Default destructor for SplineConstraints.
@@ -178,7 +194,7 @@ namespace QuantLib {
         // * \brief Copy constructor for SplineConstraints.
         // * \param other The other SplineConstraints to copy.
         // */
-        //SplineConstraints(const SplineConstraints& other);
+        // SplineConstraints(const SplineConstraints& other);
 
         /*!
          * \brief Update the ordering of constraints.
@@ -250,8 +266,8 @@ namespace QuantLib {
          * \param C_new New C matrix.
          */
         void addParameters(Size nNewParameters,
-                           Eigen::SparseMatrix<Real>& B_new,
-                           Eigen::SparseMatrix<Real>& C_new);
+                           const Eigen::SparseMatrix<Real>& B_new,
+                           const Eigen::SparseMatrix<Real>& C_new);
 
         /*!
          * \brief Push the current state onto the stack.
@@ -301,9 +317,7 @@ namespace QuantLib {
         }
 
         // ReSharper disable once CppInconsistentNaming
-        [[nodiscard]] std::vector<Real> get_b_vector() const {
-            return this->b_list_;
-        }
+        [[nodiscard]] std::vector<Real> get_b_vector() const { return this->b_list_; }
 
         // ReSharper disable once CppInconsistentNaming
         [[nodiscard]] std::vector<Real> get_c_vector() const { return this->c_list_; }
@@ -330,21 +344,23 @@ namespace QuantLib {
 
       private:
         Size numVariables_, numConstraints_, numEqualities_, numInequalities_, numParameters_;
-        Eigen::SparseMatrix<Real> P_;       /*!< Primary quadratic form matrix. */
-        std::vector<Eigen::Triplet<Real>> A_triplets_; /*!< Primary triplets for the constraint matrix. */
+        Eigen::SparseMatrix<Real> P_; /*!< Primary quadratic form matrix. */
+        std::vector<Eigen::Triplet<Real>>
+            A_triplets_;              /*!< Primary triplets for the constraint matrix. */
         Eigen::SparseMatrix<Real> A_; /*!< Secondary constraint matrix, needs to be updated. */
-        Eigen::VectorXd c_;                   /*!< Primary linear form vector. */
+        Eigen::VectorXd c_;           /*!< Primary linear form vector. */
         std::vector<Real> c_list_;    /*!< Secondary linear form list, needs to be updated. */
-        std::vector<Real> b_list_; /*!< Primary right-hand side list. */
-        Eigen::VectorXd b_;                   /*!< Secondary right-hand side vector, needs to be updated. */
-        std::vector<ConstraintType> constraintTypes_;    /*!< Primary vector of constraint types. */
-        std::vector<Real> parameters_list_;              /*!< Primary list of parameters. */
-        Eigen::VectorXd parameters_;          /*!< Secondary vector of parameters. */
-        std::vector<Eigen::Triplet<Real>> B_triplets_;   /*!< Primary triplets for the B matrix. */
+        std::vector<Real> b_list_;    /*!< Primary right-hand side list. */
+        Eigen::VectorXd b_;           /*!< Secondary right-hand side vector, needs to be updated. */
+        std::vector<ConstraintType> constraintTypes_;  /*!< Primary vector of constraint types. */
+        std::vector<Real> parameters_list_;            /*!< Primary list of parameters. */
+        Eigen::VectorXd parameters_;                   /*!< Secondary vector of parameters. */
+        std::vector<Eigen::Triplet<Real>> B_triplets_; /*!< Primary triplets for the B matrix. */
         Eigen::SparseMatrix<Real> B_; /*!< Secondary B matrix, needs to be updated. */
         std::vector<Eigen::Triplet<Real>> C_triplets_; /*!< Primary triplets for the C matrix. */
         Eigen::SparseMatrix<Real> C_; /*!< Secondary C matrix, needs to be updated. */
-        std::stack<std::tuple<Size, Size, Size, Size, Size, Size, Size>> constraintStack_; /*!< Stack for storing constraint states. */
+        std::stack<std::tuple<Size, Size, Size, Size, Size, Size, Size>>
+            constraintStack_; /*!< Stack for storing constraint states. */
 
         SCS::SCSSolver* scsData_ = nullptr; /*!< Pointer to the SCS solver data. */
 
@@ -357,6 +373,10 @@ namespace QuantLib {
             false; /*!< True if the constraints have parameters (usually interpolation nodes). */
         std::vector<int> permutation_; /*!< Permutations to order constraints. */
         int warmStart_ = 0;            /*!< Warm start parameter. */
+
+        double epsAbsolute_ = 1e-12;
+        double epsRelative_ = 1e-12;
+        double epsInfeasible_ = 1e-13;
 
         /*!
          * \brief Reorder constraints by their types.

@@ -233,7 +233,6 @@ namespace QuantLib {
         return degree_;
     }
 
-
     /*
     This function calculates value at x of all spline basis functions given the knot sequence, and also
     allows designating a degree exceeding the degree of the spline, this is needed for primitive
