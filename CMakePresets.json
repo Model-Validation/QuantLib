@@ -15,19 +15,34 @@
         "rhs": "Windows"
       },
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "cl.exe",
-        "Boost_DIR": "C:/local/boost_1_88_0/lib64-msvc-14.3/cmake/Boost-1.88.0/",
-        "EIGEN3_INCLUDE_DIR": "C:/local/eigen-3.4.0",
-        "scs_DIR": "C:/Users/s6068C/Documents/github/scs/out/install/x64-Debug/CMake",
+        "EIGEN3_INCLUDE_DIR": "C:/ProgramData/chocolatey/lib/eigen/include/eigen3/",
+        "scs_DIR": "C:/ws/git/scs/out/build/x64-Debug/",
+        "isda_cds_model_DIR": "C:/ws/libraries/isda_cds_model_c_v1.8.3/build",
+        "QL_BOOST_VERSION": "1.88.0",
+        "QL_USE_STD_SHARED_PTR": "ON",
         "QL_USE_STD_ANY": "ON",
+        "QL_USE_STD_OPTIONAL": "ON",
+        "QL_BUILD_TEST_SUITE": "OFF",
         "QL_BUILD_EXAMPLES": "OFF",
-        "QL_BUILD_TEST_SUITE": "OFF"
+        "QL_ENABLE_ISDA_CDS": "ON",
+        "BOOST": "C:/local/boost_1_88_0",
+        "BOOST_INCLUDE_DIRS": "C:/local/boost_1_88_0/boost",
+        "BOOST_LIB64": "C:/local/boost_1_88_0/lib64-msvc-14.3"
+      },
+      "environment": {
+        "BOOST_ROOT": "C:/local/boost_1_88_0/lib64-msvc-14.3/cmake/Boost-1.88.0",
+        "BOOST": "C:/local/boost_1_88_0",
+        "BOOST_INCLUDE_DIRS": "C:/local/boost_1_88_0/boost",
+        "BOOST_LIB64": "C:/local/boost_1_88_0/lib64-msvc-14.3"
       }
     },
     {
       "name": "windows-msvc-base",
       "hidden": true,
       "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "intelliSenseMode": "windows-msvc-x64"
@@ -38,6 +53,9 @@
       "name": "windows-clang-base",
       "hidden": true,
       "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang-cl.exe"
+      },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "intelliSenseMode": "windows-clang-x64"
