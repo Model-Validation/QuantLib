@@ -168,6 +168,8 @@ endif()
 find_package(Boost ${QL_BOOST_VERSION} REQUIRED)
 find_package(scs REQUIRED)
 
+find_package(Eigen3 REQUIRED)
+find_package(isda_cds_model REQUIRED)
 
 # Do not warn about Boost versions higher than 1.58.0
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -261,6 +263,8 @@ endforeach()
 # Add subdirectories
 add_subdirectory(ql)
 target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir)
+target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir Eigen3::Eigen isda_cds_model::cds)
+target_include_directories(ql_library PUBLIC ${Boost_INCLUDE_DIRS})
 if (QL_BUILD_EXAMPLES)
     add_subdirectory(Examples)
 endif()
