@@ -167,7 +167,10 @@ namespace QuantLib {
         /*! \warning the forecastTodaysFixing parameter (required by
                      the Index interface) is currently ignored.
         */
-        Real fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const override;
+        Real fixing(const Date& fixingDate, bool forecastTodaysFixing = false) const override; // required
+        Real fixing(const Date& fixingDate,
+                    bool forecastTodaysFixing,
+                    bool applySeasonality) const; // overload
         Real pastFixing(const Date& fixingDate) const override;
         //@}
         //! \name Other methods
@@ -178,7 +181,7 @@ namespace QuantLib {
         bool needsForecast(const Date& fixingDate) const;
         //@}
       private:
-        Real forecastFixing(const Date& fixingDate) const;
+        Real forecastFixing(const Date& fixingDate, bool applySeasonality = true) const;
         Handle<ZeroInflationTermStructure> zeroInflation_;
     };
 
