@@ -228,7 +228,8 @@ namespace QuantLib {
 
     Rate ZeroInflationTermStructure::zeroRate(const Date &d, const Period& instObsLag,
                                               bool forceLinearInterpolation,
-                                              bool extrapolate) const {
+                                              bool extrapolate,
+                                              bool applySeasonality) const {
 
         Period useLag = instObsLag;
         if (instObsLag == Period(-1,Days)) {
@@ -256,7 +257,7 @@ namespace QuantLib {
             zeroRate = zeroRateImpl(t);
         }
 
-        if (hasSeasonality()) {
+        if (hasSeasonality() && applySeasonality) {
             zeroRate = seasonality()->correctZeroRate(d-useLag, zeroRate, *this);
         }
         return zeroRate;
