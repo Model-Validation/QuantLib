@@ -242,7 +242,8 @@ namespace QuantLib {
         */
         Rate zeroRate(const Date& d, const Period& instObsLag = Period(-1,Days),
                       bool forceLinearInterpolation = false,
-                      bool extrapolate = false) const;
+                      bool extrapolate = false,
+                      bool applySeasonality = true) const;
         //! zero-coupon inflation rate.
         /*! \warning Since inflation is highly linked to dates (lags,
                      interpolation, months for seasonality, etc) this
