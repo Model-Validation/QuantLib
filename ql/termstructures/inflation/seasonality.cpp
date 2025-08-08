@@ -248,8 +248,8 @@ namespace QuantLib {
             Time timeFromCurveBase = dc.yearFraction(curveBaseDate, p.first);
             f = std::pow(seasonalityAt, 1 / timeFromCurveBase);
         } else {
-            Rate factor1Ybefore = this->seasonalityFactor(atDate - Period(1, Years));
-            f = factorAt / factor1Ybefore;
+            Rate factorBefore = this->seasonalityFactor(curveBaseDate);
+            f = factorAt / factorBefore;
         }
 
         return (rate + 1) / f - 1;
