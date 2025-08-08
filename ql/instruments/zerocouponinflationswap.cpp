@@ -93,6 +93,8 @@ namespace QuantLib {
             inflationYearFraction(infIndex_->frequency(),
                                   detail::CPI::isInterpolated(observationInterpolation_),
                                   dayCounter_, baseDate_, obsDate_);
+        // Mimic yearly compounding 1/1 DC with Year (which can return zero).
+        T = T == 0 ? 1 : T;
         // N.B. the -1.0 is because swaps only exchange growth, not notionals as well
         Real fixedAmount = nominal * (std::pow(1.0 + fixedRate, T) - 1.0);
 
@@ -134,7 +136,8 @@ namespace QuantLib {
             inflationYearFraction(infIndex_->frequency(),
                                   detail::CPI::isInterpolated(observationInterpolation_),
                                   dayCounter_, baseDate_, obsDate_);
-
+        // Year DC can return zero which is not wanted
+        T = T == 0 ? 1 : T;
         return std::pow(growth,1.0/T) - 1.0;
 
         // we cannot use this simple definition because
