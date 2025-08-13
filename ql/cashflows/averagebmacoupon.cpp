@@ -222,6 +222,12 @@ namespace QuantLib {
         return *this;
     }
 
+    AverageBMALeg& AverageBMALeg::withPaymentDates(const std::vector<Date>& paymentDates)
+    {
+        paymentDates_ = paymentDates;
+        return *this;
+    }
+
     AverageBMALeg::operator Leg() const {
 
         QL_REQUIRE(!notionals_.empty(), "no notional given");
@@ -240,7 +246,11 @@ namespace QuantLib {
         for (Size i=0; i<n; ++i) {
             refStart = start = schedule_.date(i);
             refEnd   =   end = schedule_.date(i+1);
-            paymentDate = paymentcalendar.advance(end, paymentLag_ * Days, paymentAdjustment_);
+            if (!paymentDates_.empty()) {
+                paymentDate = paymentDates_[i];
+            } else {
+                paymentDate = calendar.advance(end, paymentLag_, Days, paymentAdjustment_);
+            }
             if (i == 0 && schedule_.hasIsRegular() && !schedule_.isRegular(i+1)
                 && schedule_.hasTenor())
                 refStart = calendar.adjust(end - schedule_.tenor(),

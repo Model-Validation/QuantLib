@@ -93,6 +93,7 @@ namespace QuantLib {
         AverageBMALeg& withGearings(const std::vector<Real>& gearings);
         AverageBMALeg& withSpreads(Spread spread);
         AverageBMALeg& withSpreads(const std::vector<Spread>& spreads);
+        AverageBMALeg& withPaymentDates(const std::vector<Date>& paymentDates);
         operator Leg() const;
       private:
         Schedule schedule_;
@@ -104,6 +105,7 @@ namespace QuantLib {
         Natural paymentLag_ = 0;
         std::vector<Real> gearings_;
         std::vector<Spread> spreads_;
+        std::vector<Date> paymentDates_;
     };
 
 }

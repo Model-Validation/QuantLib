@@ -84,6 +84,7 @@ namespace QuantLib {
         DigitalCmsLeg& withPutPayoffs(const std::vector<Rate>& payoffs);
         DigitalCmsLeg& withReplication(const ext::shared_ptr<DigitalReplication>&);
         DigitalCmsLeg& withNakedOption(bool nakedOption = true);
+        DigitalCmsLeg& withPaymentDates(const std::vector<Date>& paymentDates);
 
         operator Leg() const;
       private:
@@ -104,6 +105,7 @@ namespace QuantLib {
         bool putATM_ = false;
         ext::shared_ptr<DigitalReplication> replication_;
         bool nakedOption_;
+        std::vector<QuantLib::Date> paymentDates_;
     };
 
 }
