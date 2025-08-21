@@ -773,7 +773,9 @@ namespace QuantLib {
                                          // ibor / ois leg
                                          const ext::shared_ptr<IborIndex>& index,
                                          // external discount
-                                         const Handle<YieldTermStructure>& discountingCurve)
+                                         const Handle<YieldTermStructure>& discountingCurve,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
     : RelativeDateRateHelper(indexFraction), tenor_(tenor), bmaSettlementDays_(bmaSettlementDays),
       bmaCalendar_(calendar), bmaPeriod_(bmaPeriod), bmaConvention_(bmaConvention),
       bmaDayCount_(bmaDayCount), bmaIndex_(bmaIndex), bmaPaymentCalendar_(calendar),
@@ -781,7 +783,8 @@ namespace QuantLib {
       indexPaymentPeriod_(bmaPeriod), indexConvention_(index->businessDayConvention()),
       index_(index), indexPaymentCalendar_(index->fixingCalendar()),
       indexPaymentConvention_(Following), indexPaymentLag_(0), overnightLockoutDays_(0),
-      discountingCurve_(discountingCurve) {
+      discountingCurve_(discountingCurve), pillarChoice_(pillarChoice),
+      customPillarDate_(customPillarDate) {
         registerWith(index_);
         registerWith(bmaIndex_);
         BMASwapRateHelper::initializeDates();
@@ -809,7 +812,9 @@ namespace QuantLib {
                                          Natural indexPaymentLag,
                                          Natural overnightLockoutDays,
                                          // external discount
-                                         const Handle<YieldTermStructure>& discountingCurve)
+                                         const Handle<YieldTermStructure>& discountingCurve,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
     : RelativeDateRateHelper(indexFraction), tenor_(tenor), bmaSettlementDays_(bmaSettlementDays),
       bmaCalendar_(bmaCalendar), bmaPeriod_(bmaPeriod), bmaConvention_(bmaConvention),
       bmaDayCount_(bmaDayCount), bmaIndex_(bmaIndex), bmaPaymentCalendar_(bmaPaymentCalendar),
@@ -817,7 +822,8 @@ namespace QuantLib {
       indexSettlementDays_(indexSettlementDays), indexPaymentPeriod_(indexPaymentPeriod),
       indexConvention_(indexConvention), index_(index), indexPaymentCalendar_(indexPaymentCalendar),
       indexPaymentConvention_(indexPaymentConvention), indexPaymentLag_(indexPaymentLag),
-      overnightLockoutDays_(overnightLockoutDays), discountingCurve_(discountingCurve) {
+      overnightLockoutDays_(overnightLockoutDays), discountingCurve_(discountingCurve),
+      pillarChoice_(pillarChoice), customPillarDate_(customPillarDate) {
         registerWith(index_);
         registerWith(bmaIndex_);
         BMASwapRateHelper::initializeDates();
@@ -877,17 +883,43 @@ namespace QuantLib {
         swap_->setPricingEngine(QuantLib::ext::make_shared<DiscountingSwapEngine>(
             !discountingCurve_.empty() ? discountingCurve_ : index_->forwardingTermStructure()));
 
+        maturityDate_ = swap_->maturityDate();
+
         Date d = bmaCalendar_.adjust(CashFlows::maturityDate(swap_->bmaLeg()), Following);
         Weekday w = d.weekday();
         Date nextWednesday = (w >= 4) ?
             d + (11 - w) * Days :
             d + (4 - w) * Days;
-        latestDate_ = clonedIndex->valueDate(
-                         clonedIndex->fixingCalendar().adjust(nextWednesday));
+        latestRelevantDate_ =
+            clonedIndex->valueDate(clonedIndex->fixingCalendar().adjust(nextWednesday));
 
         if (auto ibor = ext::dynamic_pointer_cast<IborCoupon>(swap_->indexLeg().back());
             ibor != nullptr)
-            latestDate_ = std::max(latestDate_, ibor->fixingEndDate());
+            latestRelevantDate_ = std::max(latestDate_, ibor->fixingEndDate());
+
+        switch (pillarChoice_) {
+          case Pillar::MaturityDate:
+            pillarDate_ = maturityDate_;
+            break;
+          case Pillar::LastRelevantDate:
+            pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::CustomDate:
+            pillarDate_ = customPillarDate_;
+            QL_REQUIRE(pillarDate_ >= earliestDate_,
+                "pillar date (" << pillarDate_ << ") must be later "
+                "than or equal to the instrument's earliest date (" <<
+                earliestDate_ << ")");
+            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                "pillar date (" << pillarDate_ << ") must be before "
+                "or equal to the instrument's latest relevant date (" <<
+                latestRelevantDate_ << ")");
+            break;
+          default:
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
+        }
+
+        latestDate_ = pillarDate_; // backward compatibility
 
     }
 

@@ -395,7 +395,9 @@ namespace QuantLib {
                           // ibor leg
                           const ext::shared_ptr<IborIndex>& index,
                           // external discount,
-                          const Handle<YieldTermStructure>& discountingCurve = {});
+                          const Handle<YieldTermStructure>& discountingCurve = {},
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         BMASwapRateHelper(const Handle<Quote>& indexFraction,
                           const Period& tenor,
                           // bma leg
@@ -418,7 +420,9 @@ namespace QuantLib {
                           Natural indexPaymentLag,
                           Natural overnightLockoutDays,
                           // external discount
-                          const Handle<YieldTermStructure>& discountingCurve);
+                          const Handle<YieldTermStructure>& discountingCurve,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -456,6 +460,8 @@ namespace QuantLib {
         Natural indexPaymentLag_;
         Natural overnightLockoutDays_;
         Handle<YieldTermStructure> discountingCurve_;
+        Pillar::Choice pillarChoice_;
+        Date customPillarDate_;
 
         ext::shared_ptr<BMASwap> swap_;
         RelinkableHandle<YieldTermStructure> termStructureHandle_;
