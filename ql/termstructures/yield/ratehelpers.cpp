@@ -895,7 +895,7 @@ namespace QuantLib {
 
         if (auto ibor = ext::dynamic_pointer_cast<IborCoupon>(swap_->indexLeg().back());
             ibor != nullptr)
-            latestRelevantDate_ = std::max(latestDate_, ibor->fixingEndDate());
+            latestRelevantDate_ = std::max(latestRelevantDate_, ibor->fixingEndDate());
 
         switch (pillarChoice_) {
           case Pillar::MaturityDate:
