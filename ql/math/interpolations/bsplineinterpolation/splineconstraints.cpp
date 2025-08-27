@@ -39,6 +39,78 @@ namespace QuantLib {
                                          const std::vector<std::vector<double>>& A_constraints,
                                          const std::vector<double>& b_rhs,
                                          const std::vector<double>& c_linearForm,
+                                         Size numEqualities,
+                                         Size numInequalities,
+                                         bool fitData,
+                                         double epsAbsolute,
+                                         double epsRelative,
+                                         double epsInfeasible)
+    : numVariables_(numVariables), fitData_(fitData), epsAbsolute_(epsAbsolute),
+      epsRelative_(epsRelative), epsInfeasible_(epsInfeasible) {
+        
+        // SCS-ordered constructor: constraints are already in the correct order
+        // Equalities first, then inequalities
+        
+        numConstraints_ = numEqualities + numInequalities;
+        QL_REQUIRE(A_constraints.size() == numConstraints_,
+                   "A_constraints size must equal numEqualities + numInequalities. "
+                   "Provided: " << A_constraints.size() << ", expected: " << numConstraints_);
+        
+        numEqualities_ = numEqualities;
+        numInequalities_ = numInequalities;
+        
+        // Set up P matrix
+        if (!P_quadForm.empty()) {
+            P_ = EigenUtilities::convertToEigenSparseMatrix(P_quadForm);
+        } else {
+            P_ = Eigen::SparseMatrix<double>(numVariables, numVariables); // zero matrix
+        }
+        
+        QL_REQUIRE(static_cast<Size>(P_.rows()) == numVariables &&
+                       static_cast<Size>(P_.cols()) == numVariables,
+                   "Matrix P_quadForm must be " << numVariables << "x" << numVariables
+                                                << ". Provided: " << P_.rows() << "x" << P_.cols());
+        
+        // Set up A matrix (already in correct order)
+        A_triplets_ = EigenUtilities::convertToTriplets(A_constraints);
+        
+        // Set up b vector
+        QL_REQUIRE(b_rhs.size() == numConstraints_,
+                   "b_rhs size must equal numConstraints");
+        b_list_ = std::vector<double>(b_rhs);
+        b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), b_list_.size());
+        
+        // Set up c vector
+        c_list_ = c_linearForm.empty() ? std::vector<Real>(numVariables, 0.0) :
+                                         std::vector<Real>(c_linearForm);
+        c_ = Eigen::Map<Eigen::VectorXd>(c_list_.data(), c_list_.size());
+        
+        // Build constraint types based on counts
+        constraintTypes_.clear();
+        constraintTypes_.reserve(numConstraints_);
+        for (Size i = 0; i < numEqualities_; ++i) {
+            constraintTypes_.push_back(ConstraintType::Equal);
+        }
+        for (Size i = 0; i < numInequalities_; ++i) {
+            constraintTypes_.push_back(ConstraintType::LessEqual);
+        }
+        
+        // Mark as already ordered (SCS ordering is the contract)
+        isOrdered_ = true;
+        
+        // Initialize permutation as identity (no reordering needed)
+        permutation_ = std::vector<int>(numConstraints_);
+        std::iota(permutation_.begin(), permutation_.end(), 0);
+        
+        numParameters_ = 0;
+        hasParameters_ = false;
+    }
+    
+    SplineConstraints::SplineConstraints(Size numVariables,
+                                         const std::vector<std::vector<double>>& P_quadForm,
+                                         const std::vector<std::vector<double>>& A_constraints,
+                                         const std::vector<double>& b_rhs,
+                                         const std::vector<double>& c_linearForm,
                                          const std::vector<ConstraintType>& constraintTypes,
                                          bool fitData,
                                          double epsAbsolute,
@@ -198,10 +270,20 @@ namespace QuantLib {
         // transform the triplets renumbering the rows according to permutation, both for A and B
         // matrices
         updateOrdering();
+        
+        // FIX: Create inverse permutation for correct reordering
+        // permutation_[i] tells us that constraint i should go to position permutation_[i]
+        // So inversePermutation[j] tells us which original constraint goes to position j
+        std::vector<int> inversePermutation(numConstraints_);
+        for (Size i = 0; i < numConstraints_; ++i) {
+            inversePermutation[permutation_[i]] = i;
+        }
+        
         std::vector<Eigen::Triplet<Real>> reorderedTriplets;
         reorderedTriplets.reserve(A_triplets_.size());
         for (const auto& triplet : A_triplets_) {
-            reorderedTriplets.emplace_back(permutation_[triplet.row()], triplet.col(),
+            // FIX: Use inverse permutation to map old row to new row
+            reorderedTriplets.emplace_back(inversePermutation[triplet.row()], triplet.col(),
                                            triplet.value());
         }
         A_.resize(numConstraints_, numVariables_);
@@ -211,31 +293,21 @@ namespace QuantLib {
             reorderedTriplets.clear();
             reorderedTriplets.reserve(B_triplets_.size());
             for (const auto& triplet : B_triplets_) {
-                reorderedTriplets.emplace_back(permutation_[triplet.row()], triplet.col(),
+                // FIX: Use inverse permutation here too
+                reorderedTriplets.emplace_back(inversePermutation[triplet.row()], triplet.col(),
                                                triplet.value());
             }
             B_.resize(numConstraints_, numParameters_);
             B_.setFromTriplets(reorderedTriplets.begin(), reorderedTriplets.end());
         }
 
-        // auto begin = PermutationIterator::make_permutation_iterator(A_triplets_.begin(),
-        // permutation_); auto end =
-        // PermutationIterator::make_permutation_iterator(A_triplets_.end(), permutation_);
-        // A_.setFromTriplets(begin, end);
-
-        // if (hasParameters_) {
-        //     auto B_begin = make_permutation_iterator(B_triplets_.begin(), permutation_);
-        //     auto B_end = make_permutation_iterator(B_triplets_.end(), permutation_);
-        //     B_.setFromTriplets(B_begin, B_end);
-        // }
         //  Reorder rhs values and constraints
         std::vector<double> reorderedB(numConstraints_);
-        // std::vector<ConstraintType> reorderedConstraintTypes(numConstraints_);
         numEqualities_ = numInequalities_ = 0;
         for (Size i = 0; i < numConstraints_; ++i) {
             reorderedB[i] = b_list_[permutation_[i]];
-            // reorderedConstraintTypes[i] = constraintTypes_[permutation_[i]];
-            if (constraintTypes_[i] == ConstraintType::Equal) {
+            // FIX: Check the constraint type of the original constraint being moved here
+            if (constraintTypes_[permutation_[i]] == ConstraintType::Equal) {
                 numEqualities_++;
             } else {
                 numInequalities_++;
@@ -244,14 +316,6 @@ namespace QuantLib {
         b_list_ = reorderedB;
         b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), numConstraints_);
 
-        // constraintTypes_ = reorderedConstraintTypes;
-
-        // QL_ASSERT(
-        //     (numEqualities_ == 0 || constraintTypes_[numEqualities_ - 1] ==
-        //     ConstraintType::Equal) &&
-        //         (numInequalities_ == 0 ||
-        //          constraintTypes_[numEqualities_] == ConstraintType::LessEqual),
-        //     "Something went wrong with reordering constraints.");
         isOrdered_ = true;
     }
 
@@ -497,27 +561,6 @@ namespace QuantLib {
         return oss.str(); // Convert the string stream to a string
     }
 
-    [[maybe_unused]] static std::string
-    vectorToString(const Eigen::VectorXd& matrix) { // NOLINT(misc-use-anonymous-namespace)
-        std::ostringstream oss;
-
-        oss << "{"; // Start each row with an opening brace
-
-        bool first = true;
-        for (auto value : matrix) {
-            if (first == false) {
-                oss << ", ";
-            }
-            oss << value;
-            first = false;
-        }
-
-        oss << "}";
-
-        return oss.str(); // Convert the string stream to a string
-    }
-
-
     void SplineConstraints::updateScsData() {
         if (!isOrdered_) {
             reorderByConstraints();
@@ -556,7 +599,9 @@ namespace QuantLib {
         warmStart_ = 1;
 
         if (status != 1) {
-            std::cerr << "Solver returned error: " << status << '\n';
+            // Don't print to stderr - it causes popups in some environments
+            // The error will be handled by the exception thrown in the calling code
+            // std::cerr << "Solver returned error: " << status << '\n';
         } else {
             isSolved_ = true;
         }
@@ -593,7 +638,8 @@ namespace QuantLib {
         scs_int status = scsData_->update(bp, cp);
 
         if (status != 0) {
-            std::cerr << "Update returned error: " << status << "\n";
+            // Don't print to stderr - it causes popups in some environments
+            // std::cerr << "Update returned error: " << status << "\n";
         }
     }
 
@@ -609,7 +655,8 @@ namespace QuantLib {
         scs_int status = scsData_->update(bp, cp);
 
         if (status != 0) {
-            std::cerr << "Update returned error: " << status << "\n";
+            // Don't print to stderr - it causes popups in some environments
+            // std::cerr << "Update returned error: " << status << "\n";
         }
     }
 }

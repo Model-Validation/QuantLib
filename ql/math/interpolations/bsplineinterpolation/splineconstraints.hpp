@@ -132,6 +132,32 @@ namespace QuantLib {
         SplineConstraints() = default;
 
         /*!
+         * \brief Constructor for SplineConstraints with SCS-ordered constraints.
+         * \param numVariables Number of variables.
+         * \param P_quadForm Quadratic form matrix.
+         * \param A_constraints Constraint matrix (equalities first, then inequalities).
+         * \param b_rhs Right-hand side vector.
+         * \param c_linearForm Linear form vector.
+         * \param numEqualities Number of equality constraints (first rows of A).
+         * \param numInequalities Number of inequality constraints (following rows of A).
+         * \param fitData Whether to fit data or set as constraints
+         * \param epsAbsolute Termination criterion for absolute error.
+         * \param epsRelative Termination criterion for relative error.
+         * \param epsInfeasible Termination criterion for infeasibility.
+         */
+        SplineConstraints(Size numVariables,
+                          const std::vector<std::vector<double>>& P_quadForm,
+                          const std::vector<std::vector<double>>& A_constraints,
+                          const std::vector<double>& b_rhs,
+                          const std::vector<double>& c_linearForm,
+                          Size numEqualities,
+                          Size numInequalities,
+                          bool fitData = false,
+                          double epsAbsolute = 1e-12,
+                          double epsRelative = 1e-12,
+                          double epsInfeasible = 1e-13);
+        
+        /*!
          * \brief Constructor for SplineConstraints with specified parameters.
          * \param numVariables Number of variables.
          * \param P_quadForm Quadratic form matrix.
@@ -329,6 +355,47 @@ namespace QuantLib {
         [[nodiscard]] std::vector<ConstraintType> get_constraint_types() const {
             return this->constraintTypes_;
         }
+        
+        // Inspection methods for debugging constraint ordering
+        [[nodiscard]] std::vector<int> get_permutation() const {
+            return this->permutation_;
+        }
+        
+        [[nodiscard]] std::vector<std::vector<Real>> get_reordered_a_matrix() const {
+            // Force reordering if not done
+            if (!isOrdered_) {
+                const_cast<SplineConstraints*>(this)->reorderByConstraints();
+            }
+            
+            // Convert the reordered sparse matrix A_ to dense format
+            std::vector<std::vector<Real>> result(A_.rows(), std::vector<Real>(A_.cols(), 0.0));
+            for (int k = 0; k < A_.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<Real>::InnerIterator it(A_, k); it; ++it) {
+                    result[it.row()][it.col()] = it.value();
+                }
+            }
+            return result;
+        }
+        
+        [[nodiscard]] std::vector<Real> get_reordered_b_vector() const {
+            if (!isOrdered_) {
+                const_cast<SplineConstraints*>(this)->reorderByConstraints();
+            }
+            return b_list_;
+        }
+        
+        [[nodiscard]] bool is_ordered() const {
+            return isOrdered_;
+        }
+        
+        [[nodiscard]] Size get_num_equalities() const {
+            return numEqualities_;
+        }
+        
+        [[nodiscard]] Size get_num_inequalities() const {
+            return numInequalities_;
+        }
+        
         bool fitData_ = false; // TODO: Hack, should not be public like this
 
         void setP(Eigen::SparseMatrix<Real>& P) {

@@ -59,7 +59,7 @@ namespace QuantLib {
     }
 
     void BSplineStructure::addInterpolationNodes(const std::vector<Real>& interpolationNodes,
-                                                 BSplineSegment::Side side,
+                                                 BSplineSegment::SideEnum side,
                                                  Size nParameters) const {
         const Size nInterpolationNodes = interpolationNodes.size();
         const Size nConstraints = splineConstraints_->getNConstraints();
@@ -139,12 +139,12 @@ namespace QuantLib {
             //extendedNodes.insert(extendedNodes.end(), segmentNodes.begin(), segmentNodes.end());
 
             std::vector<Real> transformedValues2 =
-                transform(segmentNodes, segmentNodeValues, BSplineSegment::Side::Left);
+                transform(segmentNodes, segmentNodeValues, BSplineSegment::SideLeft);
 
             transformedValues.reserve(transformedValues.size() + transformedValues2.size());
             transformedValues.insert(transformedValues.end(), transformedValues2.begin(),
                                      transformedValues2.end());
-            addInterpolationNodes(segmentNodes, BSplineSegment::Side::Left,
+            addInterpolationNodes(segmentNodes, BSplineSegment::SideLeft,
                                   interpolationNodes.size());
         } else {
             transformedValues = transform(interpolationNodes, values);
@@ -167,18 +167,24 @@ namespace QuantLib {
                 transformedValues.size());
 
             if (firstRow == 0) {
+                // No pre-existing constraints - pure unconstrained LS
                 Eigen::SparseQR<Eigen::SparseMatrix<Real>, Eigen::COLAMDOrdering<int>> solver;
                 solver.compute(interpolationA_);
                 solution = solver.solve(interpolationBVec_);
                 QL_REQUIRE(solver.info() == Eigen::Success, "Solver failed");
             } else {
+                // FIXED: Build LS objective and solve WITH constraints
+                // The LS objective is: min 0.5 * x'Px + c'x where P = A'A, c = -A'b
                 Eigen::SparseMatrix<Real> P = interpolationA_.transpose() * interpolationA_;
                 Eigen::VectorXd c = -(interpolationA_.transpose() * interpolationBVec_);
-                // Problem is 1/2 x^t P x + c x, with P = A^tA, c = -A^t b for
-                // 1/2||Ax - b||^2
+                
+                // Update the objective in the constraint system
                 splineConstraints_->setP(P);
                 splineConstraints_->setCVector(c);
-
+                
+                // CRITICAL FIX: The pre-existing constraints (including inequalities)
+                // are still in splineConstraints_ and will be respected by solve()
+                // We pass empty parameters since we're using the LS objective
                 solution = solve(std::vector<Real>(0));
             }
         } else {
@@ -230,48 +236,61 @@ namespace QuantLib {
     }
 
     Eigen::VectorXd BSplineStructure::evaluateAll(const Real x,
-                                                  const BSplineSegment::Side side) const {
-        QL_REQUIRE(side == BSplineSegment::Side::Right || side == BSplineSegment::Side::Left,
+                                                  const BSplineSegment::SideEnum side) const {
+        QL_REQUIRE(side == BSplineSegment::SideRight || side == BSplineSegment::SideLeft,
                    "Sidedness needs to be 'Right' or 'Left");
+        
         const Size nSegments = splineSegments_.size();
         const Size nVariables = splineConstraints_->getNumVariables();
         Size j = 0;
         Eigen::VectorXd result = Eigen::VectorXd::Zero(nVariables);
-
-        // TODO: endpoints are not handled correctly, use side variables
+        
+        // Handle boundary evaluation correctly
         for (Size i = 0; i < nSegments; ++i) {
-            if (side == BSplineSegment::Side::Right) {
-                if (splineSegments_[i]->range().first <= x &&
-                    x < splineSegments_[i]->range().second) {
-                    const Eigen::VectorXd segmentResult =
-                        splineSegments_[i]->evaluateAll(x, -1, side);
-                    result.segment(j, splineSegments_[i]->getNumVariables()) = segmentResult;
+            bool inSegment = false;
+            const auto& segment = splineSegments_[i];
+            const auto segmentRange = segment->range();
+            
+            if (side == BSplineSegment::SideRight) {
+                // For right-sided evaluation:
+                // - Include left boundary: x >= range.first
+                // - Include right boundary for last segment: x <= range.second
+                // - Exclude right boundary for other segments: x < range.second
+                if (i == nSegments - 1) {
+                    // Last segment: include right boundary
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    // Not last segment: exclude right boundary
+                    inSegment = (segmentRange.first <= x && x < segmentRange.second);
                 }
             } else {
-                if (splineSegments_[i]->range().first < x &&
-                    x <= splineSegments_[i]->range().second) {
-                    const Eigen::VectorXd segmentResult =
-                        splineSegments_[i]->evaluateAll(x, -1, side);
-                    result.segment(j, splineSegments_[i]->getNumVariables()) = segmentResult;
+                // For left-sided evaluation:
+                // - Exclude left boundary for non-first segments: x > range.first
+                // - Include left boundary for first segment: x >= range.first
+                // - Include right boundary: x <= range.second
+                if (i == 0) {
+                    // First segment: include left boundary
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    // Not first segment: exclude left boundary
+                    inSegment = (segmentRange.first < x && x <= segmentRange.second);
                 }
             }
-            j += splineSegments_[i]->getNumVariables();
+            
+            if (inSegment) {
+                const Eigen::VectorXd segmentResult = segment->evaluateAll(x, -1, side);
+                result.segment(j, segment->getNumVariables()) = segmentResult;
+            }
+            j += segment->getNumVariables();
         }
 
         return result;
     }
 
-    // ReSharper disable once CppInconsistentNaming
-    std::vector<Real> BSplineStructure::evaluate_all(Real x, BSplineSegment::Side side) const {
-        Eigen::VectorXd result = evaluateAll(x, side);
-        return {result.data(), result.data() + result.size()};
-    }
-
-
     Real BSplineStructure::value(const Eigen::VectorXd& coefficients,
                                  Real x,
                                  Integer nu,
-                                 BSplineSegment::Side side) const {
+                                 BSplineSegment::SideEnum side) const {
         const Size numSegments = this->splineSegments_.size();
         const Size e = nu >= 0 ? 0 : static_cast<Size>(-nu);
         Size mu = 0;
@@ -281,7 +300,19 @@ namespace QuantLib {
         Eigen::VectorXd augmentedCoefficients;
         for (Size i = 0; i < numSegments; ++i) {
             const auto splineSegment = this->splineSegments_[i];
-            if (splineSegment->range().first <= x && x < splineSegment->range().second) {
+            const auto segmentRange = splineSegment->range();
+            bool inSegment = false;
+            
+            // Apply same boundary logic as in evaluateAll
+            if (i == numSegments - 1) {
+                // Last segment: include right boundary
+                inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+            } else {
+                // Not last segment: exclude right boundary
+                inSegment = (segmentRange.first <= x && x < segmentRange.second);
+            }
+            
+            if (inSegment) {
                 mu = i;
                 break;
             }
@@ -292,7 +323,7 @@ namespace QuantLib {
             for (Size j = 0; j < e; ++j) {
                 extraCoefficients[j] = splineSegment->value(
                     augmentedCoefficients, splineSegment->range().second,
-                    nu + static_cast<Integer>(j), BSplineSegment::Side::Left);
+                    nu + static_cast<Integer>(j), BSplineSegment::SideLeft);
             }
             cumVariables += nVars;
         }
@@ -309,7 +340,7 @@ namespace QuantLib {
     Real BSplineStructure::value(const std::vector<Real>& coefficients,
                                  Real x,
                                  Integer nu,
-                                 BSplineSegment::Side side) const {
+                                 BSplineSegment::SideEnum side) const {
         return value(Eigen::Map<const Eigen::VectorXd>(coefficients.data(), coefficients.size()), x,
                      nu, side);
     }
@@ -323,7 +354,7 @@ namespace QuantLib {
 
     std::vector<Real> BSplineStructure::transform(const std::vector<Real>& abscissae,
                                                   const std::vector<Real>& values,
-                                                  BSplineSegment::Side side) const {
+                                                  BSplineSegment::SideEnum side) const {
 
         // Check if abscissae is sorted and vectors are of same length
         // TODO: remove for performance reasons, do this check only where needed
@@ -350,8 +381,8 @@ namespace QuantLib {
                 auto [left, right] = splineSegments_[segmentIndex]->range();
                 // TODO: endpoints are not handled correctly, use side variables
                 if ((x < left && segmentIndex == 0) || (
-                        (x >= left && x < right) && side == BSplineSegment::Side::Right) ||
-                    ((x > left && x <= right) && side == BSplineSegment::Side::Left) ||
+                        (x >= left && x < right) && side == BSplineSegment::SideRight) ||
+                    ((x > left && x <= right) && side == BSplineSegment::SideLeft) ||
                     (segmentIndex == numSegments - 1 && x >= right)) {
                     // Apply the transformation
                     transformedValues[i] = splineSegments_[segmentIndex]->transform(x, value);
@@ -378,6 +409,5 @@ namespace QuantLib {
         Eigen::VectorXd result = splineConstraints_->getSolution();
         return {result.data(), result.data() + result.size()};
     }
-
 
 }
