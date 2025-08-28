@@ -5,7 +5,9 @@ cmake_policy(SET CMP0091 NEW)
 
 # --- Opt-in to modern CMake policies for finding packages ---
 cmake_policy(SET CMP0144 NEW) # Use <PACKAGENAME>_ROOT variables like BOOST_ROOT
-cmake_policy(SET CMP0167 NEW) # Use the modern Boost::* targets, not the old FindBoost module
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD) # Use FindBoost module for now (until we migrate to CONFIG mode)
+endif()
 
 # Version info
 set(QUANTLIB_VERSION_MAJOR 1)
@@ -29,6 +31,11 @@ if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 
 project(${PACKAGE_NAME} LANGUAGES CXX DESCRIPTION "The QuantLib C++ Library")
+
+# Enable C++ exception handling for MSVC
+if(MSVC)
+    add_compile_options(/EHsc)
+endif()
 
 # Path for package-local cmake modules
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -66,10 +73,10 @@ option(QL_INSTALL_TEST_SUITE "Install test suite" ON)
 option(QL_TAGGED_LAYOUT "Library names use layout tags" ${MSVC})
 option(QL_USE_CLANG_TIDY "Use clang-tidy when building" OFF)
 option(QL_USE_INDEXED_COUPON "Use indexed coupons instead of par coupons" OFF)
-option(QL_USE_STD_ANY "Use std::any instead of boost::any" OFF)
-option(QL_USE_STD_CLASSES "Enable all QL_USE_STD_ options" OFF)
+option(QL_USE_STD_ANY "Use std::any instead of boost::any" ON)
+option(QL_USE_STD_CLASSES "Enable all QL_USE_STD_ options" ON)
 option(QL_USE_STD_OPTIONAL "Use std::optional instead of boost::optional" ON)
-option(QL_USE_STD_SHARED_PTR "Use standard smart pointers instead of Boost ones" OFF)
+option(QL_USE_STD_SHARED_PTR "Use standard smart pointers instead of Boost ones" ON)
 set(QL_EXTERNAL_SUBDIRECTORIES "" CACHE STRING "Optional list of external source directories to be added to the build (semicolon-separated)")
 # set -lpapi here
 set(QL_EXTRA_LINK_LIBRARIES "" CACHE STRING "Optional extra link libraries to add to QuantLib")
@@ -155,7 +162,7 @@ endif()
 if (NOT DEFINED QL_BOOST_VERSION)
     # Boost 1.75.0 or greater required for compiling with C++20
     if (CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-        set(QL_BOOST_VERSION 1.75.0)
+        set(QL_BOOST_VERSION 1.88.0)
     else()
         set(QL_BOOST_VERSION 1.58.0)
     endif()
@@ -165,11 +172,60 @@ if (CMAKE_CXX_COMPILER STREQUAL "icpx")
     find_package(IntelDPCPP REQUIRED)
 endif()
 
+# Add debug output before and after find_package for Boost, SCS, and Eigen
+
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message(STATUS "BOOST_ROOT: $ENV{BOOST_ROOT}")
+message(STATUS "SCS_ROOT: $ENV{SCS_ROOT}")
+message(STATUS "EIGEN_ROOT: $ENV{EIGEN_ROOT}")
+
 find_package(Boost ${QL_BOOST_VERSION} REQUIRED)
+if(Boost_FOUND)
+    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
+    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+    message(STATUS "Boost version: ${Boost_VERSION}")
+else()
+    message(WARNING "Boost NOT found!")
+endif()
+
 find_package(scs REQUIRED)
+if(TARGET scs::scsdir)
+    message(STATUS "SCS target scs::scsdir found.")
+    get_target_property(SCS_INCLUDE_DIR scs::scsdir INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(SCS_LOCATION scs::scsdir LOCATION)
+    message(STATUS "SCS include dir: ${SCS_INCLUDE_DIR}")
+    message(STATUS "SCS library location: ${SCS_LOCATION}")
+else()
+    message(WARNING "SCS target scs::scsdir NOT found!")
+endif()
 
 find_package(Eigen3 REQUIRED)
-find_package(isda_cds_model REQUIRED)
+if(TARGET Eigen3::Eigen)
+    message(STATUS "Eigen3::Eigen target found.")
+    get_target_property(EIGEN3_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "Eigen3 include dir: ${EIGEN3_INCLUDE_DIR}")
+else()
+    message(WARNING "Eigen3::Eigen target NOT found!")
+endif()
+
+if(QL_ENABLE_ISDA_CDS)
+    find_package(isda_cds_model REQUIRED)
+    if(TARGET isda_cds_model::cds)
+        message(STATUS "isda_cds_model::cds target found.")
+        get_target_property(ISDA_CDS_MODEL_INCLUDE_DIR isda_cds_model::cds INTERFACE_INCLUDE_DIRECTORIES)
+        message(STATUS "isda_cds_model include dir: ${ISDA_CDS_MODEL_INCLUDE_DIR}")
+        
+        # Fix missing Debug configuration - map it to Release
+        get_target_property(ISDA_RELEASE_LOC isda_cds_model::cds IMPORTED_LOCATION_RELEASE)
+        if(ISDA_RELEASE_LOC AND NOT CMAKE_VERSION VERSION_LESS "3.11")
+            set_target_properties(isda_cds_model::cds PROPERTIES
+                IMPORTED_LOCATION_DEBUG "${ISDA_RELEASE_LOC}"
+            )
+        endif()
+    else()
+        message(WARNING "isda_cds_model::cds target NOT found!")
+    endif()
+endif()
 
 # Do not warn about Boost versions higher than 1.58.0
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -262,9 +318,12 @@ endforeach()
 
 # Add subdirectories
 add_subdirectory(ql)
-target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir)
-target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir Eigen3::Eigen isda_cds_model::cds)
+target_link_libraries(ql_library PUBLIC Boost::boost scs::scsdir Eigen3::Eigen)
+if(QL_ENABLE_ISDA_CDS AND TARGET isda_cds_model::cds)
+    target_link_libraries(ql_library PUBLIC isda_cds_model::cds)
+endif()
 target_include_directories(ql_library PUBLIC ${Boost_INCLUDE_DIRS})
+
 if (QL_BUILD_EXAMPLES)
     add_subdirectory(Examples)
 endif()

@@ -20,7 +20,9 @@
 #ifndef eigen_utilities_hpp
 #define eigen_utilities_hpp
 
+#include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <string>
 #include <vector>
 
 namespace EigenUtilities {
@@ -56,5 +58,7 @@ namespace EigenUtilities {
      */
     Eigen::VectorXd convertToEigenVector(const std::vector<double>& vec);
 }
+
+std::string vectorToString(const Eigen::VectorXd& matrix);
 
 #endif // eigen_utilities_hpp

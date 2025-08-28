@@ -141,7 +141,7 @@
    access and can cause segmentation faults.
 */
 #ifndef QL_USE_STD_SHARED_PTR
-//#    define QL_USE_STD_SHARED_PTR
+#    define QL_USE_STD_SHARED_PTR
 #endif
 
 /* If defined, `Null` will be implemented as a template function.
@@ -159,6 +159,15 @@
 */
 #ifndef QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
 //#    define QL_ENABLE_PARALLEL_UNIT_TEST_RUNNER
+#endif
+
+/* If defined, the experimental ISDA CDS interface will be enabled.
+   This interface allows QuantLib to interact with the ISDA CDS Standard Model C library.
+   Note that this requires the ISDA library to be available and properly linked.
+   If undefined, the ISDA CDS interface will not be available.
+*/
+#ifndef QL_ENABLE_ISDA_CDS
+#    define QL_ENABLE_ISDA_CDS
 #endif
 
 #endif

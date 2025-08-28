@@ -28,6 +28,7 @@
 #include <ql/types.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <numeric>
 #include <stack>
 #include <tuple>
 #include <vector>
@@ -222,10 +223,6 @@ namespace QuantLib {
         // */
         // SplineConstraints(const SplineConstraints& other);
 
-        /*!
-         * \brief Update the ordering of constraints.
-         */
-        void updateOrdering();
 
         /*!
          * \brief Add a linear constraint to the system.
@@ -236,6 +233,14 @@ namespace QuantLib {
         void addLinearConstraint(const Eigen::VectorXd& constraint,
                                  Real rhs,
                                  ConstraintType constraintType = ConstraintType::Equal);
+        
+        /*!
+         * \brief Add equality constraint at beginning to maintain SCS ordering.
+         * \param constraint The constraint vector.
+         * \param rhs The right-hand side value.
+         * This method ensures SCS ordering is maintained by inserting equalities before inequalities.
+         */
+        void addEqualityConstraintAtBeginning(const Eigen::VectorXd& constraint, Real rhs);
 
         /*!
          * \brief Solve the system of constraints.
@@ -358,19 +363,21 @@ namespace QuantLib {
         
         // Inspection methods for debugging constraint ordering
         [[nodiscard]] std::vector<int> get_permutation() const {
-            return this->permutation_;
+            // No reordering - return identity permutation
+            std::vector<int> identity(numConstraints_);
+            std::iota(identity.begin(), identity.end(), 0);
+            return identity;
         }
         
         [[nodiscard]] std::vector<std::vector<Real>> get_reordered_a_matrix() const {
-            // Force reordering if not done
-            if (!isOrdered_) {
-                const_cast<SplineConstraints*>(this)->reorderByConstraints();
-            }
+            // No reordering needed - already in SCS order
+            Eigen::SparseMatrix<double> A_temp(numConstraints_, numVariables_);
+            A_temp.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
             
-            // Convert the reordered sparse matrix A_ to dense format
-            std::vector<std::vector<Real>> result(A_.rows(), std::vector<Real>(A_.cols(), 0.0));
-            for (int k = 0; k < A_.outerSize(); ++k) {
-                for (Eigen::SparseMatrix<Real>::InnerIterator it(A_, k); it; ++it) {
+            // Convert to dense format
+            std::vector<std::vector<Real>> result(A_temp.rows(), std::vector<Real>(A_temp.cols(), 0.0));
+            for (int k = 0; k < A_temp.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<Real>::InnerIterator it(A_temp, k); it; ++it) {
                     result[it.row()][it.col()] = it.value();
                 }
             }
@@ -378,14 +385,13 @@ namespace QuantLib {
         }
         
         [[nodiscard]] std::vector<Real> get_reordered_b_vector() const {
-            if (!isOrdered_) {
-                const_cast<SplineConstraints*>(this)->reorderByConstraints();
-            }
+            // No reordering needed - already in SCS order
             return b_list_;
         }
         
         [[nodiscard]] bool is_ordered() const {
-            return isOrdered_;
+            // Always ordered with strict SCS enforcement
+            return true;
         }
         
         [[nodiscard]] Size get_num_equalities() const {
@@ -433,22 +439,19 @@ namespace QuantLib {
 
         bool scsDataIsUpToDate_ = false; /*!< True if the SCS data structures are up to date. */
         bool isOrdered_ =
-            false; /*!< True if the constraints have been ordered according to constraint type. */
+            true; /*!< Always true - we maintain strict SCS ordering. */
         bool isSolved_ = false; /*!< True if the system has been solved at least once, so a solution
                                    is available. */
         bool hasParameters_ =
             false; /*!< True if the constraints have parameters (usually interpolation nodes). */
-        std::vector<int> permutation_; /*!< Permutations to order constraints. */
+        // Removed permutation_ - no longer needed with strict SCS ordering
         int warmStart_ = 0;            /*!< Warm start parameter. */
 
         double epsAbsolute_ = 1e-12;
         double epsRelative_ = 1e-12;
         double epsInfeasible_ = 1e-13;
 
-        /*!
-         * \brief Reorder constraints by their types.
-         */
-        void reorderByConstraints();
+        // Removed reorderByConstraints - we maintain strict SCS ordering
 
         /*!
          * \brief Update parameter values from an Eigen vector.

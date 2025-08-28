@@ -46,9 +46,9 @@ namespace QuantLib {
     BSplineSegment::BSplineSegment(const std::vector<Real>& simpleKnots,
                                        Integer degree,
                                        const std::vector<Integer>& knotIndices,
-                                       InterpolationSmoothness smoothness,
-                                       InterpolationTransform interpolationTransform,
-                                       Side side,
+                                       InterpolationSmoothnessEnum smoothness,
+                                       InterpolationTransformEnum interpolationTransform,
+                                       SideEnum side,
                                        const Size requiredPoints,
                                        const bool isGlobal)
     : simpleKnots_(simpleKnots), degree_(degree), knotIndices_(knotIndices),
@@ -85,10 +85,10 @@ namespace QuantLib {
 
         this->spline_ = BSplineEvaluator(this->knots_, this->degree_);
 
-        // InterpolationTransform interpolationTransform = InterpolationTransform::Default;
+        // InterpolationTransformEnum interpolationTransform = TransformDefault;
         // Initialize transform and inverse based on the transform parameter
         switch (interpolationTransform) {
-            case InterpolationTransform::Log:
+            case TransformLog:
                 this->transform = [](Real t, Real x) { return std::log(x); };
                 this->transformDerivative = [](Real t, Real x, Natural n) {
                     if (n == 0)
@@ -98,7 +98,7 @@ namespace QuantLib {
                 };
                 this->inverse = [](Real t, Real x) { return std::exp(x); };
                 break;
-            case InterpolationTransform::Exp:
+            case TransformExp:
                 this->transform = [](Real t, Real x) { return std::exp(x); };
                 this->transformDerivative = [](Real t, Real x, Integer n) {
                     return std::exp(x);
@@ -107,7 +107,7 @@ namespace QuantLib {
                     return std::log(x);
                 };
                 break;
-            case InterpolationTransform::RateTime:
+            case TransformRateTime:
                 this->transform = [](Real t, Real x) { return t * x; };
                 this->transformDerivative = [](Real t, Real x, Integer n) {
                     return (n == 0) ? t * x : ((n == 1) ? t : 0.0);
@@ -115,11 +115,12 @@ namespace QuantLib {
                 this->inverse = [this](Real t, Real x) {
                     if (t > 0.0)
                         return x / t;
-                    std::cout << "Using rateTimeX0 " << this->rateTimeX0 << "\n";
+                    // Debug output removed to prevent console popups
+                    // std::cout << "Using rateTimeX0 " << this->rateTimeX0 << "\n";
                     return this->rateTimeX0;
                 };
                 break;
-            case InterpolationTransform::RateTimeAnnualToContinuous:
+            case TransformRateTimeAnnualToContinuous:
                 this->transform = [](Real t, Real x) { return t * std::log1p(x); };
                 this->transformDerivative = [](Real t, Real x, Integer n) {
                     if (n == 0)
@@ -131,11 +132,12 @@ namespace QuantLib {
                 this->inverse = [this](Real t, Real x) {
                     if (t > 0.0)
                         return std::expm1(x / t);
-                    std::cout << "Using rateTimeX0 " << this->rateTimeX0 << "\n";
+                    // Debug output removed to prevent console popups
+                    // std::cout << "Using rateTimeX0 " << this->rateTimeX0 << "\n";
                     return this->rateTimeX0; // TODO fix this, need to take a derivative or generically return nan to be picked up by caller
                 };
                 break;
-            case InterpolationTransform::ContinuousToAnnual:
+            case TransformContinuousToAnnual:
                 this->transform = [](Real t, Real x) { return std::expm1(x); };
                 this->transformDerivative = [](Real t, Real x, Integer n) {
                     if (n == 0)
@@ -146,7 +148,7 @@ namespace QuantLib {
                     return std::log1p(x);
                 };
                 break;
-            case InterpolationTransform::ContinuousToSimple:
+            case TransformContinuousToSimple:
                 this->transform = [](Real t, Real x) {
                     if (t == 0.0) {
                         return x;
@@ -170,7 +172,7 @@ namespace QuantLib {
                     return std::log1p(t * x) / t;
                 };
                 break;
-            case InterpolationTransform::Default:
+            case TransformDefault:
                 this->transform = [](Real t, Real x) { return x; };
                 this->transformDerivative = [](Real t, Real x, Integer n) {
                     return (n == 0) ? x : ((n == 1) ? 1.0 : 0.0);
@@ -239,7 +241,7 @@ namespace QuantLib {
     value.
     */
     Eigen::VectorXd
-    BSplineSegment::evaluateAll(Real t, Size degree, Side side) const {
+    BSplineSegment::evaluateAll(Real t, Size degree, SideEnum side) const {
         const Size p = (degree != static_cast<Size>(-1)) ? degree : static_cast<Size>(degree_);
         BSplineEvaluator spline;
         Real x;
@@ -262,9 +264,9 @@ namespace QuantLib {
 
         // TODO: the sidedness could be taken care of in the evaluation function, it just affects the
         // mu
-        QL_ASSERT(side == Side::Right || side == Side::Left,
+        QL_ASSERT(side == SideRight || side == SideLeft,
                   "Side must be either 'Left' or 'Right'");
-        if (side == Side::Right) {
+        if (side == SideRight) {
             x = t;
             spline = BSplineEvaluator(knotsVector, p);
         } else {
@@ -278,7 +280,7 @@ namespace QuantLib {
 
         Eigen::VectorXd basisValues = spline.evaluateAll(x);
 
-        if (side == Side::Left) {
+        if (side == SideLeft) {
             std::reverse(basisValues.begin(), basisValues.end());
         }
 
@@ -288,7 +290,7 @@ namespace QuantLib {
 
     // TODO: this should only be sensitive to the smoothness, not RT or not, nor degree
     void BSplineSegment::defaultKnotIndices() {
-        if (interpolationSmoothness_ == InterpolationSmoothness::Default) {
+        if (interpolationSmoothness_ == SmoothnessDefault) {
             nKnots_ = nSimpleKnots_ + 2 * static_cast<Integer>(degree_);
             knotIndices_.assign(degree_, 0);
             for (Integer i = 0; i < nSimpleKnots_; ++i) {
@@ -299,7 +301,7 @@ namespace QuantLib {
             //structure_.insert(structure_.end(), nSimpleKnots_ - 2, 1);
             //structure_.push_back(degree_ + 1);
         } else if (interpolationSmoothness_ ==
-                   InterpolationSmoothness::Hermite) {
+                   SmoothnessHermite) {
             nKnots_ = 2 * nSimpleKnots_ + 2 * static_cast<Integer>((degree_ - 1));
             knotIndices_.assign(degree_ - 1, 0);
             for (Integer i = 0; i < 2 * nSimpleKnots_; ++i) {
@@ -320,33 +322,33 @@ namespace QuantLib {
                                                Integer nu,
                                                Size degree,
                                                Real x0,
-                                               Side side)
+                                               SideEnum side)
         const // Assuming Side is an enum with values Left, Right, Average, Actual, etc.
     {
-        QL_REQUIRE(this->interpolationTransform_ == InterpolationTransform::Default,
+        QL_REQUIRE(this->interpolationTransform_ == TransformDefault,
                    "Derivative for transformed curves not implemented yet.");
         // Determine the degree of the spline
         const Size p = (degree != static_cast<Size>(-1)) ? degree : this->degree_;
-        const Side actualSide = (side != Side::None) ? side : this->side_;
+        const SideEnum actualSide = (side != SideDefault) ? side : this->side_;
 
         Eigen::VectorXd evaluateAll;
 
         // Handle the logic for evaluating the spline derivative
         if (std::find(this->knots_.begin(), this->knots_.end(), x) == this->knots_.end()) {
             // x is not in the knots
-            evaluateAll = this->evaluateAll(x, p - nu, Side::Right);
-        } else if (actualSide == Side::Left || actualSide == Side::Right) {
+            evaluateAll = this->evaluateAll(x, p - nu, SideRight);
+        } else if (actualSide == SideLeft || actualSide == SideRight) {
             // Evaluate on the specified side (left or right)
             evaluateAll = this->evaluateAll(x, p - nu, actualSide);
-        } else if (actualSide == Side::Average) {
+        } else if (actualSide == SideAverage) {
             // Average the evaluations on the left and right
-            const Eigen::VectorXd evaluateLeft = this->evaluateAll(x, p - nu, Side::Left);
-            const Eigen::VectorXd evaluateRight = this->evaluateAll(x, p - nu, Side::Right);
+            const Eigen::VectorXd evaluateLeft = this->evaluateAll(x, p - nu, SideLeft);
+            const Eigen::VectorXd evaluateRight = this->evaluateAll(x, p - nu, SideRight);
             evaluateAll = (evaluateLeft + evaluateRight) / 2.0;
-        } else { // Side::Actual
+        } else { // SideActual
             // Evaluate on the right and compare with the left side
-            Eigen::VectorXd evaluateRight = this->evaluateAll(x, p - nu, Side::Right);
-            Eigen::VectorXd evaluateLeft = this->evaluateAll(x, p - nu, Side::Left);
+            Eigen::VectorXd evaluateRight = this->evaluateAll(x, p - nu, SideRight);
+            Eigen::VectorXd evaluateLeft = this->evaluateAll(x, p - nu, SideLeft);
 
             // Find indices where the values differ
             Eigen::VectorXd evaluateAllResult = evaluateRight;
@@ -380,12 +382,12 @@ namespace QuantLib {
     Real BSplineSegment::value(const Eigen::VectorXd& coefficients,
                                Real t,
                                Integer nu,
-                               Side side) {
-        QL_ASSERT(nu == 0 || this->interpolationTransform_ == InterpolationTransform::Default,
+                               SideEnum side) {
+        QL_ASSERT(nu == 0 || this->interpolationTransform_ == TransformDefault,
                   "Derivative value not implemented for transformed curves");
-        if (t == 0.0 && this->interpolationTransform_ == InterpolationTransform::RateTime) {
+        if (t == 0.0 && this->interpolationTransform_ == TransformRateTime) {
             // TODO: this works for Linear RT only, general solution requires derivative
-            return value(coefficients, this->simpleKnots_[1], nu, Side::Left) /
+            return value(coefficients, this->simpleKnots_[1], nu, SideLeft) /
                    this->simpleKnots_[1];
         }
 
@@ -437,10 +439,10 @@ namespace QuantLib {
         }
     }
 
-    Eigen::VectorXd BSplineSegment::valueFunctional(Real t, Side side) const {
-        QL_ASSERT(this->interpolationTransform_ == InterpolationTransform::Default,
+    Eigen::VectorXd BSplineSegment::valueFunctional(Real t, SideEnum side) const {
+        QL_ASSERT(this->interpolationTransform_ == TransformDefault,
                   "Value operator not implemented for transformed curves");
-        QL_ASSERT(side == Side::Right || side == Side::Left,
+        QL_ASSERT(side == SideRight || side == SideLeft,
                   "valueFunctional only accepts sides 'Right' and 'Left', consider using "
                   "derivativeFunctional with nu=0");
 

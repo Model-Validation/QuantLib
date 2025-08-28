@@ -98,9 +98,7 @@ namespace QuantLib {
         // Mark as already ordered (SCS ordering is the contract)
         isOrdered_ = true;
         
-        // Initialize permutation as identity (no reordering needed)
-        permutation_ = std::vector<int>(numConstraints_);
-        std::iota(permutation_.begin(), permutation_.end(), 0);
+        // No permutation needed - we maintain strict SCS ordering
         
         numParameters_ = 0;
         hasParameters_ = false;
@@ -170,7 +168,20 @@ namespace QuantLib {
             numEqualities_ =
                 std::count(constraintTypes_.begin(), constraintTypes_.end(), ConstraintType::Equal);
             numInequalities_ = numConstraints_ - numEqualities_;
-            isOrdered_ = false;
+            // Check if constraints are already in SCS order
+            bool inOrder = true;
+            bool seenInequality = false;
+            for (const auto& type : constraintTypes_) {
+                if (type == ConstraintType::LessEqual) {
+                    seenInequality = true;
+                } else if (seenInequality) {
+                    // Found equality after inequality - not in SCS order
+                    inOrder = false;
+                    break;
+                }
+            }
+            isOrdered_ = inOrder;
+            QL_REQUIRE(isOrdered_, "Constraints must be in SCS order (equalities first, then inequalities)");
         }
 
         parameters_ = Eigen::VectorXd::Zero(numParameters_);
@@ -244,7 +255,20 @@ namespace QuantLib {
                 std::count(constraintTypes_.begin(), constraintTypes_.end(), ConstraintType::Equal);
             numInequalities_ = std::count(constraintTypes_.begin(), constraintTypes_.end(),
                                           ConstraintType::LessEqual);
-            isOrdered_ = false;
+            // Check if constraints are already in SCS order
+            bool inOrder = true;
+            bool seenInequality = false;
+            for (const auto& type : constraintTypes_) {
+                if (type == ConstraintType::LessEqual) {
+                    seenInequality = true;
+                } else if (seenInequality) {
+                    // Found equality after inequality - not in SCS order
+                    inOrder = false;
+                    break;
+                }
+            }
+            isOrdered_ = inOrder;
+            QL_REQUIRE(isOrdered_, "Constraints must be in SCS order (equalities first, then inequalities)");
         }
 
         parameters_ = Eigen::VectorXd::Zero(numParameters_);
@@ -255,69 +279,9 @@ namespace QuantLib {
     //     *this = other;
     // }
 
-    void SplineConstraints::updateOrdering() {
-        // Create trivial permutation
-        permutation_ = std::vector<int>(numConstraints_);
-        std::iota(permutation_.begin(), permutation_.end(), 0);
+    // Removed updateOrdering - we maintain strict SCS ordering
 
-        // Sort permutation stably using the constraint type enum
-        std::stable_sort(permutation_.begin(), permutation_.end(), [this](int i, int j) {
-            return constraintTypes_[i] < constraintTypes_[j];
-        });
-    }
-
-    void SplineConstraints::reorderByConstraints() {
-        // transform the triplets renumbering the rows according to permutation, both for A and B
-        // matrices
-        updateOrdering();
-        
-        // FIX: Create inverse permutation for correct reordering
-        // permutation_[i] tells us that constraint i should go to position permutation_[i]
-        // So inversePermutation[j] tells us which original constraint goes to position j
-        std::vector<int> inversePermutation(numConstraints_);
-        for (Size i = 0; i < numConstraints_; ++i) {
-            inversePermutation[permutation_[i]] = i;
-        }
-        
-        std::vector<Eigen::Triplet<Real>> reorderedTriplets;
-        reorderedTriplets.reserve(A_triplets_.size());
-        for (const auto& triplet : A_triplets_) {
-            // FIX: Use inverse permutation to map old row to new row
-            reorderedTriplets.emplace_back(inversePermutation[triplet.row()], triplet.col(),
-                                           triplet.value());
-        }
-        A_.resize(numConstraints_, numVariables_);
-        A_.setFromTriplets(reorderedTriplets.begin(), reorderedTriplets.end());
-
-        if (hasParameters_) {
-            reorderedTriplets.clear();
-            reorderedTriplets.reserve(B_triplets_.size());
-            for (const auto& triplet : B_triplets_) {
-                // FIX: Use inverse permutation here too
-                reorderedTriplets.emplace_back(inversePermutation[triplet.row()], triplet.col(),
-                                               triplet.value());
-            }
-            B_.resize(numConstraints_, numParameters_);
-            B_.setFromTriplets(reorderedTriplets.begin(), reorderedTriplets.end());
-        }
-
-        //  Reorder rhs values and constraints
-        std::vector<double> reorderedB(numConstraints_);
-        numEqualities_ = numInequalities_ = 0;
-        for (Size i = 0; i < numConstraints_; ++i) {
-            reorderedB[i] = b_list_[permutation_[i]];
-            // FIX: Check the constraint type of the original constraint being moved here
-            if (constraintTypes_[permutation_[i]] == ConstraintType::Equal) {
-                numEqualities_++;
-            } else {
-                numInequalities_++;
-            }
-        }
-        b_list_ = reorderedB;
-        b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), numConstraints_);
-
-        isOrdered_ = true;
-    }
+    // Removed reorderByConstraints - we maintain strict SCS ordering
 
     // void SplineConstraints::setParameterMatrixB(
     //     Size nParameters, const std::vector<std::vector<double>>& B_parameterMatrix) {
@@ -368,7 +332,7 @@ namespace QuantLib {
         B_triplets_.insert(B_triplets_.end(), B_new_triplets.begin(), B_new_triplets.end());
         C_triplets_.insert(C_triplets_.end(), C_new_triplets.begin(), C_new_triplets.end());
 
-        isOrdered_ = false;
+        // Parameters don't affect ordering
         scsDataIsUpToDate_ = false;
     }
 
@@ -398,7 +362,7 @@ namespace QuantLib {
             C_triplets_.resize(nCTriplets);
             numConstraints_ = nConstraints;
             numParameters_ = nParameters;
-            isOrdered_ = false;
+            // Pop doesn't affect SCS ordering
             scsDataIsUpToDate_ = false;
         }
     }
@@ -473,7 +437,60 @@ namespace QuantLib {
                    "Wrong parity for equalities and inequalities");
 
         scsDataIsUpToDate_ = false;
-        isOrdered_ = false;
+        // Check if we're still in SCS order after adding constraint
+        if (constraintType == ConstraintType::Equal && numInequalities_ > 0) {
+            // Added equality after inequalities - order broken
+            isOrdered_ = false;
+            QL_FAIL("Cannot add equality constraint after inequality constraints. Use addEqualityConstraintAtBeginning() instead.");
+        }
+    }
+    
+    void SplineConstraints::addEqualityConstraintAtBeginning(const Eigen::VectorXd& constraint,
+                                                              double rhs) {
+        // To maintain SCS ordering, insert equality constraints before inequalities
+        // New row index for this equality is at position numEqualities_ (after existing equalities)
+        Size insertPosition = numEqualities_;
+        
+        // Shift all inequality constraint indices up by 1
+        std::vector<Eigen::Triplet<Real>> newTriplets;
+        newTriplets.reserve(A_triplets_.size() + constraint.nonZeros());
+        
+        // Copy equality constraints (rows 0 to numEqualities_-1)
+        for (const auto& triplet : A_triplets_) {
+            if (static_cast<Size>(triplet.row()) < numEqualities_) {
+                newTriplets.push_back(triplet);
+            } else {
+                // Shift inequality constraints up by 1
+                newTriplets.emplace_back(triplet.row() + 1, triplet.col(), triplet.value());
+            }
+        }
+        
+        // Add new equality constraint at position numEqualities_
+        Eigen::SparseVector<double> sparseRow = constraint.sparseView();
+        for (Eigen::SparseVector<double>::InnerIterator it(sparseRow); it; ++it) {
+            newTriplets.emplace_back(insertPosition, it.index(), it.value());
+        }
+        
+        // Update triplets
+        A_triplets_ = std::move(newTriplets);
+        
+        // Insert RHS value at correct position
+        b_list_.insert(b_list_.begin() + insertPosition, rhs);
+        b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), b_list_.size());
+        
+        // Insert constraint type at correct position
+        constraintTypes_.insert(constraintTypes_.begin() + insertPosition, ConstraintType::Equal);
+        
+        // Update counts
+        numEqualities_++;
+        numConstraints_++;
+        
+        QL_REQUIRE(numConstraints_ == numEqualities_ + numInequalities_,
+                   "Wrong parity for equalities and inequalities");
+        
+        // System remains ordered (SCS order maintained)
+        isOrdered_ = true;
+        scsDataIsUpToDate_ = false;
     }
 
 
@@ -562,12 +579,9 @@ namespace QuantLib {
     }
 
     void SplineConstraints::updateScsData() {
-        if (!isOrdered_) {
-            reorderByConstraints();
-        } else {
-            A_.resize(numConstraints_, numVariables_);
-            A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
-        }
+        // No reordering needed - always maintain SCS order
+        A_.resize(numConstraints_, numVariables_);
+        A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
 
         if (hasParameters_) {
             B_.resize(numConstraints_, numParameters_);

@@ -3,6 +3,8 @@
 
 #include <ql/math/interpolations/bsplineinterpolation/bsplineevaluator.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp>
+#include <ql/math/interpolations/bsplineinterpolation/bsplinestructure.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/eigenutilities.hpp>
+#include <ql/math/interpolations/bsplineinterpolation/scssolver.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/splineconstraints.hpp>
 #include <ql/math/interpolations/bsplineinterpolation/splinesegment.hpp>

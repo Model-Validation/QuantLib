@@ -40,71 +40,68 @@ namespace QuantLib {
      */
     class BSplineSegment {
       public:
-        /*!
-         * \brief Enum representing the side for interpolation, the
-         */
-        enum class Side : std::int8_t { Left, Right, Average, Actual, Inside, None };
-
-        /*!
-         * \brief Enum representing the type of interpolation.
-         */
-        enum class InterpolationType : std::int8_t {
-            Linear,
-            LinearRT,
-            QuadraticSplineRT,
-            CubicSpline,
-            CubicSplineRT,
-            Hermite,
-            HermiteRT,
-            PiecewiseQuadraticContFwd,
-            ConvexMonotone,
-            Shortest,
-            Closest,
-            Following,
-            Preceding
+        // Simple enums like AnalyticHestonEngine for SWIG compatibility
+        enum Side { 
+            SideLeft, SideRight, SideAverage, SideActual, SideInside, SideDefault 
         };
-
-        /*!
-         * \brief Enum representing the transform for interpolation.
-         */
-        enum class InterpolationTransform : std::int8_t {
-            Default,
-            Log,
-            Exp,
-            RateTime,
-            RateTimeAnnualToContinuous,
-            ContinuousToAnnual,
-            ContinuousToSimple
+        
+        enum InterpolationType {
+            TypeLinear,
+            TypeLinearRT,
+            TypeQuadraticSplineRT,
+            TypeCubicSpline,
+            TypeCubicSplineRT,
+            TypeHermite,
+            TypeHermiteRT,
+            TypePiecewiseQuadraticContFwd,
+            TypeConvexMonotone,
+            TypeShortest,
+            TypeClosest,
+            TypeFollowing,
+            TypePreceding
         };
-
-        /*!
-         * \brief Enum representing the smoothness of interpolation.
-         */
-        enum class InterpolationSmoothness : std::int8_t {
-            Discontinuous, // Internal knots repeated k times for k-th degree spline, aka C^{-1}
-            Continuous,    // aka C^0
-            ContinuouslyDifferentiable,      // aka C^1
-            TwiceContinuouslyDifferentiable, // aka C^2
-            Hermite, // Internal knots are double, means C^{k-2} for a k-th degree spline
-            Default  // Internal knots are simple, means C^{k-1} for a k-th degree spline
+        
+        enum InterpolationTransform {
+            TransformDefault,
+            TransformLog,
+            TransformExp,
+            TransformRateTime,
+            TransformRateTimeAnnualToContinuous,
+            TransformContinuousToAnnual,
+            TransformContinuousToSimple
         };
+        
+        enum InterpolationSmoothness {
+            SmoothnessDiscontinuous, // Internal knots repeated k times for k-th degree spline, aka C^{-1}
+            SmoothnessContinuous,    // aka C^0
+            SmoothnessContinuouslyDifferentiable,      // aka C^1
+            SmoothnessTwiceContinuouslyDifferentiable, // aka C^2
+            SmoothnessHermite, // Internal knots are double, means C^{k-2} for a k-th degree spline
+            SmoothnessDefault  // Internal knots are simple, means C^{k-1} for a k-th degree spline
+        };
+        
+        // Compatibility typedefs for existing code
+        using SideEnum = Side;
+        using InterpolationTypeEnum = InterpolationType;
+        using InterpolationTransformEnum = InterpolationTransform;
+        using InterpolationSmoothnessEnum = InterpolationSmoothness;
 
 
         // Convert Side enum to string
-        static constexpr std::string_view toString(Side side) {
+        static constexpr std::string_view toString(SideEnum side) {
             switch (side) {
-                case Side::Left:
+                case SideLeft:
                     return "Left";
-                case Side::Right:
+                case SideRight:
                     return "Right";
-                case Side::Average:
+                case SideAverage:
                     return "Average";
-                case Side::Actual:
+                case SideActual:
                     return "Actual";
-                case Side::Inside:
+                case SideInside:
                     return "Inside";
-                case Side::None:
-                    return "None";
+                case SideDefault:
+                    return "Default";
                 //default:
                 //    return "Unknown Side";
             }
@@ -112,33 +109,33 @@ namespace QuantLib {
         }
 
         // Convert InterpolationType enum to string
-        static constexpr std::string_view toString(InterpolationType type) {
+        static constexpr std::string_view toString(InterpolationTypeEnum type) {
             switch (type) {
-                case InterpolationType::Linear:
+                case TypeLinear:
                     return "Linear";
-                case InterpolationType::LinearRT:
+                case TypeLinearRT:
                     return "LinearRT";
-                case InterpolationType::QuadraticSplineRT:
+                case TypeQuadraticSplineRT:
                     return "QuadraticSplineRT";
-                case InterpolationType::CubicSpline:
+                case TypeCubicSpline:
                     return "CubicSpline";
-                case InterpolationType::CubicSplineRT:
+                case TypeCubicSplineRT:
                     return "CubicSplineRT";
-                case InterpolationType::Hermite:
+                case TypeHermite:
                     return "Hermite";
-                case InterpolationType::HermiteRT:
+                case TypeHermiteRT:
                     return "HermiteRT";
-                case InterpolationType::PiecewiseQuadraticContFwd:
+                case TypePiecewiseQuadraticContFwd:
                     return "PiecewiseQuadraticContFwd";
-                case InterpolationType::ConvexMonotone:
+                case TypeConvexMonotone:
                     return "ConvexMonotone";
-                case InterpolationType::Shortest:
+                case TypeShortest:
                     return "Shortest";
-                case InterpolationType::Closest:
+                case TypeClosest:
                     return "Closest";
-                case InterpolationType::Following:
+                case TypeFollowing:
                     return "Following";
-                case InterpolationType::Preceding:
+                case TypePreceding:
                     return "Preceding";
                 //default:
                 //    return "Unknown InterpolationType";
@@ -147,21 +144,21 @@ namespace QuantLib {
         }
 
         // Convert InterpolationTransform enum to string
-        static constexpr std::string_view toString(InterpolationTransform transform) {
+        static constexpr std::string_view toString(InterpolationTransformEnum transform) {
             switch (transform) {
-                case InterpolationTransform::Default:
+                case TransformDefault:
                     return "Default";
-                case InterpolationTransform::Log:
+                case TransformLog:
                     return "Log";
-                case InterpolationTransform::Exp:
+                case TransformExp:
                     return "Exp";
-                case InterpolationTransform::RateTime:
+                case TransformRateTime:
                     return "RateTime";
-                case InterpolationTransform::RateTimeAnnualToContinuous:
+                case TransformRateTimeAnnualToContinuous:
                     return "RateTimeAnnualToContinuous";
-                case InterpolationTransform::ContinuousToAnnual:
+                case TransformContinuousToAnnual:
                     return "ContinuousToAnnual";
-                case InterpolationTransform::ContinuousToSimple:
+                case TransformContinuousToSimple:
                     return "ContinuousToSimple";
                 //default:
                 //    return "Unknown InterpolationTransform";
@@ -170,19 +167,19 @@ namespace QuantLib {
         }
 
         // Convert InterpolationSmoothness enum to string
-        static constexpr std::string_view toString(InterpolationSmoothness smoothness) {
+        static constexpr std::string_view toString(InterpolationSmoothnessEnum smoothness) {
             switch (smoothness) {
-                case InterpolationSmoothness::Discontinuous:
+                case SmoothnessDiscontinuous:
                     return "Discontinuous";
-                case InterpolationSmoothness::Continuous:
+                case SmoothnessContinuous:
                     return "Continuous";
-                case InterpolationSmoothness::ContinuouslyDifferentiable:
+                case SmoothnessContinuouslyDifferentiable:
                     return "ContinuouslyDifferentiable";
-                case InterpolationSmoothness::TwiceContinuouslyDifferentiable:
+                case SmoothnessTwiceContinuouslyDifferentiable:
                     return "TwiceContinuouslyDifferentiable";
-                case InterpolationSmoothness::Hermite:
+                case SmoothnessHermite:
                     return "Hermite";
-                case InterpolationSmoothness::Default:
+                case SmoothnessDefault:
                     return "Default";
                 //default:
                 //    return "Unknown InterpolationSmoothness";
@@ -206,9 +203,9 @@ namespace QuantLib {
             const std::vector<Real>& simpleKnots,
             Integer degree,
             const std::vector<Integer>& knotIndices,
-            InterpolationSmoothness smoothness = InterpolationSmoothness::Default,
-            InterpolationTransform interpolationTransform = InterpolationTransform::Default,
-            Side side = Side::Right,
+            InterpolationSmoothnessEnum smoothness = SmoothnessDefault,
+            InterpolationTransformEnum interpolationTransform = TransformDefault,
+            SideEnum side = SideRight,
             Size requiredPoints = 1,
             bool isGlobal = true);
 
@@ -265,15 +262,15 @@ namespace QuantLib {
 
 
         // Accessor for sidedness
-        Side side() const { return side_; }
+        SideEnum side() const { return side_; }
 
         // Accessor for interpolationTransform
-        InterpolationTransform interpolationTransform() const {
+        InterpolationTransformEnum interpolationTransform() const {
             return interpolationTransform_;
         }
 
         // Accessor for interpolationSmoothness
-        InterpolationSmoothness interpolationSmoothness() const {
+        InterpolationSmoothnessEnum interpolationSmoothness() const {
             return interpolationSmoothness_;
         }
 
@@ -297,7 +294,7 @@ namespace QuantLib {
          */
         Size getNumVariables() const { return nKnots_ - degree_ - static_cast<Size>(1); }
         // ReSharper disable once CppInconsistentNaming
-        Natural get_num_variables() const { return static_cast<Natural>(nKnots_ - degree_) - 1; }
+        Natural getNumVariablesSwig() const { return static_cast<Natural>(nKnots_ - degree_) - 1; }
 
         /*!
          * \brief Evaluate all basis functions at a given value.
@@ -307,11 +304,11 @@ namespace QuantLib {
          * \return A vector of evaluated basis functions.
          */
         Eigen::VectorXd
-        evaluateAll(Real t, Size degree = static_cast<Size>(-1), Side side = Side::Right) const;
+        evaluateAll(Real t, Size degree = static_cast<Size>(-1), SideEnum side = SideRight) const;
 
         // ReSharper disable once CppInconsistentNaming
         std::vector<Real>
-        evaluate_all(Real x, Integer degree = -1, Side side = Side::Right) const {
+        evaluateAllSwig(Real x, Integer degree = -1, SideEnum side = SideRight) const {
             Eigen::VectorXd eigenVector = evaluateAll(x, static_cast<Size>(degree), side);
             return {eigenVector.data(), eigenVector.data() + eigenVector.size()};
         }
@@ -472,9 +469,9 @@ namespace QuantLib {
         Size degree_;
         std::vector<Integer> knotIndices_;
 
-        InterpolationSmoothness interpolationSmoothness_;
-        InterpolationTransform interpolationTransform_;
-        Side side_;
+        InterpolationSmoothnessEnum interpolationSmoothness_;
+        InterpolationTransformEnum interpolationTransform_;
+        SideEnum side_;
 
         Size requiredPoints_;
         bool isGlobal_;
@@ -510,30 +507,30 @@ namespace QuantLib {
                                    Integer nu = 1,
                                    Size degree = static_cast<Size>(-1),
                                    Real x0 = 0.0,
-                                   Side side = Side::None) const;
+                                   SideEnum side = SideDefault) const;
 
         // ReSharper disable once CppInconsistentNaming
         std::vector<Real> derivative_functional(const Real x,
                                                 const Integer nu = 1,
                                                 const Size degree = static_cast<Size>(-1),
                                                 const Real x0 = 0.0,
-                                                const Side side = Side::None) const {
+                                                const SideEnum side = SideDefault) const {
             Eigen::VectorXd eigenVector = derivativeFunctional(x, nu, degree, x0, side);
             return {eigenVector.data(), eigenVector.data() + eigenVector.size()};
         }
 
-        Real value(const Eigen::VectorXd& coefficients, Real t, Integer nu = 0, Side side = Side::Right);
+        Real value(const Eigen::VectorXd& coefficients, Real t, Integer nu = 0, SideEnum side = SideRight);
 
-        Real value(const std::vector<Real>& coefficients, Real t, Integer nu = 0, Side side = Side::Right) {
+        Real value(const std::vector<Real>& coefficients, Real t, Integer nu = 0, SideEnum side = SideRight) {
             return value(Eigen::Map<const Eigen::VectorXd>(
                              coefficients.data(), static_cast<Eigen::Index>(coefficients.size())),
                          t, nu, side);
         }
 
-        Eigen::VectorXd valueFunctional(Real t, Side side) const;
+        Eigen::VectorXd valueFunctional(Real t, SideEnum side) const;
 
         // ReSharper disable once CppInconsistentNaming
-        std::vector<Real> value_functional(const Real t, const Side side) const {
+        std::vector<Real> value_functional(const Real t, const SideEnum side) const {
             Eigen::VectorXd eigenVector = valueFunctional(t, side);
             return {eigenVector.data(), eigenVector.data() + eigenVector.size()};
         }

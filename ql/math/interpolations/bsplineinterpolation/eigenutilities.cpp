@@ -81,3 +81,23 @@ namespace EigenUtilities {
         return eigenVector;
     }
 }
+
+#include "eigenutilities.hpp"
+#include <sstream>
+#include <Eigen/Dense>
+#include <string>
+
+std::string vectorToString(const Eigen::VectorXd& matrix) {
+    std::ostringstream oss;
+    oss << "{";
+    bool first = true;
+    for (auto value : matrix) {
+        if (!first) {
+            oss << ", ";
+        }
+        oss << value;
+        first = false;
+    }
+    oss << "}";
+    return oss.str();
+}

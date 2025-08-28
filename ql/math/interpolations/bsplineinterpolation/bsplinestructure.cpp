@@ -67,8 +67,8 @@ namespace QuantLib {
 
         for (const Real interpolationNode : interpolationNodes) {
             Eigen::VectorXd row = evaluateAll(interpolationNode, side);
-            splineConstraints_->addLinearConstraint(
-                row, 0.0, SplineConstraints::ConstraintType::Equal);
+            // Use the new method that maintains SCS ordering
+            splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
         }
 
         // We still have the old constraint count

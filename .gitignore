@@ -120,3 +120,9 @@ nbproject
 .dir-locals.el
 Build.props
 Directory.Build.props
+ql/termstructures/globalbootstrap.hpp.rej
+QuantLib.sln.DotSettings.user
+QuantLib.vcxproj.filters.rej
+QuantLib.vcxproj.rej
+/build-super
+ .ipynb_checkpoints/
