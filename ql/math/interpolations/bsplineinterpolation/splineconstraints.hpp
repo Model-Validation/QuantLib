@@ -414,6 +414,10 @@ namespace QuantLib {
 
             scsDataIsUpToDate_ = false;
         }
+        
+        // Getters for combining objectives in LS mode
+        const Eigen::SparseMatrix<Real>& getP() const { return P_; }
+        const Eigen::VectorXd& getCVector() const { return c_; }
 
       private:
         Size numVariables_, numConstraints_, numEqualities_, numInequalities_, numParameters_;

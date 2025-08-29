@@ -212,5 +212,13 @@ if (QL_BUILD_TEST_SUITE)
     if (QL_INSTALL_BENCHMARK)
         install(TARGETS ql_benchmark RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
     endif()
+    
+    # Debug test for join constraints
+    add_executable(debug_join debug_join_constraints.cpp)
+    target_link_libraries(debug_join PRIVATE ql_library)
+    
+    # Debug test for single segment
+    add_executable(debug_single debug_single_segment.cpp)
+    target_link_libraries(debug_single PRIVATE ql_library)
 endif()
 

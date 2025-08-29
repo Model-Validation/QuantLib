@@ -102,6 +102,10 @@ namespace QuantLib {
         
         numParameters_ = 0;
         hasParameters_ = false;
+        
+        // Build the sparse matrix from triplets
+        A_ = Eigen::SparseMatrix<double>(numConstraints_, numVariables_);
+        A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
     }
     
     SplineConstraints::SplineConstraints(Size numVariables,
@@ -186,6 +190,10 @@ namespace QuantLib {
 
         parameters_ = Eigen::VectorXd::Zero(numParameters_);
         hasParameters_ = false;
+        
+        // Build the sparse matrix from triplets (was missing!)
+        A_ = Eigen::SparseMatrix<double>(numConstraints_, numVariables_);
+        A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
     }
 
     SplineConstraints::SplineConstraints(Size numVariables,
@@ -212,11 +220,14 @@ namespace QuantLib {
         numConstraints_ = 0;
         // Find the highest row number, this is the number of constraints. The [&] capture in the
         // lambda makes all variables in the scope available by reference.
-        std::for_each(
-            A_triplets.begin(), A_triplets.end(), [&](const Eigen::Triplet<double>& triplet) {
-                numConstraints_ = std::max(numConstraints_, static_cast<Size>(triplet.row()));
-            });
-        numConstraints_++;
+        if (!A_triplets.empty()) {
+            std::for_each(
+                A_triplets.begin(), A_triplets.end(), [&](const Eigen::Triplet<double>& triplet) {
+                    numConstraints_ = std::max(numConstraints_, static_cast<Size>(triplet.row()));
+                });
+            numConstraints_++;  // Convert from 0-based index to count
+        }
+        // If A_triplets is empty, numConstraints_ stays 0
 
         A_ = Eigen::SparseMatrix<double>(numConstraints_, numVariables);
         A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
@@ -588,6 +599,17 @@ namespace QuantLib {
             B_.setFromTriplets(B_triplets_.begin(), B_triplets_.end());
             C_.resize(numVariables_, numParameters_);
             C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
+            
+            // Debug: Check dimensions before matrix multiplication
+            QL_REQUIRE(B_.cols() == parameters_.size(),
+                      "B matrix cols " << B_.cols() << " != parameters size " << parameters_.size());
+            QL_REQUIRE(b_.size() == B_.rows(),
+                      "b vector size " << b_.size() << " != B rows " << B_.rows());
+            QL_REQUIRE(C_.cols() == parameters_.size(),
+                      "C matrix cols " << C_.cols() << " != parameters size " << parameters_.size());
+            QL_REQUIRE(c_.size() == C_.rows(),
+                      "c vector size " << c_.size() << " != C rows " << C_.rows());
+            
             Eigen::VectorXd bp = b_ + B_ * parameters_;
             Eigen::VectorXd cp = c_ + C_ * parameters_;
             scsData_ = new SCS::SCSSolver(P_, A_, bp, cp, numEqualities_, numInequalities_,
@@ -647,7 +669,21 @@ namespace QuantLib {
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
 
-        Eigen::VectorXd bp = b_ + B_ * parameters_;
+        // Debug: Check dimensions before matrix multiplication
+        QL_REQUIRE(parameters_.size() == numParameters_ || numParameters_ == 0,
+                  "Parameter size mismatch: provided " << parameters_.size() << 
+                  " but expected " << numParameters_);
+        
+        Eigen::VectorXd bp;
+        if (numParameters_ > 0 && parameters_.size() > 0) {
+            QL_REQUIRE(B_.cols() == parameters_.size(),
+                      "B matrix cols " << B_.cols() << " != parameters size " << parameters_.size());
+            QL_REQUIRE(b_.size() == B_.rows(),
+                      "b vector size " << b_.size() << " != B rows " << B_.rows());
+            bp = b_ + B_ * parameters_;
+        } else {
+            bp = b_;
+        }
         Eigen::VectorXd cp = Eigen::VectorXd(0);
         scs_int status = scsData_->update(bp, cp);
 

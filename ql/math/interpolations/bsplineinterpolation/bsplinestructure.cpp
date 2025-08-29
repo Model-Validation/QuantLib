@@ -67,6 +67,12 @@ namespace QuantLib {
 
         for (const Real interpolationNode : interpolationNodes) {
             Eigen::VectorXd row = evaluateAll(interpolationNode, side);
+            
+            // Debug: Check row dimensions match expected
+            QL_REQUIRE(row.size() == nVariables,
+                      "evaluateAll returned wrong size: " << row.size() <<
+                      " expected " << nVariables << " for x=" << interpolationNode);
+            
             // Use the new method that maintains SCS ordering
             splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
         }
@@ -175,16 +181,42 @@ namespace QuantLib {
             } else {
                 // FIXED: Build LS objective and solve WITH constraints
                 // The LS objective is: min 0.5 * x'Px + c'x where P = A'A, c = -A'b
-                Eigen::SparseMatrix<Real> P = interpolationA_.transpose() * interpolationA_;
-                Eigen::VectorXd c = -(interpolationA_.transpose() * interpolationBVec_);
+                
+                // Debug: Check dimensions before matrix multiplication
+                QL_REQUIRE(interpolationA_.cols() > 0 && interpolationA_.rows() > 0,
+                          "interpolationA_ has invalid dimensions: " << 
+                          interpolationA_.rows() << "x" << interpolationA_.cols());
+                QL_REQUIRE(interpolationBVec_.size() == interpolationA_.rows(),
+                          "Dimension mismatch: interpolationBVec size " << interpolationBVec_.size() <<
+                          " != interpolationA rows " << interpolationA_.rows());
+                
+                Eigen::SparseMatrix<Real> P_ls = interpolationA_.transpose() * interpolationA_;
+                Eigen::VectorXd c_ls = -(interpolationA_.transpose() * interpolationBVec_);
+                
+                // CRITICAL FIX: Don't replace P, but COMBINE with it!
+                // The original P has regularization that maintains structure for multi-segment
+                Eigen::SparseMatrix<Real> P_original = splineConstraints_->getP();
+                Eigen::VectorXd c_original = splineConstraints_->getCVector();
+                
+                // Check dimensions are compatible
+                QL_REQUIRE(P_ls.rows() == P_original.rows() && P_ls.cols() == P_original.cols(),
+                          "P matrix dimension mismatch: P_ls is " << P_ls.rows() << "x" << P_ls.cols() <<
+                          " but P_original is " << P_original.rows() << "x" << P_original.cols());
+                QL_REQUIRE(c_ls.size() == c_original.size(),
+                          "c vector dimension mismatch: c_ls size " << c_ls.size() <<
+                          " != c_original size " << c_original.size());
+                
+                // Combine objectives: original regularization + LS data fitting
+                // Total objective: 0.5 * x'(P_original + P_ls)x + (c_original + c_ls)'x
+                Eigen::SparseMatrix<Real> P_combined = P_original + P_ls;
+                Eigen::VectorXd c_combined = c_original + c_ls;
                 
                 // Update the objective in the constraint system
-                splineConstraints_->setP(P);
-                splineConstraints_->setCVector(c);
+                splineConstraints_->setP(P_combined);
+                splineConstraints_->setCVector(c_combined);
                 
-                // CRITICAL FIX: The pre-existing constraints (including inequalities)
+                // The pre-existing constraints (equalities for joins, inequalities for shape)
                 // are still in splineConstraints_ and will be respected by solve()
-                // We pass empty parameters since we're using the LS objective
                 solution = solve(std::vector<Real>(0));
             }
         } else {

@@ -156,7 +156,7 @@ set(QL_SOURCES
     experimental/inflation/cpicapfloortermpricesurface.cpp
     experimental/inflation/yoycapfloortermpricesurface.cpp
     experimental/inflation/yoyoptionlethelpers.cpp
-    experimental/isda/isdacdsinterface.cpp
+    # experimental/isda/isdacdsinterface.cpp  # Disabled - ISDA library not available
     experimental/lattices/extendedbinomialtree.cpp
     experimental/math/convolvedstudentt.cpp
     experimental/math/fireflyalgorithm.cpp
@@ -1171,7 +1171,7 @@ set(QL_HEADERS
     experimental/inflation/yoyinflationoptionletvolatilitystructure2.hpp
     experimental/inflation/yoyoptionlethelpers.hpp
     experimental/inflation/yoyoptionletstripper.hpp
-    experimental/isda/isdacdsinterface.hpp
+    # experimental/isda/isdacdsinterface.hpp  # Disabled - ISDA library not available
     experimental/lattices/extendedbinomialtree.hpp
     experimental/math/claytoncopularng.hpp
     experimental/math/convolvedstudentt.hpp
