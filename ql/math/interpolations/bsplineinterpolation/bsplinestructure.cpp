@@ -64,7 +64,9 @@ namespace QuantLib {
         const Size nInterpolationNodes = interpolationNodes.size();
         const Size nConstraints = splineConstraints_->getNConstraints();
         const Size nVariables = splineConstraints_->getNumVariables();
+        const Size nEqualitiesBefore = splineConstraints_->getNumEqualities();
 
+        // Add interpolation equality constraints
         for (const Real interpolationNode : interpolationNodes) {
             Eigen::VectorXd row = evaluateAll(interpolationNode, side);
             
@@ -77,11 +79,32 @@ namespace QuantLib {
             splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
         }
 
-        // We still have the old constraint count
-        Eigen::SparseMatrix<Real> B_new(nConstraints + nInterpolationNodes,
-                                        nParameters + nInterpolationNodes);
+        // Build B matrix with CORRECT row indices after constraint reordering
+        // The new interpolation constraints are at rows [nEqualitiesBefore, nEqualitiesBefore + nInterpolationNodes)
+        // Total rows = original constraints + new interpolation constraints
+        const Size totalConstraints = nConstraints + nInterpolationNodes;
+        const Size totalParameters = nParameters + nInterpolationNodes;
+        
+        // Validate dimensions
+        QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
+                   "Invalid row indices: nEqualitiesBefore=" << nEqualitiesBefore 
+                   << " + nInterpolationNodes=" << nInterpolationNodes 
+                   << " > totalConstraints=" << totalConstraints);
+        
+        Eigen::SparseMatrix<Real> B_new(totalConstraints, totalParameters);
+        
+        // Map parameters to the correct constraint rows (after reordering)
         for (Size i = 0; i < nInterpolationNodes; ++i) {
-            B_new.insert(nConstraints + i, nParameters + i) = 1.0;
+            // The i-th interpolation constraint is now at row (nEqualitiesBefore + i)
+            // because addEqualityConstraintAtBeginning inserts after existing equalities
+            Size rowIndex = nEqualitiesBefore + i;
+            Size colIndex = nParameters + i;
+            
+            QL_REQUIRE(rowIndex < totalConstraints && colIndex < totalParameters,
+                       "B matrix index out of bounds: (" << rowIndex << "," << colIndex 
+                       << ") for matrix " << totalConstraints << "x" << totalParameters);
+            
+            B_new.insert(rowIndex, colIndex) = 1.0;
         }
 
         Eigen::SparseMatrix<double> C_new(nVariables, nParameters + nInterpolationNodes);
@@ -220,8 +243,9 @@ namespace QuantLib {
                 solution = solve(std::vector<Real>(0));
             }
         } else {
+            // In hard mode, solve with interpolation constraints active
             solution = solve(transformedValues);
-
+            // Now pop after we have the solution
             splineConstraints_->pop();
         }
         return solution;

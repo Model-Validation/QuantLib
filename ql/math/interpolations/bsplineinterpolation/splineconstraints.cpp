@@ -348,32 +348,42 @@ namespace QuantLib {
     }
 
     void SplineConstraints::push() {
-        constraintStack_.emplace(numConstraints_, numParameters_, A_triplets_.size(),
-                                 B_triplets_.size(), C_triplets_.size(), numEqualities_,
-                                 numInequalities_);
+        // Save complete state, not just sizes
+        savedStates_.emplace_back(
+            A_triplets_,     // Complete constraint matrix triplets
+            b_list_,         // Complete RHS vector
+            B_triplets_,     // Parameter matrix B
+            C_triplets_,     // Parameter matrix C
+            constraintTypes_, // Constraint types
+            numConstraints_,
+            numParameters_,
+            numEqualities_,
+            numInequalities_
+        );
     }
 
     void SplineConstraints::pop() {
-        if (!constraintStack_.empty()) {
-            Size nConstraints = std::get<0>(constraintStack_.top());
-            Size nParameters = std::get<1>(constraintStack_.top());
-            Size nATriplets = std::get<2>(constraintStack_.top());
-            Size nBTriplets = std::get<3>(constraintStack_.top());
-            Size nCTriplets = std::get<4>(constraintStack_.top());
-            numEqualities_ = std::get<5>(constraintStack_.top());
-            numInequalities_ = std::get<6>(constraintStack_.top());
-            constraintStack_.pop();
-
-            b_list_.resize(nConstraints);
-            b_.resize(nConstraints);
-            parameters_list_.resize(nParameters);
-            parameters_.resize(nParameters);
-            A_triplets_.resize(nATriplets);
-            B_triplets_.resize(nBTriplets);
-            C_triplets_.resize(nCTriplets);
-            numConstraints_ = nConstraints;
-            numParameters_ = nParameters;
-            // Pop doesn't affect SCS ordering
+        if (!savedStates_.empty()) {
+            // Restore complete state
+            const auto& state = savedStates_.back();
+            A_triplets_ = std::get<0>(state);
+            b_list_ = std::get<1>(state);
+            B_triplets_ = std::get<2>(state);
+            C_triplets_ = std::get<3>(state);
+            constraintTypes_ = std::get<4>(state);
+            numConstraints_ = std::get<5>(state);
+            numParameters_ = std::get<6>(state);
+            numEqualities_ = std::get<7>(state);
+            numInequalities_ = std::get<8>(state);
+            
+            // Restore Eigen views
+            b_ = Eigen::Map<Eigen::VectorXd>(b_list_.data(), b_list_.size());
+            if (numParameters_ > 0) {
+                parameters_list_.resize(numParameters_);
+                parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), numParameters_);
+            }
+            
+            savedStates_.pop_back();
             scsDataIsUpToDate_ = false;
         }
     }
@@ -595,6 +605,14 @@ namespace QuantLib {
         A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
 
         if (hasParameters_) {
+            // Validate B triplets before using them
+            for (const auto& triplet : B_triplets_) {
+                QL_REQUIRE(triplet.row() >= 0 && triplet.row() < static_cast<int>(numConstraints_),
+                          "B triplet row " << triplet.row() << " out of bounds [0, " << numConstraints_ << ")");
+                QL_REQUIRE(triplet.col() >= 0 && triplet.col() < static_cast<int>(numParameters_),
+                          "B triplet col " << triplet.col() << " out of bounds [0, " << numParameters_ << ")");
+            }
+            
             B_.resize(numConstraints_, numParameters_);
             B_.setFromTriplets(B_triplets_.begin(), B_triplets_.end());
             C_.resize(numVariables_, numParameters_);

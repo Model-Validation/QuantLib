@@ -394,6 +394,10 @@ namespace QuantLib {
             return true;
         }
         
+        Size getNumEqualities() const { return numEqualities_; }
+        Size getNumInequalities() const { return numInequalities_; }
+        
+        // SWIG-friendly versions (to be deprecated)
         [[nodiscard]] Size get_num_equalities() const {
             return numEqualities_;
         }
@@ -436,8 +440,18 @@ namespace QuantLib {
         Eigen::SparseMatrix<Real> B_; /*!< Secondary B matrix, needs to be updated. */
         std::vector<Eigen::Triplet<Real>> C_triplets_; /*!< Primary triplets for the C matrix. */
         Eigen::SparseMatrix<Real> C_; /*!< Secondary C matrix, needs to be updated. */
-        std::stack<std::tuple<Size, Size, Size, Size, Size, Size, Size>>
-            constraintStack_; /*!< Stack for storing constraint states. */
+        // Complete state saving for push/pop
+        std::vector<std::tuple<
+            std::vector<Eigen::Triplet<Real>>,  // A_triplets
+            std::vector<Real>,                  // b_list
+            std::vector<Eigen::Triplet<Real>>,  // B_triplets
+            std::vector<Eigen::Triplet<Real>>,  // C_triplets
+            std::vector<ConstraintType>,        // constraintTypes
+            Size,                                // numConstraints
+            Size,                                // numParameters
+            Size,                                // numEqualities
+            Size                                 // numInequalities
+        >> savedStates_; /*!< Stack for storing complete constraint states. */
 
         SCS::SCSSolver* scsData_ = nullptr; /*!< Pointer to the SCS solver data. */
 
