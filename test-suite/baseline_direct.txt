@@ -1,0 +1,51 @@
+Direct SplineConstraints Test
+=============================
+========================================
+Direct SplineConstraints Test
+========================================
+
+Test 1: Only inequality constraint -c[1] <= -0.7
+========================================
+Creating constraints with:
+  Variables: 3
+  Inequalities: 1
+  Constraint: -c[1] <= -0.7
+Constraints created successfully
+  Total constraints: 1
+
+Solving...
+Solution found!
+  c[0] = 0
+  c[1] = 0.7
+  c[2] = 0
+
+Constraint check: -c[1] = -0.7 <= -0.7? YES
+
+
+Test 2: Mixed constraints
+========================================
+Constraints in SCS order:
+  EQ0: c[0] = 0
+  EQ1: c[2] = 1
+  INEQ0: -c[1] <= -0.7
+
+Creating mixed constraints:
+  Variables: 3
+  Equalities: 2
+  Inequalities: 1
+Constraints created successfully
+  Total constraints: 3
+
+Solving mixed system...
+Solution found!
+  c[0] = 0
+  c[1] = 0.7
+  c[2] = 1
+
+Constraint checks:
+  c[0] = 0 (should be 0): OK
+  c[2] = 1 (should be 1): OK
+  c[1] = 0.7 >= 0.7? OK
+
+=============================
+Test completed

@@ -220,5 +220,25 @@ if (QL_BUILD_TEST_SUITE)
     # Debug test for single segment
     add_executable(debug_single debug_single_segment.cpp)
     target_link_libraries(debug_single PRIVATE ql_library)
+    
+    # Debug executable for inequality constraints
+    add_executable(debug_inequality debug_inequality.cpp)
+    target_link_libraries(debug_inequality PRIVATE ql_library)
+    
+    # Simple demonstration of inequality bug
+    add_executable(debug_inequality_simple debug_inequality_simple.cpp)
+    target_link_libraries(debug_inequality_simple PRIVATE ql_library)
+    
+    # Detailed debug test for inequality constraints
+    add_executable(debug_inequality_detailed debug_inequality_detailed.cpp)
+    target_link_libraries(debug_inequality_detailed PRIVATE ql_library)
+    
+    # Direct SplineConstraints test
+    add_executable(debug_constraints_direct debug_constraints_direct.cpp)
+    target_link_libraries(debug_constraints_direct PRIVATE ql_library)
+    
+    # B-spline flow debug test
+    add_executable(debug_bspline_flow debug_bspline_flow.cpp)
+    target_link_libraries(debug_bspline_flow PRIVATE ql_library)
 endif()
 

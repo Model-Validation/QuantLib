@@ -1,0 +1,54 @@
+B-Spline Flow Debug Test
+========================
+========================================
+B-Spline Flow Test - Quadratic with Inequality
+========================================
+
+1. Segment created:
+   Degree: 2
+   Simple knots: 0 1 
+   Knot indices: 0 0 0 1 1 1 
+   Variables: 3 (should be 3 for quadratic)
+
+2. Basis functions:
+   At x=0: B0=1 B1=0 B2=0 
+   At x=0.5: B0=0.25 B1=0.5 B2=0.25 
+   At x=1: B0=0 B1=0 B2=1 
+
+3. Creating inequality constraint y(0.5) >= 0.7:
+   Basis at x=0.5: B0=0.25 B1=0.5 B2=0.25 
+   Constraint in SCS form: A[0,0]=-0.25 A[0,1]=-0.5 A[0,2]=-0.25 b[0]=-0.7
+
+4. Creating SplineConstraints:
+   Constraints created with 1 inequality
+
+5. Creating BSplineStructure:
+   Structure created
+
+6. Test Case 1: Minimal interpolation (underdetermined)
+   Data points: (0,0) (1,1) 
+   This creates an underdetermined system:
+     - 3 variables (c0, c1, c2)
+     - 2 interpolation constraints (f(0)=0, f(1)=1)
+     - 1 inequality constraint (f(0.5)>=0.7)
+   The inequality should guide the solution
+
+   Calling interpolate...
+   Interpolation succeeded
+
+   Solution coefficients:
+     c[0] = 1.14552e-12
+     c[1] = -4.59634e-05
+     c[2] = 1.14552e-12
+
+   Evaluation:
+     f(0) = 1.14552e-12
+     f(0.5) = -2.29817e-05 (constraint: >= 0.7) [FAIL]
+     f(1) = 1.14552e-12
+
+7. Test Case 2: With 3 interpolation points
+   Data points: (0,0) (0.5,0.5) (1,1) 
+   This would naturally give f(0.5)=0.5
+   But inequality requires f(0.5)>=0.7
+   System is overdetermined - should fail or adjust
+Assertion failed: it->row()>=0 && it->row()<mat.rows() && it->col()>=0 && it->col()<mat.cols(), file C:\ProgramData\chocolatey\lib\eigen\include\eigen3\Eigen\src/SparseCore/SparseMatrix.h, line 1049

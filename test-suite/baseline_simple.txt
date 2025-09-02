@@ -1,0 +1,25 @@
+========================================
+Inequality Constraint Bug Demonstration
+========================================
+
+Data points:
+  (0, 0)
+  (1, 1)
+
+Constraint: y(0.5) >= 0.7
+Natural value without constraint: y(0.5) = 0.5
+
+Using CubicInterpolation (for comparison):
+  y(0.5) = 0.5
+
+Expected with constraint y(0.5) >= 0.7:
+  Hard mode: y(0.5) = 0.7 (constraint active)
+  LS mode: y(0.5) = 0.7 (constraint satisfied)
+
+Actual (from Python tests):
+  Hard mode: y(0.5) = 0.0 - CONSTRAINT VIOLATED!
+  LS mode: y(0.5) = 0.7 - Constraint satisfied
+
+========================================
+The bug: Hard mode ignores inequality constraints
+========================================
