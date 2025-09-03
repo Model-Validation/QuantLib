@@ -727,8 +727,23 @@ namespace QuantLib {
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
 
+        // Ensure C_ is built from triplets if needed
+        if (C_.cols() == 0 && hasParameters_ && numParameters_ > 0) {
+            C_.resize(numVariables_, numParameters_);
+            C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
+        }
+        
+        // Check dimensions before multiplication
+        QL_REQUIRE(C_.cols() == parameters_.size() || C_.cols() == 0,
+                  "C matrix cols " << C_.cols() << " != parameters size " << parameters_.size());
+
         Eigen::VectorXd bp = Eigen::VectorXd(0);
-        Eigen::VectorXd cp = c_ + C_ * parameters_;
+        Eigen::VectorXd cp;
+        if (C_.cols() > 0 && parameters_.size() > 0) {
+            cp = c_ + C_ * parameters_;
+        } else {
+            cp = c_;
+        }
         scs_int status = scsData_->update(bp, cp);
 
         if (status != 0) {
