@@ -79,40 +79,60 @@ namespace QuantLib {
             splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
         }
 
-        // Only set up B matrix if we're using parameters (hard constraint mode)
-        // In LS mode (fitData=true), nParameters will be 0 and we don't need B matrix
-        if (nParameters > 0 || !splineConstraints_->fitData_) {
-            // Build B matrix with CORRECT row indices after constraint reordering
-            // The new interpolation constraints are at rows [nEqualitiesBefore, nEqualitiesBefore + nInterpolationNodes)
-            // Total rows = original constraints + new interpolation constraints
-            const Size totalConstraints = nConstraints + nInterpolationNodes;
-            const Size totalParameters = nParameters + nInterpolationNodes;
-            
-            // Validate dimensions
-            QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
-                       "Invalid row indices: nEqualitiesBefore=" << nEqualitiesBefore 
-                       << " + nInterpolationNodes=" << nInterpolationNodes 
-                       << " > totalConstraints=" << totalConstraints);
-            
-            Eigen::SparseMatrix<Real> B_new(totalConstraints, totalParameters);
-            
-            // Map parameters to the correct constraint rows (after reordering)
-            for (Size i = 0; i < nInterpolationNodes; ++i) {
-                // The i-th interpolation constraint is now at row (nEqualitiesBefore + i)
-                // because addEqualityConstraintAtBeginning inserts after existing equalities
-                Size rowIndex = nEqualitiesBefore + i;
-                Size colIndex = nParameters + i;
+        // Set up parameter mapping for interpolation nodes
+        // Hard mode: parameters map to constraint RHS via B matrix  
+        // LS mode: SHOULD map parameters to objective via C matrix (but currently broken)
+        {
+            if (splineConstraints_->fitData_) {
+                // LS MODE: We SHOULD set up C matrix for parameter mapping
+                // But this is currently not working correctly
+                // For now, using direct objective computation as workaround
+                std::cerr << "DEBUG addInterpolationNodes: LS mode, TODO: fix C matrix parameter mapping" << std::endl;
                 
-                QL_REQUIRE(rowIndex < totalConstraints && colIndex < totalParameters,
-                           "B matrix index out of bounds: (" << rowIndex << "," << colIndex 
-                           << ") for matrix " << totalConstraints << "x" << totalParameters);
+                // TODO: Fix this to properly map parameters to objective
+                // The correct implementation would be:
+                // - C matrix maps y-values to objective linear term
+                // - Objective: min ||Ax||² - 2*(C*params)'x
+                // - This enables warm-start via update_c(params)
                 
-                B_new.insert(rowIndex, colIndex) = 1.0;
+                // For now, skip parameter setup to avoid errors
+                // The interpolate() function computes objective directly
+                
+            } else {
+                // HARD MODE: Parameters map to constraint RHS via B matrix
+                // Constraints: Ax = b + B*params where params are y-values
+                std::cerr << "DEBUG addInterpolationNodes: HARD mode, setting up B matrix for " 
+                         << nInterpolationNodes << " nodes" << std::endl;
+                
+                const Size totalParameters = nParameters + nInterpolationNodes;
+                const Size totalConstraints = nConstraints + nInterpolationNodes;
+                
+                // Validate dimensions
+                QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
+                           "Invalid row indices: nEqualitiesBefore=" << nEqualitiesBefore 
+                           << " + nInterpolationNodes=" << nInterpolationNodes 
+                           << " > totalConstraints=" << totalConstraints);
+                
+                Eigen::SparseMatrix<Real> B_new(totalConstraints, totalParameters);
+                
+                // Map parameters to the correct constraint rows (after reordering)
+                for (Size i = 0; i < nInterpolationNodes; ++i) {
+                    // The i-th interpolation constraint is now at row (nEqualitiesBefore + i)
+                    // because addEqualityConstraintAtBeginning inserts after existing equalities
+                    Size rowIndex = nEqualitiesBefore + i;
+                    Size colIndex = nParameters + i;
+                    
+                    QL_REQUIRE(rowIndex < totalConstraints && colIndex < totalParameters,
+                               "B matrix index out of bounds: (" << rowIndex << "," << colIndex 
+                               << ") for matrix " << totalConstraints << "x" << totalParameters);
+                    
+                    B_new.insert(rowIndex, colIndex) = 1.0;
+                }
+
+                Eigen::SparseMatrix<Real> C_new(nVariables, totalParameters);  // Empty C matrix
+
+                splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
             }
-
-            Eigen::SparseMatrix<double> C_new(nVariables, nParameters + nInterpolationNodes);
-
-            splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
         }
     }
 
@@ -189,6 +209,8 @@ namespace QuantLib {
         // ALWAYS set up B matrix for parameters (y-values)
         // For hard mode: parameters map to constraint RHS
         // For LS mode: parameters map to objective ||Ax - y||^2
+        std::cerr << "DEBUG BSplineStructure::interpolate: Calling addInterpolationNodes with " 
+                 << interpolationNodes.size() << " nodes, fitData=" << splineConstraints_->fitData_ << std::endl;
         addInterpolationNodes(interpolationNodes, BSplineSegment::SideRight, interpolationNodes.size());
 
         Eigen::VectorXd solution;
@@ -248,7 +270,9 @@ namespace QuantLib {
                 
                 // The pre-existing constraints (equalities for joins, inequalities for shape)
                 // are still in splineConstraints_ and will be respected by solve()
-                solution = solve(std::vector<Real>(0));
+                // In LS mode with direct objective computation, we don't use parameters
+                // The objective has been fully computed above
+                solution = solve(std::vector<Real>());
             }
         } else {
             // In hard mode, solve with interpolation constraints active
@@ -287,7 +311,11 @@ namespace QuantLib {
     }
 
     Eigen::VectorXd BSplineStructure::solve(const std::vector<Real>& parameters) const {
-        splineConstraints_->update_b(parameters);
+        // In LS mode with pre-computed objective, we don't need to update parameters
+        // The objective has already been set up in interpolate()
+        if (!parameters.empty()) {
+            splineConstraints_->update_b(parameters);
+        }
         int status = splineConstraints_->solve();
         QL_REQUIRE(status == 1, "Solution failed, returned " << status << '\n');
         return splineConstraints_->getSolution();
