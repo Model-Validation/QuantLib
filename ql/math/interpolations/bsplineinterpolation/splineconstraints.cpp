@@ -604,7 +604,7 @@ namespace QuantLib {
         A_.resize(numConstraints_, numVariables_);
         A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
 
-        if (hasParameters_) {
+        if (hasParameters_ && numParameters_ > 0) {
             // Validate B triplets before using them
             for (const auto& triplet : B_triplets_) {
                 QL_REQUIRE(triplet.row() >= 0 && triplet.row() < static_cast<int>(numConstraints_),
@@ -619,14 +619,17 @@ namespace QuantLib {
             C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
             
             // Debug: Check dimensions before matrix multiplication
-            QL_REQUIRE(B_.cols() == parameters_.size(),
-                      "B matrix cols " << B_.cols() << " != parameters size " << parameters_.size());
-            QL_REQUIRE(b_.size() == B_.rows(),
-                      "b vector size " << b_.size() << " != B rows " << B_.rows());
-            QL_REQUIRE(C_.cols() == parameters_.size(),
-                      "C matrix cols " << C_.cols() << " != parameters size " << parameters_.size());
-            QL_REQUIRE(c_.size() == C_.rows(),
-                      "c vector size " << c_.size() << " != C rows " << C_.rows());
+            // For LS mode (fitData_=true), we might have numParameters_=0 but parameters_ set elsewhere
+            if (!fitData_) {
+                QL_REQUIRE(B_.cols() == parameters_.size(),
+                          "B matrix cols " << B_.cols() << " != parameters size " << parameters_.size());
+                QL_REQUIRE(b_.size() == B_.rows(),
+                          "b vector size " << b_.size() << " != B rows " << B_.rows());
+                QL_REQUIRE(C_.cols() == parameters_.size(),
+                          "C matrix cols " << C_.cols() << " != parameters size " << parameters_.size());
+                QL_REQUIRE(c_.size() == C_.rows(),
+                          "c vector size " << c_.size() << " != C rows " << C_.rows());
+            }
             
             Eigen::VectorXd bp = b_ + B_ * parameters_;
             Eigen::VectorXd cp = c_ + C_ * parameters_;
@@ -686,6 +689,12 @@ namespace QuantLib {
         }
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
+
+        // Debug output for LS issue
+        if (fitData_ && parameters_.size() > 0) {
+            std::cerr << "DEBUG update_b: fitData=true, numParameters=" << numParameters_ 
+                     << ", parameters.size=" << parameters_.size() << std::endl;
+        }
 
         // Debug: Check dimensions before matrix multiplication
         QL_REQUIRE(parameters_.size() == numParameters_ || numParameters_ == 0,

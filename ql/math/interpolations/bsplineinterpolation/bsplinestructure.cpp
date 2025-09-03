@@ -79,37 +79,41 @@ namespace QuantLib {
             splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
         }
 
-        // Build B matrix with CORRECT row indices after constraint reordering
-        // The new interpolation constraints are at rows [nEqualitiesBefore, nEqualitiesBefore + nInterpolationNodes)
-        // Total rows = original constraints + new interpolation constraints
-        const Size totalConstraints = nConstraints + nInterpolationNodes;
-        const Size totalParameters = nParameters + nInterpolationNodes;
-        
-        // Validate dimensions
-        QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
-                   "Invalid row indices: nEqualitiesBefore=" << nEqualitiesBefore 
-                   << " + nInterpolationNodes=" << nInterpolationNodes 
-                   << " > totalConstraints=" << totalConstraints);
-        
-        Eigen::SparseMatrix<Real> B_new(totalConstraints, totalParameters);
-        
-        // Map parameters to the correct constraint rows (after reordering)
-        for (Size i = 0; i < nInterpolationNodes; ++i) {
-            // The i-th interpolation constraint is now at row (nEqualitiesBefore + i)
-            // because addEqualityConstraintAtBeginning inserts after existing equalities
-            Size rowIndex = nEqualitiesBefore + i;
-            Size colIndex = nParameters + i;
+        // Only set up B matrix if we're using parameters (hard constraint mode)
+        // In LS mode (fitData=true), nParameters will be 0 and we don't need B matrix
+        if (nParameters > 0 || !splineConstraints_->fitData_) {
+            // Build B matrix with CORRECT row indices after constraint reordering
+            // The new interpolation constraints are at rows [nEqualitiesBefore, nEqualitiesBefore + nInterpolationNodes)
+            // Total rows = original constraints + new interpolation constraints
+            const Size totalConstraints = nConstraints + nInterpolationNodes;
+            const Size totalParameters = nParameters + nInterpolationNodes;
             
-            QL_REQUIRE(rowIndex < totalConstraints && colIndex < totalParameters,
-                       "B matrix index out of bounds: (" << rowIndex << "," << colIndex 
-                       << ") for matrix " << totalConstraints << "x" << totalParameters);
+            // Validate dimensions
+            QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
+                       "Invalid row indices: nEqualitiesBefore=" << nEqualitiesBefore 
+                       << " + nInterpolationNodes=" << nInterpolationNodes 
+                       << " > totalConstraints=" << totalConstraints);
             
-            B_new.insert(rowIndex, colIndex) = 1.0;
+            Eigen::SparseMatrix<Real> B_new(totalConstraints, totalParameters);
+            
+            // Map parameters to the correct constraint rows (after reordering)
+            for (Size i = 0; i < nInterpolationNodes; ++i) {
+                // The i-th interpolation constraint is now at row (nEqualitiesBefore + i)
+                // because addEqualityConstraintAtBeginning inserts after existing equalities
+                Size rowIndex = nEqualitiesBefore + i;
+                Size colIndex = nParameters + i;
+                
+                QL_REQUIRE(rowIndex < totalConstraints && colIndex < totalParameters,
+                           "B matrix index out of bounds: (" << rowIndex << "," << colIndex 
+                           << ") for matrix " << totalConstraints << "x" << totalParameters);
+                
+                B_new.insert(rowIndex, colIndex) = 1.0;
+            }
+
+            Eigen::SparseMatrix<double> C_new(nVariables, nParameters + nInterpolationNodes);
+
+            splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
         }
-
-        Eigen::SparseMatrix<double> C_new(nVariables, nParameters + nInterpolationNodes);
-
-        splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
     }
 
     // Here we interpolate by adding linear constraints that enforce the interpolation
@@ -181,7 +185,11 @@ namespace QuantLib {
 
         const Size nConstraintsBefore = splineConstraints_->getNConstraints();
         splineConstraints_->push();
-        addInterpolationNodes(interpolationNodes);
+        
+        // ALWAYS set up B matrix for parameters (y-values)
+        // For hard mode: parameters map to constraint RHS
+        // For LS mode: parameters map to objective ||Ax - y||^2
+        addInterpolationNodes(interpolationNodes, BSplineSegment::SideRight, interpolationNodes.size());
 
         Eigen::VectorXd solution;
         if (splineConstraints_->fitData_) {
@@ -298,6 +306,19 @@ namespace QuantLib {
         
         const Size nSegments = splineSegments_.size();
         const Size nVariables = splineConstraints_->getNumVariables();
+        
+        // Calculate actual total variables from segments
+        Size totalSegmentVars = 0;
+        for (const auto& segment : splineSegments_) {
+            totalSegmentVars += segment->getNumVariables();
+        }
+        
+        // Check for consistency
+        QL_REQUIRE(nVariables == totalSegmentVars,
+                   "BSplineStructure inconsistency: get_num_variables() returns " + 
+                   std::to_string(nVariables) + " but segments have " + 
+                   std::to_string(totalSegmentVars) + " total variables");
+        
         Size j = 0;
         Eigen::VectorXd result = Eigen::VectorXd::Zero(nVariables);
         
@@ -335,7 +356,16 @@ namespace QuantLib {
             
             if (inSegment) {
                 const Eigen::VectorXd segmentResult = segment->evaluateAll(x, -1, side);
-                result.segment(j, segment->getNumVariables()) = segmentResult;
+                const Size segVars = segment->getNumVariables();
+                
+                // Safety check before assignment
+                QL_REQUIRE(j + segVars <= nVariables,
+                           "Segment assignment would exceed vector bounds: trying to assign " + 
+                           std::to_string(segVars) + " values at position " + 
+                           std::to_string(j) + " in vector of size " + 
+                           std::to_string(nVariables));
+                
+                result.segment(j, segVars) = segmentResult;
             }
             j += segment->getNumVariables();
         }
