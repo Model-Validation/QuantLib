@@ -606,7 +606,8 @@ namespace QuantLib {
 
         if (hasParameters_ && numParameters_ > 0) {
             // Validate B triplets before using them
-            for (const auto& triplet : B_triplets_) {
+            for (size_t i = 0; i < B_triplets_.size(); ++i) {
+                const auto& triplet = B_triplets_[i];
                 QL_REQUIRE(triplet.row() >= 0 && triplet.row() < static_cast<int>(numConstraints_),
                           "B triplet row " << triplet.row() << " out of bounds [0, " << numConstraints_ << ")");
                 QL_REQUIRE(triplet.col() >= 0 && triplet.col() < static_cast<int>(numParameters_),
@@ -614,11 +615,20 @@ namespace QuantLib {
             }
             
             B_.resize(numConstraints_, numParameters_);
+            
+            // Check triplets before setting
+            for (const auto& triplet : B_triplets_) {
+                if (triplet.col() >= numParameters_) {
+                    QL_FAIL("B triplet col " << triplet.col() 
+                           << " out of bounds [0, " << numParameters_ << ")");
+                }
+            }
+            
             B_.setFromTriplets(B_triplets_.begin(), B_triplets_.end());
             C_.resize(numVariables_, numParameters_);
             C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
             
-            // Debug: Check dimensions before matrix multiplication
+            // Check dimensions before matrix multiplication
             // For LS mode (fitData_=true), we might have numParameters_=0 but parameters_ set elsewhere
             if (!fitData_) {
                 QL_REQUIRE(B_.cols() == parameters_.size(),
@@ -690,13 +700,7 @@ namespace QuantLib {
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
 
-        // Debug output for LS issue
-        if (fitData_ && parameters_.size() > 0) {
-            std::cerr << "DEBUG update_b: fitData=true, numParameters=" << numParameters_ 
-                     << ", parameters.size=" << parameters_.size() << std::endl;
-        }
-
-        // Debug: Check dimensions before matrix multiplication
+        // Check dimensions before matrix multiplication
         QL_REQUIRE(parameters_.size() == numParameters_ || numParameters_ == 0,
                   "Parameter size mismatch: provided " << parameters_.size() << 
                   " but expected " << numParameters_);

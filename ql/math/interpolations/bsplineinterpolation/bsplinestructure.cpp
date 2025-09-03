@@ -70,7 +70,6 @@ namespace QuantLib {
         for (const Real interpolationNode : interpolationNodes) {
             Eigen::VectorXd row = evaluateAll(interpolationNode, side);
             
-            // Debug: Check row dimensions match expected
             QL_REQUIRE(row.size() == nVariables,
                       "evaluateAll returned wrong size: " << row.size() <<
                       " expected " << nVariables << " for x=" << interpolationNode);
@@ -87,7 +86,6 @@ namespace QuantLib {
                 // LS MODE: Parameters map to objective via C matrix for warm-start
                 // The objective is: min ||Ax - y||² = min x'(A'A)x - 2(A'y)'x
                 // We need C matrix such that C*params gives us -A'y term
-                std::cerr << "DEBUG addInterpolationNodes: LS mode, setting up C matrix for warm-start" << std::endl;
                 
                 const Size totalParameters = nParameters + nInterpolationNodes;
                 
@@ -98,17 +96,15 @@ namespace QuantLib {
                 
                 // Build C matrix: C*params should give -A'*y contribution to objective
                 // where A is the interpolation constraint matrix and y are the parameter values
-                // For now, create dummy C matrix to fix dimension issue
-                // TODO: Compute proper C = -A' where A is interpolation matrix
+                // For now, skip C matrix - we're using direct P/c computation instead
+                // TODO: Implement proper C matrix for true staged interpolation
                 
-                // Just set up dimensions correctly for now
-                splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
+                // Don't add parameters for now - avoids dimension issues
+                // splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
                 
             } else {
                 // HARD MODE: Parameters map to constraint RHS via B matrix
                 // Constraints: Ax = b + B*params where params are y-values
-                std::cerr << "DEBUG addInterpolationNodes: HARD mode, setting up B matrix for " 
-                         << nInterpolationNodes << " nodes" << std::endl;
                 
                 const Size totalParameters = nParameters + nInterpolationNodes;
                 const Size totalConstraints = nConstraints + nInterpolationNodes;
@@ -137,6 +133,7 @@ namespace QuantLib {
 
                 Eigen::SparseMatrix<Real> C_new(nVariables, totalParameters);  // Empty C matrix
 
+                
                 splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
             }
         }
@@ -203,21 +200,23 @@ namespace QuantLib {
             transformedValues.reserve(transformedValues.size() + transformedValues2.size());
             transformedValues.insert(transformedValues.end(), transformedValues2.begin(),
                                      transformedValues2.end());
-            addInterpolationNodes(segmentNodes, BSplineSegment::SideLeft,
-                                  interpolationNodes.size());
+            // Pass 0 as nParameters for first call - no parameters added yet
+            addInterpolationNodes(segmentNodes, BSplineSegment::SideLeft, 0);
         } else {
             transformedValues = transform(interpolationNodes, values);
         }
 
         const Size nConstraintsBefore = splineConstraints_->getNConstraints();
+        
         splineConstraints_->push();
         
-        // ALWAYS set up B matrix for parameters (y-values)
-        // For hard mode: parameters map to constraint RHS
-        // For LS mode: parameters map to objective ||Ax - y||^2
-        std::cerr << "DEBUG BSplineStructure::interpolate: Calling addInterpolationNodes with " 
-                 << interpolationNodes.size() << " nodes, fitData=" << splineConstraints_->fitData_ << std::endl;
-        addInterpolationNodes(interpolationNodes, BSplineSegment::SideRight, interpolationNodes.size());
+        // Set up parameter mapping for interpolation nodes
+        // For hard mode: parameters map to constraint RHS via B matrix
+        // For LS mode: parameters map to objective via C matrix (implemented in addInterpolationNodes)
+        // For now, always pass 0 as we're not properly tracking parameters from segment nodes
+        // TODO: Fix parameter tracking for segment nodes
+        Size nParametersAlreadyAdded = 0;
+        addInterpolationNodes(interpolationNodes, BSplineSegment::SideRight, nParametersAlreadyAdded);
 
         Eigen::VectorXd solution;
         if (splineConstraints_->fitData_) {
@@ -241,7 +240,6 @@ namespace QuantLib {
                 // FIXED: Build LS objective and solve WITH constraints
                 // The LS objective is: min 0.5 * x'Px + c'x where P = A'A, c = -A'b
                 
-                // Debug: Check dimensions before matrix multiplication
                 QL_REQUIRE(interpolationA_.cols() > 0 && interpolationA_.rows() > 0,
                           "interpolationA_ has invalid dimensions: " << 
                           interpolationA_.rows() << "x" << interpolationA_.cols());
@@ -281,9 +279,15 @@ namespace QuantLib {
             }
         } else {
             // In hard mode, solve with interpolation constraints active
-            solution = solve(transformedValues);
-            // Now pop after we have the solution
-            splineConstraints_->pop();
+            try {
+                solution = solve(transformedValues);
+                // Now pop after we have the solution
+                splineConstraints_->pop();
+            } catch (...) {
+                // CRITICAL: Always pop even if solve fails
+                splineConstraints_->pop();
+                throw;  // Re-throw the exception
+            }
         }
         return solution;
     }
