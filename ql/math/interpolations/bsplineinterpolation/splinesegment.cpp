@@ -38,6 +38,7 @@
 #include <ql/shared_ptr.hpp>
 #include <iostream>
 
+// Force recompilation - timestamp issue
 namespace QuantLib {
     /*
     Class for a spline structure holding the necessary information on knots, degree and constraints
@@ -251,11 +252,24 @@ namespace QuantLib {
 
         std::vector knotsVector(knots_.begin(), knots_.end());
 
-        // Pad the knot sequence at the ends if the degree is higher than degree_, this may happen when
-        // calculating anti-derivatives
+        // Adjust knot sequence for different degree
         if (p > static_cast<Size>(degree_)) {
+            // Anti-derivative: pad the knot sequence at the ends
             knotsVector.insert(knotsVector.begin(), e, startPoint_);
             knotsVector.insert(knotsVector.end(), e, endPoint_);
+        } else if (p < static_cast<Size>(degree_)) {
+            // Derivative: need to handle knot vector adjustment properly
+            Size deficit = static_cast<Size>(degree_) - p;
+            
+            // Use the standard reduction strategy for ALL cases (including degree 0)
+            QL_REQUIRE(knotsVector.size() > 2 * deficit,
+                       "Insufficient knots to reduce degree from " << degree_ 
+                       << " to " << p << ". Knot vector has size " << knotsVector.size()
+                       << " but need to remove " << 2 * deficit << " knots.");
+            
+            // Remove 'deficit' knots from each end - this works for all degrees including 0
+            knotsVector.erase(knotsVector.begin(), knotsVector.begin() + deficit);
+            knotsVector.erase(knotsVector.end() - deficit, knotsVector.end());
         }
 
         // The "basis" size (some are then 0 functions)
