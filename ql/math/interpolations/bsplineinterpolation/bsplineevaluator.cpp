@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2024 SEB AB Sverrir Thorvaldsson
+ Copyright (C) 2025
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -11,117 +11,172 @@
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
  <http://quantlib.org/license.shtml>.
-
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
 #include "bsplineevaluator.hpp"
-#include <vector>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <ql/errors.hpp>
-#include <ql/types.hpp>
-
-//  TODO: Lets ReSharper relax about the type mismatch between QuantLib::Size and Eigen::Index, should revisit this
-//  ReSharper disable CppClangTidyBugproneNarrowingConversions
 
 namespace QuantLib {
-    BSplineEvaluator::BSplineEvaluator() : knots_({0.0, 1.0}), degree_(0), numBasisFunctions_(1) {}
 
-    BSplineEvaluator::BSplineEvaluator(const std::vector<double>& knots, Size degree)
-    : knots_(knots), degree_(degree), numBasisFunctions_(knots.size() - degree - 1) {
-        precomputeRkMatrices();
-        initializeTempVectors();
-    }
-
-    void BSplineEvaluator::precomputeRkMatrices() const {
-        Rk_matrices_.resize(degree_ + 1);
-        for (Size k = 1; k <= degree_; ++k) {
-            Rk_matrices_[k] = Eigen::SparseMatrix<double>(k + 1, k);
-            Rk_matrices_[k].reserve(Eigen::VectorXi::Constant(k, 2)); // Each column will have at most 2 non-zero entries
+    BSplineEvaluator::BSplineEvaluator(
+        const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+        Size numVariables)
+        : segments_(segments), numVariables_(numVariables) {
+        
+        QL_REQUIRE(!segments_.empty(), "BSplineEvaluator: segments cannot be empty");
+        
+        // Verify total variables match
+        Size totalVars = 0;
+        for (const auto& segment : segments_) {
+            totalVars += segment->getNumVariables();
         }
+        
+        QL_REQUIRE(numVariables_ == totalVars,
+                   "BSplineEvaluator: numVariables (" << numVariables_ << 
+                   ") doesn't match sum of segment variables (" << totalVars << ")");
     }
 
-    void BSplineEvaluator::initializeTempVectors() const {
-        tempB1_.resize(degree_ + 1);
-        tempB2_.resize(degree_ + 1);
-    }
-
-    // Pre: knots have at least d+1 repeats of the first and last entries
-    // Pre: knots_.begin() <= x <= knots_.end()
-    // knots_ are t_0, t_1, ..., t_{p+d+1} where p is the number of basis functions
-    // lower_bound returns the first element that is not less than x, which is then t_{\mu+1}
-    // in particular \mu+1>=d+1
-
-    Size BSplineEvaluator::findKnotSpan(double x) const {
-        // TODO: need to rethink this a bit, should maybe return the last one in the second case
-        // This returns the index of the first knot that is greater than x
-        auto it = std::upper_bound(knots_.begin(), knots_.end(), x);  // Should be binary search
-        if (it != knots_.end()) {
-            return std::distance(knots_.begin(), it);
-        } else if (x >= knots_.back()) {
-            return knots_.size() - degree_ - 1; // TODO Not -2, right?
-        } else {
-            //TODO: This never happens, right?
-            QL_FAIL("x = " << x << " is outside the range of the knots [" << knots_.front() << ", "
-                           << knots_.back() << "]");
-        }
-    }
-
-    Eigen::VectorXd BSplineEvaluator::evaluateAll(Real x) const {
-        Size mu = findKnotSpan(x); // So mu >= degree + 1
-        Eigen::VectorXd B = Eigen::VectorXd::Zero(numBasisFunctions_);
-
-        evaluate(B.segment(mu - degree_ - 1, degree_ + 1), x, mu);
-
-        return B;
-    }
-
-    /*
-     * This implementation is inspired from Lyche-Morken "Spline Methods" book, chapter 2.4
-     */
-    void BSplineEvaluator::evaluate(Eigen::Ref<Eigen::VectorXd> B, double x, Size mu) const {
-        Size d = degree_;
-        //Eigen::VectorXd* tempB1 = &tempB1_;
-        //Eigen::VectorXd* tempB2 = &tempB2_;
-
-        // Initialize B_0
-        //tempB1->head(1).coeffRef(0) = 1.0;
-        tempB1_.head(1).coeffRef(0) = 1.0;
-
-        // Compute B_k for k = 1, ..., d
-        for (Size k = 1; k <= d; ++k) {
-            auto& Rk = Rk_matrices_[k];
-            for (Size i = 0; i < k; ++i) {
-                if (knots_[i + mu - k] != knots_[i + mu]) {  // NOLINT(clang-diagnostic-float-equal)
-                    Rk.coeffRef(i, i) =
-                        (knots_[i + mu] - x) / (knots_[i + mu] - knots_[i + mu - k]);
-                    Rk.coeffRef(i + 1, i) =
-                        (x - knots_[i + mu - k]) / (knots_[i + mu] - knots_[i + mu - k]);
+    Eigen::VectorXd BSplineEvaluator::evaluateAll(Real x, BSplineSegment::SideEnum side) const {
+        QL_REQUIRE(side == BSplineSegment::SideRight || side == BSplineSegment::SideLeft,
+                   "Sidedness needs to be 'Right' or 'Left'");
+        
+        const Size nSegments = segments_.size();
+        Eigen::VectorXd result = Eigen::VectorXd::Zero(numVariables_);
+        
+        Size j = 0;  // Current position in result vector
+        
+        // Handle boundary evaluation correctly
+        for (Size i = 0; i < nSegments; ++i) {
+            bool inSegment = false;
+            const auto& segment = segments_[i];
+            const auto segmentRange = segment->range();
+            
+            if (side == BSplineSegment::SideRight) {
+                // For right-sided evaluation:
+                // - Include left boundary: x >= range.first
+                // - Include right boundary for last segment: x <= range.second
+                // - Exclude right boundary for other segments: x < range.second
+                if (i == nSegments - 1) {
+                    // Last segment: include right boundary
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    // Not last segment: exclude right boundary
+                    inSegment = (segmentRange.first <= x && x < segmentRange.second);
+                }
+            } else {
+                // For left-sided evaluation:
+                // - Exclude left boundary for non-first segments: x > range.first
+                // - Include left boundary for first segment: x >= range.first
+                // - Include right boundary: x <= range.second
+                if (i == 0) {
+                    // First segment: include left boundary
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    // Not first segment: exclude left boundary
+                    inSegment = (segmentRange.first < x && x <= segmentRange.second);
                 }
             }
-            //tempB2->head(k + 1) = Rk * tempB1->head(k);
-            // The noalias is needed to avoid aliasing issues, meaning that the result is stored
-            // in a temporary result and then copied to the destination
-            tempB2_.head(k + 1).noalias() = Rk * tempB1_.head(k);
-            tempB1_.swap(tempB2_);
-            //std::swap(tempB1, tempB2);
-
+            
+            if (inSegment) {
+                const Eigen::VectorXd segmentResult = segment->evaluateAll(x, -1, side);
+                const Size segVars = segment->getNumVariables();
+                
+                // Safety check before assignment
+                QL_REQUIRE(j + segVars <= numVariables_,
+                           "Segment assignment would exceed vector bounds: trying to assign " + 
+                           std::to_string(segVars) + " values at position " + 
+                           std::to_string(j) + " in vector of size " + 
+                           std::to_string(numVariables_));
+                
+                result.segment(j, segVars) = segmentResult;
+            }
+            j += segment->getNumVariables();
         }
-        B.head(d + 1) = tempB1_.head(d + 1);
+        
+        return result;
     }
 
-    // Pre: x is within domain of the spline
-    Real BSplineEvaluator::value(const Eigen::VectorXd& coefficients, Real x) const {
-        QL_REQUIRE(static_cast<Size>(coefficients.size()) == this->numBasisFunctions_,
-                   "The size of coefficients vector must match the number of basis functions.");
-
-        const Size mu = findKnotSpan(x);
-        evaluate(tempB1_, x, mu);
-
-        // Compute the inner product with only the relevant coefficients
-        return tempB1_.dot(coefficients.segment(mu - this->degree_ - 1, this->degree_ + 1));
+    Eigen::VectorXd BSplineEvaluator::evaluateDerivative(Real x, Integer nu,
+                                                         BSplineSegment::SideEnum side) const {
+        QL_REQUIRE(side == BSplineSegment::SideRight || side == BSplineSegment::SideLeft,
+                   "Sidedness needs to be 'Right' or 'Left'");
+        
+        const Size nSegments = segments_.size();
+        Eigen::VectorXd result = Eigen::VectorXd::Zero(numVariables_);
+        
+        Size j = 0;
+        
+        for (Size i = 0; i < nSegments; ++i) {
+            bool inSegment = false;
+            const auto& segment = segments_[i];
+            const auto segmentRange = segment->range();
+            
+            // Same boundary logic as evaluateAll
+            if (side == BSplineSegment::SideRight) {
+                if (i == nSegments - 1) {
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    inSegment = (segmentRange.first <= x && x < segmentRange.second);
+                }
+            } else {
+                if (i == 0) {
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    inSegment = (segmentRange.first < x && x <= segmentRange.second);
+                }
+            }
+            
+            if (inSegment) {
+                const Eigen::VectorXd segmentResult = segment->evaluateAll(x, nu, side);
+                const Size segVars = segment->getNumVariables();
+                
+                QL_REQUIRE(j + segVars <= numVariables_,
+                           "Segment assignment would exceed vector bounds");
+                
+                result.segment(j, segVars) = segmentResult;
+            }
+            j += segment->getNumVariables();
+        }
+        
+        return result;
     }
-} // namespace QuantLib
+
+    std::pair<Real, Real> BSplineEvaluator::range() const {
+        QL_REQUIRE(!segments_.empty(), "No segments available");
+        
+        auto firstRange = segments_.front()->range();
+        auto lastRange = segments_.back()->range();
+        
+        return std::make_pair(firstRange.first, lastRange.second);
+    }
+
+    Size BSplineEvaluator::findSegmentIndex(Real x, BSplineSegment::SideEnum side) const {
+        const Size nSegments = segments_.size();
+        
+        for (Size i = 0; i < nSegments; ++i) {
+            bool inSegment = false;
+            const auto segmentRange = segments_[i]->range();
+            
+            if (side == BSplineSegment::SideRight) {
+                if (i == nSegments - 1) {
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    inSegment = (segmentRange.first <= x && x < segmentRange.second);
+                }
+            } else {
+                if (i == 0) {
+                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
+                } else {
+                    inSegment = (segmentRange.first < x && x <= segmentRange.second);
+                }
+            }
+            
+            if (inSegment) {
+                return i;
+            }
+        }
+        
+        return SIZE_MAX;  // Not found
+    }
+
+}

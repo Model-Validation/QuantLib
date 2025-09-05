@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2024 SEB AB Sverrir Thorvaldsson
+ Copyright (C) 2025
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -11,91 +11,97 @@
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
  <http://quantlib.org/license.shtml>.
-
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
 /*! \file bsplineevaluator.hpp
-    \brief B-spline evaluator
+    \brief B-spline basis function evaluator for multi-segment curves
 */
 
-#ifndef b_spline_evaluator_hpp
-#define b_spline_evaluator_hpp
+#ifndef quantlib_bspline_evaluator_hpp
+#define quantlib_bspline_evaluator_hpp
 
+#include "splinesegment.hpp"
+#include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
-#include <Eigen/Sparse>
 #include <vector>
+#include <Eigen/Dense>
 
 namespace QuantLib {
 
     /*!
-     * \brief Class for evaluating B-splines.
+     * \brief Evaluates B-spline basis functions for multi-segment curves
+     * 
+     * This class encapsulates the complex logic for evaluating basis functions
+     * across multiple B-spline segments, handling boundary conditions and
+     * sidedness correctly. It serves as the single source of truth for
+     * basis evaluation, used by both BSplineStructure and StagedProblem.
      */
     class BSplineEvaluator {
-      public:
+    public:
         /*!
-         * \brief Default constructor for BSplineEvaluator.
+         * \brief Constructor with segments
+         * \param segments The B-spline segments
+         * \param numVariables Total number of variables (sum of segment variables)
          */
-        BSplineEvaluator();
+        BSplineEvaluator(const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                         Size numVariables);
 
         /*!
-         * \brief Constructor for BSplineEvaluator with specified knots and degree.
-         * \param knots Vector of knots.
-         * \param degree Degree of the spline.
+         * \brief Evaluate all basis functions at a point
+         * 
+         * This method handles:
+         * - Multi-segment curves
+         * - Boundary evaluation rules
+         * - Sidedness for segment boundaries
+         * 
+         * \param x The evaluation point
+         * \param side The evaluation side (RIGHT or LEFT)
+         * \return Vector of basis function values
          */
-        BSplineEvaluator(const std::vector<double>& knots, Size degree);
+        Eigen::VectorXd evaluateAll(Real x, 
+                                    BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
 
         /*!
-         * \brief Evaluate all basis functions at a given value.
-         * \param x The value at which to evaluate the basis functions.
-         * \return A vector of evaluated basis functions.
+         * \brief Evaluate a specific derivative at a point
+         * 
+         * \param x The evaluation point
+         * \param nu The derivative order (0 = value, 1 = first derivative, etc.)
+         * \param side The evaluation side
+         * \return Vector of derivative values
          */
-        Eigen::VectorXd evaluateAll(double x) const;
+        Eigen::VectorXd evaluateDerivative(Real x, 
+                                           Integer nu,
+                                           BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
 
         /*!
-         * \brief Compute the value of the spline given coefficients.
-         * \param coefficients Vector of coefficients for the spline.
-         * \param x The point at which to evaluate the spline.
-         * \return The evaluated spline value.
+         * \brief Get the range of the multi-segment curve
+         * \return Pair of (min, max) x values
          */
-        double value(const Eigen::VectorXd& coefficients, double x) const;
-
-      private:
-        std::vector<double> knots_; /*!< Vector of knots. */
-        Size degree_;               /*!< Degree of the spline. */
-        Size numBasisFunctions_;    /*!< Number of basis functions. */
-        mutable std::vector<Eigen::SparseMatrix<double>>
-            Rk_matrices_;                /*!< Precomputed Rk matrices. */
-        mutable Eigen::VectorXd tempB1_; /*!< Temporary vector for basis function evaluation. */
-        mutable Eigen::VectorXd tempB2_; /*!< Temporary vector for basis function evaluation. */
+        std::pair<Real, Real> range() const;
 
         /*!
-         * \brief Find the knot span for a given value.
-         * \param x The value for which to find the knot span.
-         * \return The index of the knot span.
+         * \brief Get the number of segments
          */
-        Size findKnotSpan(double x) const;
+        Size getNumSegments() const { return segments_.size(); }
 
         /*!
-         * \brief Precompute the Rk matrices for the B-spline.
+         * \brief Get the total number of variables
          */
-        void precomputeRkMatrices() const;
+        Size getNumVariables() const { return numVariables_; }
 
+    private:
+        std::vector<ext::shared_ptr<BSplineSegment>> segments_;
+        Size numVariables_;
+        
         /*!
-         * \brief Initialize temporary vectors used in evaluation.
+         * \brief Find which segment contains a given x value
+         * \param x The point to locate
+         * \param side The evaluation side
+         * \return Index of the containing segment, or SIZE_MAX if not found
          */
-        void initializeTempVectors() const;
-
-        /*!
-         * \brief Evaluate the basis functions at a given value and knot span.
-         * \param B Reference to a vector to store the evaluated basis functions.
-         * \param x The value at which to evaluate the basis functions.
-         * \param mu The knot span index.
-         */
-        void evaluate(Eigen::Ref<Eigen::VectorXd> B, double x, Size mu) const;
+        Size findSegmentIndex(Real x, BSplineSegment::SideEnum side) const;
     };
+
 }
 
-#endif // b_spline_evaluator_hpp
+#endif // quantlib_bspline_evaluator_hpp
