@@ -377,6 +377,7 @@ set(QL_SOURCES
     math/interpolations/bsplineinterpolation/scssolver.cpp
     math/interpolations/bsplineinterpolation/splineconstraints.cpp
     math/interpolations/bsplineinterpolation/splinesegment.cpp
+    math/interpolations/bsplineinterpolation/stagedproblem.cpp
     math/interpolations/chebyshevinterpolation.cpp
     math/matrix.cpp
     math/matrixutilities/basisincompleteordered.cpp
@@ -1478,6 +1479,7 @@ set(QL_HEADERS
     math/interpolations/bsplineinterpolation/scssolver.hpp
     math/interpolations/bsplineinterpolation/splineconstraints.hpp
     math/interpolations/bsplineinterpolation/splinesegment.hpp
+    math/interpolations/bsplineinterpolation/stagedproblem.hpp
     math/interpolations/ratetimeinterpolation.hpp
     math/interpolations/spreadedinterpolation.hpp
     math/interpolations/chebyshevinterpolation.hpp
