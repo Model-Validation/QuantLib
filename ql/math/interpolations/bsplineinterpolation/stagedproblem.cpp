@@ -42,8 +42,8 @@ namespace QuantLib {
         // Clear previous staging
         clearStaging();
         
-        // Create our own BSplineEvaluator
-        evaluator_ = ext::make_shared<BSplineEvaluator>(segments, baseConstraints_->getNumVariables());
+        // Create our own MultiSegmentBSplineEvaluator
+        evaluator_ = ext::make_shared<MultiSegmentBSplineEvaluator>(segments, baseConstraints_->getNumVariables());
         
         // Build interpolation matrices
         buildInterpolationMatrices(interpolationNodes, modes, segments);
@@ -78,31 +78,29 @@ namespace QuantLib {
         QL_REQUIRE(values.size() == lastX_.size(),
                    "Number of y values must match staged x points");
         
-        // Build the complete b vector - must match A matrix rows
-        // In our case, base has no constraints initially, so b_base is empty
-        // We only have hard interpolation constraints
-        std::vector<Real> b_current;
-        auto b_base = baseConstraints_->get_b_vector();
+        // Use proper parameter mapping for warm-start optimization
+        // This preserves the SCS solver state and enables warm-start
         
-        // Copy base b values (usually empty for our test)
-        b_current = b_base;
+        // Build parameter vector from y values
+        // Parameters correspond to interpolation points in the order they were added
+        std::vector<Real> parameters;
         
-        // Add the y values for hard interpolation constraints
+        // Add y values for hard interpolation points
         for (Size i = 0; i < hardIndices_.size(); ++i) {
-            b_current.push_back(values[hardIndices_[i]]);
+            parameters.push_back(values[hardIndices_[i]]);
         }
         
-        // For now, rebuild constraints with updated b vector
-        // (This is not ideal but works until we have dynamic parameter support)
-        auto P_matrix = combinedConstraints_->get_p_matrix();
-        auto A_matrix = combinedConstraints_->get_a_matrix();
+        // Add y values for soft interpolation points  
+        for (Size i = 0; i < softIndices_.size(); ++i) {
+            parameters.push_back(values[softIndices_[i]]);
+        }
         
-        combinedConstraints_ = ext::make_shared<SplineConstraints>(
-            baseConstraints_->getNumVariables(),
-            P_matrix, A_matrix, b_current
-        );
+        // Update parameters in the constraint system
+        // This updates both B matrix (for hard constraints) and C matrix (for LS objectives)
+        combinedConstraints_->update_b(parameters);  // Updates RHS: b := b_base + B*parameters
+        combinedConstraints_->update_c(parameters);  // Updates objective: c := c_base + C*parameters
         
-        // Solve using the combined constraints
+        // Solve using updated parameters - this enables warm-start
         combinedConstraints_->solve();
         return combinedConstraints_->getSolution();
     }
@@ -170,8 +168,8 @@ namespace QuantLib {
                 Size pointIdx = hardIndices_[row];
                 Real x = interpolationNodes[pointIdx];
                 
-                // Evaluate basis functions at this point using BSplineEvaluator
-                Eigen::VectorXd basis = evaluator_->evaluateAll(x, BSplineSegment::SideRight);
+                // Evaluate basis functions at this point using MultiSegmentBSplineEvaluator
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
                 
                 // Add to triplets
                 for (Size col = 0; col < basis.size(); ++col) {
@@ -196,7 +194,7 @@ namespace QuantLib {
             
             for (Size i : softIndices_) {
                 Real x = interpolationNodes[i];
-                Eigen::VectorXd basis = evaluator_->evaluateAll(x, BSplineSegment::SideRight);
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
                 
                 // Add outer product to Q
                 for (Size row = 0; row < basis.size(); ++row) {
@@ -255,12 +253,208 @@ namespace QuantLib {
             b_combined.push_back(0.0);  // Placeholder, will be set in solve()
         }
         
-        // Create combined constraints
-        // Note: For now, we ignore soft constraints (Q_soft_)
-        // This will be added when SplineConstraints supports dynamic objectives
+        // Create combined quadratic form that includes soft constraints
+        std::vector<std::vector<Real>> P_combined = P_base;
+        
+        // Add soft constraint quadratic form to P matrix
+        if (!softIndices_.empty() && Q_soft_.rows() > 0) {
+            // Q_soft_ contains the sum of outer products: sum_i (b_i * b_i')
+            // where b_i is the basis vector at soft point i
+            // Add this to P matrix for least squares fitting
+            for (Size i = 0; i < numVariables; ++i) {
+                if (i >= P_combined.size()) {
+                    P_combined.resize(i + 1);
+                }
+                if (P_combined[i].size() < numVariables) {
+                    P_combined[i].resize(numVariables, 0.0);
+                }
+                
+                for (Size j = 0; j < numVariables; ++j) {
+                    P_combined[i][j] += Q_soft_.coeff(i, j);
+                }
+            }
+        }
+        
+        // Create combined constraints with parameter support
         combinedConstraints_ = ext::make_shared<SplineConstraints>(
-            numVariables, P_base, A_combined, b_combined
+            numVariables, P_combined, A_combined, b_combined
         );
+        
+        // Add parameter mapping for warm-start capability
+        Size totalParameters = hardIndices_.size() + softIndices_.size();
+        if (totalParameters > 0) {
+            // Build B matrix for hard constraints (maps parameters to RHS)
+            Eigen::SparseMatrix<Real> B_matrix(A_combined.size(), totalParameters);
+            std::vector<Eigen::Triplet<Real>> B_triplets;
+            
+            // Hard constraints: parameter i affects constraint (baseRows + i) with coefficient 1.0
+            for (Size i = 0; i < hardIndices_.size(); ++i) {
+                B_triplets.emplace_back(baseRows + i, i, 1.0);
+            }
+            B_matrix.setFromTriplets(B_triplets.begin(), B_triplets.end());
+            
+            // Build C matrix for LS objective (maps parameters to objective linear term)
+            Eigen::SparseMatrix<Real> C_matrix(numVariables, totalParameters);
+            std::vector<Eigen::Triplet<Real>> C_triplets;
+            
+            // For soft points, add -A'*y contribution to objective
+            for (Size i = 0; i < softIndices_.size(); ++i) {
+                Size softIdx = softIndices_[i];
+                Real x = lastX_[softIdx];
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
+                
+                for (Size j = 0; j < basis.size(); ++j) {
+                    if (std::abs(basis[j]) > 1e-14) {
+                        // Map soft parameter (hardIndices_.size() + i) to variable j
+                        C_triplets.emplace_back(j, hardIndices_.size() + i, -basis[j]);
+                    }
+                }
+            }
+            C_matrix.setFromTriplets(C_triplets.begin(), C_triplets.end());
+            
+            // Add parameters to the constraint system
+            combinedConstraints_->addParameters(totalParameters, B_matrix, C_matrix);
+        }
+    }
+
+    std::vector<ModeSpan> generateVoronoiModeSpans(
+        const std::vector<Real>& dataPoints,
+        Real domainStart,
+        Real domainEnd,
+        Real densityThreshold,
+        Real boundaryWidth) {
+        
+        QL_REQUIRE(domainStart < domainEnd, "Domain start must be less than domain end");
+        QL_REQUIRE(densityThreshold > 0, "Density threshold must be positive");
+        QL_REQUIRE(boundaryWidth >= 0, "Boundary width must be non-negative");
+        
+        std::vector<ModeSpan> spans;
+        
+        // Sort data points for processing
+        std::vector<Real> sortedPoints = dataPoints;
+        std::sort(sortedPoints.begin(), sortedPoints.end());
+        
+        // Remove duplicates and filter to domain
+        auto last = std::unique(sortedPoints.begin(), sortedPoints.end());
+        sortedPoints.erase(last, sortedPoints.end());
+        
+        // Filter to domain range
+        auto domainBegin = std::lower_bound(sortedPoints.begin(), sortedPoints.end(), domainStart);
+        auto domainEnd_it = std::upper_bound(sortedPoints.begin(), sortedPoints.end(), domainEnd);
+        std::vector<Real> domainPoints(domainBegin, domainEnd_it);
+        
+        if (domainPoints.empty()) {
+            // No data points in domain - use HARD mode for entire domain
+            spans.emplace_back(domainStart, domainEnd, InterpolationMode::HARD);
+            return spans;
+        }
+        
+        // Define boundary regions (always HARD mode for boundary stability)
+        Real leftBoundaryEnd = domainStart + boundaryWidth;
+        Real rightBoundaryStart = domainEnd - boundaryWidth;
+        
+        // Process the domain in segments
+        Real currentPos = domainStart;
+        const Real minSpanWidth = 0.01; // Minimum span width to avoid tiny spans
+        
+        while (currentPos < domainEnd) {
+            Real spanStart = currentPos;
+            Real spanEnd;
+            InterpolationMode spanMode;
+            
+            // Determine if we're in a boundary region
+            bool inLeftBoundary = (currentPos < leftBoundaryEnd);
+            bool inRightBoundary = (currentPos >= rightBoundaryStart);
+            
+            if (inLeftBoundary) {
+                // Left boundary region - use HARD mode
+                spanEnd = std::min(leftBoundaryEnd, domainEnd);
+                spanMode = InterpolationMode::HARD;
+            } else if (inRightBoundary) {
+                // Right boundary region - use HARD mode
+                spanEnd = domainEnd;
+                spanMode = InterpolationMode::HARD;
+            } else {
+                // Interior region - analyze local density
+                
+                // Find data points in a local window around current position
+                Real windowSize = std::min(0.2, (domainEnd - domainStart) / 5.0); // Adaptive window
+                Real windowStart = currentPos;
+                Real windowEnd = std::min(currentPos + windowSize, rightBoundaryStart);
+                
+                // Count points in window
+                auto windowBegin = std::lower_bound(domainPoints.begin(), domainPoints.end(), windowStart);
+                auto windowEnd_it = std::upper_bound(domainPoints.begin(), domainPoints.end(), windowEnd);
+                Size pointCount = std::distance(windowBegin, windowEnd_it);
+                
+                // Calculate local density
+                Real windowWidth = windowEnd - windowStart;
+                Real localDensity = (windowWidth > 1e-10) ? pointCount / windowWidth : 0.0;
+                
+                // Determine mode based on density
+                spanMode = (localDensity >= densityThreshold) ? InterpolationMode::LS : InterpolationMode::HARD;
+                
+                // Extend span to include similar-density regions
+                spanEnd = windowEnd;
+                Real extendStep = windowSize * 0.5;
+                
+                while (spanEnd < rightBoundaryStart && (spanEnd - spanStart) < (domainEnd - domainStart) * 0.5) {
+                    Real nextWindowEnd = std::min(spanEnd + extendStep, rightBoundaryStart);
+                    
+                    // Check density in extended region
+                    auto extWindowBegin = std::lower_bound(domainPoints.begin(), domainPoints.end(), spanEnd);
+                    auto extWindowEnd_it = std::upper_bound(domainPoints.begin(), domainPoints.end(), nextWindowEnd);
+                    Size extPointCount = std::distance(extWindowBegin, extWindowEnd_it);
+                    
+                    Real extWindowWidth = nextWindowEnd - spanEnd;
+                    Real extDensity = (extWindowWidth > 1e-10) ? extPointCount / extWindowWidth : 0.0;
+                    
+                    // Check if extended region has similar density characteristics
+                    bool extShouldLS = (extDensity >= densityThreshold);
+                    bool currentShouldLS = (spanMode == InterpolationMode::LS);
+                    
+                    if (extShouldLS == currentShouldLS) {
+                        // Similar density - extend the span
+                        spanEnd = nextWindowEnd;
+                    } else {
+                        // Different density - end current span
+                        break;
+                    }
+                }
+            }
+            
+            // Ensure minimum span width
+            if (spanEnd - spanStart < minSpanWidth && spanEnd < domainEnd) {
+                spanEnd = std::min(spanStart + minSpanWidth, domainEnd);
+            }
+            
+            // Add span if it has meaningful width
+            if (spanEnd > spanStart + 1e-12) {
+                spans.emplace_back(spanStart, spanEnd, spanMode);
+            }
+            
+            currentPos = spanEnd;
+        }
+        
+        // Merge adjacent spans with same mode to avoid fragmentation
+        if (spans.size() > 1) {
+            std::vector<ModeSpan> mergedSpans;
+            mergedSpans.push_back(spans[0]);
+            
+            for (Size i = 1; i < spans.size(); ++i) {
+                if (spans[i].mode == mergedSpans.back().mode && 
+                    std::abs(spans[i].start - mergedSpans.back().end) < 1e-10) {
+                    // Same mode and adjacent - merge
+                    mergedSpans.back().end = spans[i].end;
+                } else {
+                    // Different mode or gap - add as new span
+                    mergedSpans.push_back(spans[i]);
+                }
+            }
+            spans = std::move(mergedSpans);
+        }
+        
+        return spans;
     }
 
 

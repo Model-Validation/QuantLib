@@ -68,22 +68,32 @@ namespace QuantLib {
         const Size nVariables = splineConstraints_->getNumVariables();
         const Size nEqualitiesBefore = splineConstraints_->getNumEqualities();
 
-        // Add interpolation equality constraints
-        for (const Real interpolationNode : interpolationNodes) {
-            Eigen::VectorXd row = evaluateAll(interpolationNode, side);
-            
-            QL_REQUIRE(row.size() == nVariables,
-                      "evaluateAll returned wrong size: " << row.size() <<
-                      " expected " << nVariables << " for x=" << interpolationNode);
-            
-            // Use the new method that maintains SCS ordering
-            splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
+        // Mode-specific constraint handling
+        if (splineConstraints_->fitData_) {
+            // LS MODE: Do NOT add equality constraints
+            // Instead, we'll add quadratic penalty terms to the objective
+            // The constraints are handled as soft penalties in the objective function
+        } else {
+            // HARD MODE: Add interpolation equality constraints
+            for (const Real interpolationNode : interpolationNodes) {
+                Eigen::VectorXd row = evaluateAll(interpolationNode, side);
+                
+                QL_REQUIRE(row.size() == nVariables,
+                          "evaluateAll returned wrong size: " << row.size() <<
+                          " expected " << nVariables << " for x=" << interpolationNode);
+                
+                // Use the new method that maintains SCS ordering
+                splineConstraints_->addEqualityConstraintAtBeginning(row, 0.0);
+            }
         }
 
         // Set up parameter mapping for interpolation nodes
         // Hard mode: parameters map to constraint RHS via B matrix  
-        // LS mode: SHOULD map parameters to objective via C matrix (but currently broken)
+        // LS mode: parameters map to objective via C matrix
         {
+            // Get updated constraint count after potentially adding constraints
+            const Size nConstraintsAfter = splineConstraints_->getNConstraints();
+            
             if (splineConstraints_->fitData_) {
                 // LS MODE: Parameters map to objective via C matrix for warm-start
                 // The objective is: min ||Ax - y||² = min x'(A'A)x - 2(A'y)'x
@@ -93,23 +103,47 @@ namespace QuantLib {
                 
                 // In LS mode, constraints don't have parameters (B is empty)
                 // But objective has parameters via C matrix
-                Eigen::SparseMatrix<Real> B_new(nConstraints + nInterpolationNodes, totalParameters);  // Empty B
+                Eigen::SparseMatrix<Real> B_new(nConstraintsAfter, totalParameters);  // Empty B
                 Eigen::SparseMatrix<Real> C_new(nVariables, totalParameters);
                 
                 // Build C matrix: C*params should give -A'*y contribution to objective
                 // where A is the interpolation constraint matrix and y are the parameter values
-                // For now, skip C matrix - we're using direct P/c computation instead
-                // TODO: Implement proper C matrix for true staged interpolation
                 
-                // Don't add parameters for now - avoids dimension issues
-                // splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
+                // In LS mode, the objective becomes:
+                // minimize (1/2) x'Px + c'x - params'A'x
+                // This is equivalent to: minimize (1/2) x'Px + (c - A'params)'x
+                // So C matrix should be -A' (negative transpose of interpolation matrix)
+                
+                std::vector<Eigen::Triplet<Real>> C_triplets;
+                for (Size i = 0; i < nInterpolationNodes; ++i) {
+                    Real x = interpolationNodes[i];
+                    Eigen::VectorXd basis = evaluateAll(x, side);
+                    
+                    for (Size j = 0; j < basis.size(); ++j) {
+                        if (std::abs(basis[j]) > 1e-14) {
+                            // C matrix: maps parameters to objective linear term
+                            // Add -A'[i,j] as coefficient for parameter i affecting variable j
+                            C_triplets.emplace_back(j, nParameters + i, -basis[j]);
+                        }
+                    }
+                }
+                
+                C_new.setFromTriplets(C_triplets.begin(), C_triplets.end());
+                
+                // TODO: Add A'A term to quadratic objective for least squares
+                // This creates the ||Ax - y||² objective: min x'(A'A)x - 2y'Ax
+                // Currently not implemented due to SplineConstraints API limitations
+                // The A'A term needs to be added to P matrix during SplineConstraints construction
+                
+                // Add parameters for warm-start capability in LS mode
+                splineConstraints_->addParameters(nInterpolationNodes, B_new, C_new);
                 
             } else {
                 // HARD MODE: Parameters map to constraint RHS via B matrix
                 // Constraints: Ax = b + B*params where params are y-values
                 
                 const Size totalParameters = nParameters + nInterpolationNodes;
-                const Size totalConstraints = nConstraints + nInterpolationNodes;
+                const Size totalConstraints = nConstraintsAfter;
                 
                 // Validate dimensions
                 QL_REQUIRE(nEqualitiesBefore + nInterpolationNodes <= totalConstraints,
@@ -148,35 +182,6 @@ namespace QuantLib {
     // system and move it to the objective function for the same purpose. This is hacked in here post-hoc, but
     // awaits a better setup.
     
-    // New overload with mode specification
-    Eigen::VectorXd
-    BSplineStructure::interpolate(const std::vector<Real>& interpolationNodes,
-                                  const std::vector<Real>& values,
-                                  const std::vector<InterpolationMode>& modes) {
-        // Use staging if enabled
-        if (useStaging_) {
-            // Check if we need to stage or can reuse
-            if (!stagedProblem_ || lastStagedX_ != interpolationNodes) {
-                // Create or re-stage
-                if (!stagedProblem_) {
-                    stagedProblem_ = ext::make_shared<StagedProblem>(splineConstraints_);
-                }
-                // StagedProblem will create its own BSplineEvaluator
-                stagedProblem_->stage(interpolationNodes, modes, splineSegments_);
-                lastStagedX_ = interpolationNodes;
-            }
-            
-            // Transform values before solving (same as non-staged path)
-            std::vector<Real> transformedValues = transform(interpolationNodes, values);
-            
-            // Solve with staged structure (warm-start on subsequent calls)
-            return stagedProblem_->solve(transformedValues);
-        }
-        
-        // Fall back to original implementation if staging disabled
-        // For now, ignore modes and use default behavior
-        return interpolate(interpolationNodes, values);
-    }
     
     Eigen::VectorXd
     BSplineStructure::interpolate(const std::vector<Real>& interpolationNodesOrg,
@@ -187,149 +192,34 @@ namespace QuantLib {
             std::vector<InterpolationMode> autoModes(interpolationNodesOrg.size(), InterpolationMode::AUTO);
             return interpolate(interpolationNodesOrg, valuesOrg, autoModes);
         }
+
+        // Legacy path: Use global fitData_ flag to determine mode for all points
+        InterpolationMode globalMode = splineConstraints_->fitData_ ? InterpolationMode::LS : InterpolationMode::HARD;
+        std::vector<InterpolationMode> globalModes(interpolationNodesOrg.size(), globalMode);
+        return interpolate(interpolationNodesOrg, valuesOrg, globalModes);
+    }
+
+    Eigen::VectorXd BSplineStructure::interpolate(const std::vector<Real>& interpolationNodesOrg,
+                                                  const std::vector<Real>& valuesOrg,
+                                                  const std::vector<InterpolationMode>& modes) {
+        QL_REQUIRE(interpolationNodesOrg.size() == valuesOrg.size(), 
+                   "Number of interpolation nodes must match number of values");
+        QL_REQUIRE(interpolationNodesOrg.size() == modes.size(),
+                   "Number of interpolation nodes must match number of modes");
         
-        std::vector<Real> interpolationNodes, values;
-        // TODO: this is a hack, bootstrapper adds 0.0 as a node, which may conflict with our setup,
-        // e.g. if we have an extrapolation to the left
-        if (interpolationNodesOrg[0] == 0.0 && rejectZeroNode_) {
-            interpolationNodes.reserve(interpolationNodesOrg.size() - 1);
-            values.reserve(interpolationNodesOrg.size() - 1);
-            interpolationNodes.insert(interpolationNodes.end(), interpolationNodesOrg.begin() + 1,
-                                      interpolationNodesOrg.end());
-            values.insert(values.end(), valuesOrg.begin() + 1, valuesOrg.end());
-        } else {
-            interpolationNodes.reserve(interpolationNodesOrg.size());
-            values.reserve(interpolationNodesOrg.size());
-            interpolationNodes.insert(interpolationNodes.end(), interpolationNodesOrg.begin(),
-                                      interpolationNodesOrg.end());
-            values.insert(values.end(), valuesOrg.begin(), valuesOrg.end());
+        // Always use staged approach for proper per-point mode handling
+        // The staged path is the only one that correctly implements mixed HARD/LS modes
+        if (!stagedProblem_) {
+            stagedProblem_ = ext::make_shared<StagedProblem>(splineConstraints_);
         }
-        std::vector<Real> transformedValues = transform(interpolationNodes, values);
-
-        // The segment nodes is another semi-hack, the idea to assign special nodes to have a special role actually
-        // is a reasonable way to push non-linearity to the bootstrapper and keep the curve problem in each
-        // iteration convex. But it is probably better to assign these nodes explicitly in the class. Here
-        // we use this to allow for different interpolation spaces in different segments, and tie them
-        // by requiring transformed values from left and right to be the same. This was done to incorporate RT
-        // interpolation.
-        if (useSegmentNodes_) {
-            std::vector<Real> segmentNodes, segmentNodeValues;
-            //extendedNodes.reserve(interpolationNodes.size());
-            //extendedNodes.insert(extendedNodes.end(), interpolationNodes.begin(),
-            //                     interpolationNodes.end());
-            segmentNodes.reserve(segmentNodes_.size());
-            segmentNodeValues.reserve(segmentNodes_.size());
-
-            auto lower = interpolationNodes.begin();
-
-            for (Real segmentNode : segmentNodes_) {
-                lower = std::lower_bound(lower, interpolationNodes.end(), segmentNode - tolerance_);
-                if (lower != interpolationNodes.end() && *lower <= segmentNode + tolerance_) {
-                    const Size index = std::distance(interpolationNodes.begin(), lower);
-                    segmentNodes.emplace_back(segmentNode);
-                    segmentNodeValues.emplace_back(values[index]);
-                }
-            }
-
-            //extendedNodes.reserve(extendedNodes.size() + segmentNodes.size());
-            //extendedNodes.insert(extendedNodes.end(), segmentNodes.begin(), segmentNodes.end());
-
-            std::vector<Real> transformedValues2 =
-                transform(segmentNodes, segmentNodeValues, BSplineSegment::SideLeft);
-
-            transformedValues.reserve(transformedValues.size() + transformedValues2.size());
-            transformedValues.insert(transformedValues.end(), transformedValues2.begin(),
-                                     transformedValues2.end());
-            // Pass 0 as nParameters for first call - no parameters added yet
-            addInterpolationNodes(segmentNodes, BSplineSegment::SideLeft, 0);
-        } else {
-            transformedValues = transform(interpolationNodes, values);
-        }
-
-        const Size nConstraintsBefore = splineConstraints_->getNConstraints();
         
-        splineConstraints_->push();
-        
-        // Set up parameter mapping for interpolation nodes
-        // For hard mode: parameters map to constraint RHS via B matrix
-        // For LS mode: parameters map to objective via C matrix (implemented in addInterpolationNodes)
-        // For now, always pass 0 as we're not properly tracking parameters from segment nodes
-        // TODO: Fix parameter tracking for segment nodes
-        Size nParametersAlreadyAdded = 0;
-        addInterpolationNodes(interpolationNodes, BSplineSegment::SideRight, nParametersAlreadyAdded);
-
-        Eigen::VectorXd solution;
-        if (splineConstraints_->fitData_) {
-            const Integer firstRow = static_cast<Integer>(nConstraintsBefore);
-            const Integer lastRow =
-                static_cast<Integer>(nConstraintsBefore + transformedValues.size());
-            interpolationA_ = splineConstraints_->getSliceOfA(firstRow, lastRow);
-
-            splineConstraints_->pop();
-
-            interpolationBVec_ = Eigen::Map<const Eigen::VectorXd>(transformedValues.data(),
-                transformedValues.size());
-
-            if (firstRow == 0) {
-                // No pre-existing constraints - pure unconstrained LS
-                Eigen::SparseQR<Eigen::SparseMatrix<Real>, Eigen::COLAMDOrdering<int>> solver;
-                solver.compute(interpolationA_);
-                solution = solver.solve(interpolationBVec_);
-                QL_REQUIRE(solver.info() == Eigen::Success, "Solver failed");
-            } else {
-                // FIXED: Build LS objective and solve WITH constraints
-                // The LS objective is: min 0.5 * x'Px + c'x where P = A'A, c = -A'b
-                
-                QL_REQUIRE(interpolationA_.cols() > 0 && interpolationA_.rows() > 0,
-                          "interpolationA_ has invalid dimensions: " << 
-                          interpolationA_.rows() << "x" << interpolationA_.cols());
-                QL_REQUIRE(interpolationBVec_.size() == interpolationA_.rows(),
-                          "Dimension mismatch: interpolationBVec size " << interpolationBVec_.size() <<
-                          " != interpolationA rows " << interpolationA_.rows());
-                
-                Eigen::SparseMatrix<Real> P_ls = interpolationA_.transpose() * interpolationA_;
-                Eigen::VectorXd c_ls = -(interpolationA_.transpose() * interpolationBVec_);
-                
-                // CRITICAL FIX: Don't replace P, but COMBINE with it!
-                // The original P has regularization that maintains structure for multi-segment
-                Eigen::SparseMatrix<Real> P_original = splineConstraints_->getP();
-                Eigen::VectorXd c_original = splineConstraints_->getCVector();
-                
-                // Check dimensions are compatible
-                QL_REQUIRE(P_ls.rows() == P_original.rows() && P_ls.cols() == P_original.cols(),
-                          "P matrix dimension mismatch: P_ls is " << P_ls.rows() << "x" << P_ls.cols() <<
-                          " but P_original is " << P_original.rows() << "x" << P_original.cols());
-                QL_REQUIRE(c_ls.size() == c_original.size(),
-                          "c vector dimension mismatch: c_ls size " << c_ls.size() <<
-                          " != c_original size " << c_original.size());
-                
-                // Combine objectives: original regularization + LS data fitting
-                // Total objective: 0.5 * x'(P_original + P_ls)x + (c_original + c_ls)'x
-                Eigen::SparseMatrix<Real> P_combined = P_original + P_ls;
-                Eigen::VectorXd c_combined = c_original + c_ls;
-                
-                // Update the objective in the constraint system
-                splineConstraints_->setP(P_combined);
-                splineConstraints_->setCVector(c_combined);
-                
-                // The pre-existing constraints (equalities for joins, inequalities for shape)
-                // are still in splineConstraints_ and will be respected by solve()
-                // Pass transformed values as parameters for warm-start capability
-                solution = solve(transformedValues);
-            }
-        } else {
-            // In hard mode, solve with interpolation constraints active
-            try {
-                solution = solve(transformedValues);
-                // Now pop after we have the solution
-                splineConstraints_->pop();
-            } catch (...) {
-                // CRITICAL: Always pop even if solve fails
-                splineConstraints_->pop();
-                throw;  // Re-throw the exception
-            }
+        // Check if we need to stage or can reuse
+        if (lastStagedX_ != interpolationNodesOrg) {
+            stagedProblem_->stage(interpolationNodesOrg, modes, splineSegments_);
+            lastStagedX_ = interpolationNodesOrg;
         }
-        return solution;
+        
+        return stagedProblem_->solve(valuesOrg);
     }
 
     // ReSharper disable once CppInconsistentNaming
@@ -383,8 +273,8 @@ namespace QuantLib {
 
     Eigen::VectorXd BSplineStructure::evaluateAll(const Real x,
                                                   const BSplineSegment::SideEnum side) const {
-        // Delegate to the BSplineEvaluator which contains all the complex logic
-        return spline_.evaluateAll(x, side);
+        // Delegate to the MultiSegmentBSplineEvaluator which contains all the complex logic
+        return spline_.evaluateAll(x, static_cast<BSplineSide>(side));
     }
 
     Real BSplineStructure::value(const Eigen::VectorXd& coefficients,

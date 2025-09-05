@@ -22,7 +22,7 @@
 
 #include "splineconstraints.hpp"
 #include "splinesegment.hpp"
-#include "bsplineevaluator.hpp"
+#include "multisegmentbsplineevaluator.hpp"
 #include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
 #include <vector>
@@ -48,9 +48,35 @@ namespace QuantLib {
         Real end;
         InterpolationMode mode;
         
+        // Default constructor for SWIG vector support
+        ModeSpan() : start(0.0), end(0.0), mode(InterpolationMode::AUTO) {}
+        
         ModeSpan(Real s, Real e, InterpolationMode m) 
             : start(s), end(e), mode(m) {}
     };
+
+    /*!
+     * \brief Generate Voronoi-like mode spans based on data density
+     * 
+     * Creates spans where:
+     * - Dense data regions use LS mode (smooth fitting)
+     * - Sparse data regions use HARD mode (exact interpolation)
+     * - Boundary regions use HARD mode (preserve exact values)
+     * 
+     * \param dataPoints The x-coordinates of data points
+     * \param domainStart Start of the interpolation domain
+     * \param domainEnd End of the interpolation domain
+     * \param densityThreshold Points per unit length threshold for LS vs HARD
+     * \param boundaryWidth Width of boundary regions (from domain edges)
+     * \return Vector of ModeSpan objects covering the domain
+     */
+    std::vector<ModeSpan> generateVoronoiModeSpans(
+        const std::vector<Real>& dataPoints,
+        Real domainStart,
+        Real domainEnd,
+        Real densityThreshold = 2.0,
+        Real boundaryWidth = 0.1
+    );
 
     /*!
      * \brief Staged problem for B-spline interpolation with warm-start capability
@@ -143,7 +169,7 @@ namespace QuantLib {
         bool staged_;
         std::vector<Real> lastX_;  // Remember x points for validation
         std::vector<ext::shared_ptr<BSplineSegment>> segments_;  // Remember segments
-        ext::shared_ptr<BSplineEvaluator> evaluator_;  // Evaluator for basis functions
+        ext::shared_ptr<MultiSegmentBSplineEvaluator> evaluator_;  // Evaluator for basis functions
         
         // Helper methods
         InterpolationMode getModeAt(Real x, const std::vector<ModeSpan>& spans) const;

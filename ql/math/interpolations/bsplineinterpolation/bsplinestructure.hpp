@@ -24,7 +24,7 @@
 #ifndef composite_spline_structure_hpp
 #define composite_spline_structure_hpp
 
-#include "bsplineevaluator.hpp"
+#include "multisegmentbsplineevaluator.hpp"
 #include "splineconstraints.hpp"
 #include "splinesegment.hpp"
 #include "stagedproblem.hpp"
@@ -108,7 +108,7 @@ namespace QuantLib {
         bool rejectZeroNode_ = true;
         bool useSegmentNodes_ = false;
         std::vector<Real> segmentNodes_;
-        BSplineEvaluator spline_;
+        MultiSegmentBSplineEvaluator spline_;
         Real tolerance_ = 0.0e-14;
         Eigen::SparseMatrix<Real> interpolationA_;
         Eigen::VectorXd interpolationBVec_;
