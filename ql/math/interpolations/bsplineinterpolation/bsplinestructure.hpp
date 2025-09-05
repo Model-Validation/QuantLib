@@ -27,6 +27,7 @@
 #include "bsplineevaluator.hpp"
 #include "splineconstraints.hpp"
 #include "splinesegment.hpp"
+#include "stagedproblem.hpp"
 #include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
 #include <vector>
@@ -88,6 +89,16 @@ namespace QuantLib {
         Eigen::VectorXd getSolution() const;
         std::vector<Real> get_solution() const;
         
+        // Staged interpolation methods
+        void enableStaging(bool enable = true) { useStaging_ = enable; }
+        bool isStagingEnabled() const { return useStaging_; }
+        void clearStaging() { if (stagedProblem_) stagedProblem_->clearStaging(); }
+        
+        // Interpolate with mode specification
+        Eigen::VectorXd interpolate(const std::vector<Real>& interpolationNodes,
+                                    const std::vector<Real>& values,
+                                    const std::vector<InterpolationMode>& modes);
+        
         // Friend class for unit testing internal state
         friend class BSplineTestAccess;
         
@@ -101,6 +112,11 @@ namespace QuantLib {
         Real tolerance_ = 0.0e-14;
         Eigen::SparseMatrix<Real> interpolationA_;
         Eigen::VectorXd interpolationBVec_;
+        
+        // Staging support
+        bool useStaging_ = false;
+        mutable ext::shared_ptr<StagedProblem> stagedProblem_;
+        mutable std::vector<Real> lastStagedX_;
     };
 }
 #endif // composite_spline_structure_hpp

@@ -145,9 +145,50 @@ namespace QuantLib {
     // minimizing the norm squared of A x - b, rather than solving it. We can indeed take any part of this
     // system and move it to the objective function for the same purpose. This is hacked in here post-hoc, but
     // awaits a better setup.
+    
+    // New overload with mode specification
+    Eigen::VectorXd
+    BSplineStructure::interpolate(const std::vector<Real>& interpolationNodes,
+                                  const std::vector<Real>& values,
+                                  const std::vector<InterpolationMode>& modes) {
+        // Use staging if enabled
+        if (useStaging_) {
+            // Check if we need to stage or can reuse
+            if (!stagedProblem_ || lastStagedX_ != interpolationNodes) {
+                // Create or re-stage
+                if (!stagedProblem_) {
+                    stagedProblem_ = ext::make_shared<StagedProblem>(splineConstraints_);
+                }
+                // Pass our evaluateAll method as a lambda
+                auto evaluator = [this](Real x, BSplineSegment::SideEnum side) -> Eigen::VectorXd {
+                    return this->evaluateAll(x, side);
+                };
+                stagedProblem_->stage(interpolationNodes, modes, splineSegments_, evaluator);
+                lastStagedX_ = interpolationNodes;
+            }
+            
+            // Transform values before solving (same as non-staged path)
+            std::vector<Real> transformedValues = transform(interpolationNodes, values);
+            
+            // Solve with staged structure (warm-start on subsequent calls)
+            return stagedProblem_->solve(transformedValues);
+        }
+        
+        // Fall back to original implementation if staging disabled
+        // For now, ignore modes and use default behavior
+        return interpolate(interpolationNodes, values);
+    }
+    
     Eigen::VectorXd
     BSplineStructure::interpolate(const std::vector<Real>& interpolationNodesOrg,
                                   const std::vector<Real>& valuesOrg) {
+        // Check if we should use staging automatically
+        if (useStaging_) {
+            // Use AUTO mode for all points
+            std::vector<InterpolationMode> autoModes(interpolationNodesOrg.size(), InterpolationMode::AUTO);
+            return interpolate(interpolationNodesOrg, valuesOrg, autoModes);
+        }
+        
         std::vector<Real> interpolationNodes, values;
         // TODO: this is a hack, bootstrapper adds 0.0 as a node, which may conflict with our setup,
         // e.g. if we have an extrapolation to the left

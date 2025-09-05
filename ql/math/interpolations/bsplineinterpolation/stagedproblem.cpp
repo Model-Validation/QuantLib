@@ -33,7 +33,8 @@ namespace QuantLib {
 
     void StagedProblem::stage(const std::vector<Real>& interpolationNodes,
                               const std::vector<InterpolationMode>& modes,
-                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments) {
+                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                              std::function<Eigen::VectorXd(Real, BSplineSegment::SideEnum)> evaluator) {
         
         QL_REQUIRE(interpolationNodes.size() == modes.size(),
                    "Number of interpolation nodes must match number of modes");
@@ -41,6 +42,9 @@ namespace QuantLib {
         
         // Clear previous staging
         clearStaging();
+        
+        // Store the evaluator if provided
+        evaluator_ = evaluator;
         
         // Build interpolation matrices
         buildInterpolationMatrices(interpolationNodes, modes, segments);
@@ -75,15 +79,18 @@ namespace QuantLib {
         QL_REQUIRE(values.size() == lastX_.size(),
                    "Number of y values must match staged x points");
         
-        // Update b vector with y values for hard constraints
-        auto b_current = combinedConstraints_->get_b_vector();
-        Size baseSize = baseConstraints_->getNumEqualities() + baseConstraints_->getNumInequalities();
+        // Build the complete b vector - must match A matrix rows
+        // In our case, base has no constraints initially, so b_base is empty
+        // We only have hard interpolation constraints
+        std::vector<Real> b_current;
+        auto b_base = baseConstraints_->get_b_vector();
         
-        // Update the RHS for hard interpolation constraints
+        // Copy base b values (usually empty for our test)
+        b_current = b_base;
+        
+        // Add the y values for hard interpolation constraints
         for (Size i = 0; i < hardIndices_.size(); ++i) {
-            if (baseSize + i < b_current.size()) {
-                b_current[baseSize + i] = values[hardIndices_[i]];
-            }
+            b_current.push_back(values[hardIndices_[i]]);
         }
         
         // For now, rebuild constraints with updated b vector
@@ -110,6 +117,7 @@ namespace QuantLib {
         A_hard_ = Eigen::SparseMatrix<Real>();
         Q_soft_ = Eigen::SparseMatrix<Real>();
         combinedConstraints_ = nullptr;
+        evaluator_ = nullptr;
     }
 
     InterpolationMode StagedProblem::getModeAt(Real x, 
@@ -164,7 +172,14 @@ namespace QuantLib {
                 Real x = interpolationNodes[pointIdx];
                 
                 // Evaluate basis functions at this point
-                Eigen::VectorXd basis = evaluateBasisAt(x, segments);
+                Eigen::VectorXd basis;
+                if (evaluator_) {
+                    // Use the provided evaluator (from BSplineStructure)
+                    basis = evaluator_(x, BSplineSegment::SideRight);
+                } else {
+                    // Fall back to our own evaluation
+                    basis = evaluateBasisAt(x, segments);
+                }
                 
                 // Add to triplets
                 for (Size col = 0; col < basis.size(); ++col) {
@@ -176,6 +191,10 @@ namespace QuantLib {
             
             A_hard_.resize(hardIndices_.size(), numVariables);
             A_hard_.setFromTriplets(triplets.begin(), triplets.end());
+            
+            // Debug: verify size
+            QL_REQUIRE(A_hard_.rows() == hardIndices_.size(),
+                       "A_hard rows mismatch: " << A_hard_.rows() << " != " << hardIndices_.size());
         }
         
         // Build soft quadratic form Q_soft
@@ -185,7 +204,12 @@ namespace QuantLib {
             
             for (Size i : softIndices_) {
                 Real x = interpolationNodes[i];
-                Eigen::VectorXd basis = evaluateBasisAt(x, segments);
+                Eigen::VectorXd basis;
+                if (evaluator_) {
+                    basis = evaluator_(x, BSplineSegment::SideRight);
+                } else {
+                    basis = evaluateBasisAt(x, segments);
+                }
                 
                 // Add outer product to Q
                 for (Size row = 0; row < basis.size(); ++row) {
@@ -216,8 +240,14 @@ namespace QuantLib {
         // Combine A matrices (base + hard interpolation constraints)
         std::vector<std::vector<Real>> A_combined = A_base;
         
+        // Debug: Check initial sizes
+        Size baseRows = A_base.size();
+        
         if (numHard > 0) {
             // Add rows for hard interpolation constraints
+            QL_REQUIRE(A_hard_.rows() == numHard, 
+                       "A_hard rows " << A_hard_.rows() << " != numHard " << numHard);
+            
             for (Size i = 0; i < numHard; ++i) {
                 std::vector<Real> row(numVariables, 0.0);
                 for (Size j = 0; j < numVariables; ++j) {
@@ -226,6 +256,11 @@ namespace QuantLib {
                 A_combined.push_back(row);
             }
         }
+        
+        // Debug: verify final size
+        QL_REQUIRE(A_combined.size() == baseRows + numHard,
+                   "A_combined size wrong: " << A_combined.size() << 
+                   " != " << baseRows << " + " << numHard);
         
         // Extend b vector (will be filled with y values when solving)
         std::vector<Real> b_combined = b_base;
