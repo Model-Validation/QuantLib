@@ -22,10 +22,10 @@
 
 #include "splineconstraints.hpp"
 #include "splinesegment.hpp"
+#include "bsplineevaluator.hpp"
 #include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
 #include <vector>
-#include <functional>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
@@ -79,8 +79,7 @@ namespace QuantLib {
          */
         void stage(const std::vector<Real>& interpolationNodes,
                    const std::vector<InterpolationMode>& modes,
-                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
-                   std::function<Eigen::VectorXd(Real, BSplineSegment::SideEnum)> evaluator = nullptr);
+                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments);
 
         /*!
          * \brief Stage with mode spans instead of per-point modes
@@ -144,7 +143,7 @@ namespace QuantLib {
         bool staged_;
         std::vector<Real> lastX_;  // Remember x points for validation
         std::vector<ext::shared_ptr<BSplineSegment>> segments_;  // Remember segments
-        std::function<Eigen::VectorXd(Real, BSplineSegment::SideEnum)> evaluator_;  // External evaluator
+        ext::shared_ptr<BSplineEvaluator> evaluator_;  // Evaluator for basis functions
         
         // Helper methods
         InterpolationMode getModeAt(Real x, const std::vector<ModeSpan>& spans) const;
@@ -155,11 +154,6 @@ namespace QuantLib {
             const std::vector<ext::shared_ptr<BSplineSegment>>& segments);
             
         void combineConstraints();
-        
-        Eigen::VectorXd evaluateBasisAt(
-            Real x,
-            const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
-            BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
     };
 
 }

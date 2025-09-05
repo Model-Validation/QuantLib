@@ -48,7 +48,9 @@ namespace QuantLib {
         bool useSegmentNodes,
         bool rejectZeroNode) : splineSegments_(splineSegments),
                                splineConstraints_(splineConstraints),
-                               rejectZeroNode_(rejectZeroNode), useSegmentNodes_(useSegmentNodes) {
+                               rejectZeroNode_(rejectZeroNode), 
+                               useSegmentNodes_(useSegmentNodes),
+                               spline_(splineSegments, splineConstraints->getNumVariables()) {
         // Create a vector to store the second element of the range for all but the last segment
         segmentNodes_.reserve(splineSegments.size() - 1); // Reserve space for efficiency
 
@@ -159,11 +161,8 @@ namespace QuantLib {
                 if (!stagedProblem_) {
                     stagedProblem_ = ext::make_shared<StagedProblem>(splineConstraints_);
                 }
-                // Pass our evaluateAll method as a lambda
-                auto evaluator = [this](Real x, BSplineSegment::SideEnum side) -> Eigen::VectorXd {
-                    return this->evaluateAll(x, side);
-                };
-                stagedProblem_->stage(interpolationNodes, modes, splineSegments_, evaluator);
+                // StagedProblem will create its own BSplineEvaluator
+                stagedProblem_->stage(interpolationNodes, modes, splineSegments_);
                 lastStagedX_ = interpolationNodes;
             }
             
@@ -384,76 +383,8 @@ namespace QuantLib {
 
     Eigen::VectorXd BSplineStructure::evaluateAll(const Real x,
                                                   const BSplineSegment::SideEnum side) const {
-        QL_REQUIRE(side == BSplineSegment::SideRight || side == BSplineSegment::SideLeft,
-                   "Sidedness needs to be 'Right' or 'Left");
-        
-        const Size nSegments = splineSegments_.size();
-        const Size nVariables = splineConstraints_->getNumVariables();
-        
-        // Calculate actual total variables from segments
-        Size totalSegmentVars = 0;
-        for (const auto& segment : splineSegments_) {
-            totalSegmentVars += segment->getNumVariables();
-        }
-        
-        // Check for consistency
-        QL_REQUIRE(nVariables == totalSegmentVars,
-                   "BSplineStructure inconsistency: get_num_variables() returns " + 
-                   std::to_string(nVariables) + " but segments have " + 
-                   std::to_string(totalSegmentVars) + " total variables");
-        
-        Size j = 0;
-        Eigen::VectorXd result = Eigen::VectorXd::Zero(nVariables);
-        
-        // Handle boundary evaluation correctly
-        for (Size i = 0; i < nSegments; ++i) {
-            bool inSegment = false;
-            const auto& segment = splineSegments_[i];
-            const auto segmentRange = segment->range();
-            
-            if (side == BSplineSegment::SideRight) {
-                // For right-sided evaluation:
-                // - Include left boundary: x >= range.first
-                // - Include right boundary for last segment: x <= range.second
-                // - Exclude right boundary for other segments: x < range.second
-                if (i == nSegments - 1) {
-                    // Last segment: include right boundary
-                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
-                } else {
-                    // Not last segment: exclude right boundary
-                    inSegment = (segmentRange.first <= x && x < segmentRange.second);
-                }
-            } else {
-                // For left-sided evaluation:
-                // - Exclude left boundary for non-first segments: x > range.first
-                // - Include left boundary for first segment: x >= range.first
-                // - Include right boundary: x <= range.second
-                if (i == 0) {
-                    // First segment: include left boundary
-                    inSegment = (segmentRange.first <= x && x <= segmentRange.second);
-                } else {
-                    // Not first segment: exclude left boundary
-                    inSegment = (segmentRange.first < x && x <= segmentRange.second);
-                }
-            }
-            
-            if (inSegment) {
-                const Eigen::VectorXd segmentResult = segment->evaluateAll(x, -1, side);
-                const Size segVars = segment->getNumVariables();
-                
-                // Safety check before assignment
-                QL_REQUIRE(j + segVars <= nVariables,
-                           "Segment assignment would exceed vector bounds: trying to assign " + 
-                           std::to_string(segVars) + " values at position " + 
-                           std::to_string(j) + " in vector of size " + 
-                           std::to_string(nVariables));
-                
-                result.segment(j, segVars) = segmentResult;
-            }
-            j += segment->getNumVariables();
-        }
-
-        return result;
+        // Delegate to the BSplineEvaluator which contains all the complex logic
+        return spline_.evaluateAll(x, side);
     }
 
     Real BSplineStructure::value(const Eigen::VectorXd& coefficients,
@@ -515,10 +446,8 @@ namespace QuantLib {
     }
 
     std::pair<Real, Real> BSplineStructure::range() const {
-        Real left = this->splineSegments_.front()->range().first;
-        Real right = this->splineSegments_.back()->range().second;
-
-        return {left, right};
+        // Delegate to the BSplineEvaluator
+        return spline_.range();
     }
 
     std::vector<Real> BSplineStructure::transform(const std::vector<Real>& abscissae,

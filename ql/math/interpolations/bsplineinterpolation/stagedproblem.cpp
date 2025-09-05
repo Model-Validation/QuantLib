@@ -33,8 +33,7 @@ namespace QuantLib {
 
     void StagedProblem::stage(const std::vector<Real>& interpolationNodes,
                               const std::vector<InterpolationMode>& modes,
-                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
-                              std::function<Eigen::VectorXd(Real, BSplineSegment::SideEnum)> evaluator) {
+                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments) {
         
         QL_REQUIRE(interpolationNodes.size() == modes.size(),
                    "Number of interpolation nodes must match number of modes");
@@ -43,8 +42,8 @@ namespace QuantLib {
         // Clear previous staging
         clearStaging();
         
-        // Store the evaluator if provided
-        evaluator_ = evaluator;
+        // Create our own BSplineEvaluator
+        evaluator_ = ext::make_shared<BSplineEvaluator>(segments, baseConstraints_->getNumVariables());
         
         // Build interpolation matrices
         buildInterpolationMatrices(interpolationNodes, modes, segments);
@@ -171,15 +170,8 @@ namespace QuantLib {
                 Size pointIdx = hardIndices_[row];
                 Real x = interpolationNodes[pointIdx];
                 
-                // Evaluate basis functions at this point
-                Eigen::VectorXd basis;
-                if (evaluator_) {
-                    // Use the provided evaluator (from BSplineStructure)
-                    basis = evaluator_(x, BSplineSegment::SideRight);
-                } else {
-                    // Fall back to our own evaluation
-                    basis = evaluateBasisAt(x, segments);
-                }
+                // Evaluate basis functions at this point using BSplineEvaluator
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, BSplineSegment::SideRight);
                 
                 // Add to triplets
                 for (Size col = 0; col < basis.size(); ++col) {
@@ -204,12 +196,7 @@ namespace QuantLib {
             
             for (Size i : softIndices_) {
                 Real x = interpolationNodes[i];
-                Eigen::VectorXd basis;
-                if (evaluator_) {
-                    basis = evaluator_(x, BSplineSegment::SideRight);
-                } else {
-                    basis = evaluateBasisAt(x, segments);
-                }
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, BSplineSegment::SideRight);
                 
                 // Add outer product to Q
                 for (Size row = 0; row < basis.size(); ++row) {
@@ -276,30 +263,5 @@ namespace QuantLib {
         );
     }
 
-    Eigen::VectorXd StagedProblem::evaluateBasisAt(
-            Real x,
-            const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
-            BSplineSegment::SideEnum side) const {
-        
-        // Find the segment containing x
-        for (const auto& segment : segments) {
-            auto range = segment->range();
-            if (x >= range.first && x <= range.second) {
-                // Determine sidedness for boundary evaluation
-                if (std::abs(x - range.second) < 1e-10) {
-                    // Right boundary: use LEFT-sided evaluation
-                    return segment->evaluateAll(x, BSplineSegment::SideLeft);
-                } else if (std::abs(x - range.first) < 1e-10) {
-                    // Left boundary: use RIGHT-sided evaluation
-                    return segment->evaluateAll(x, BSplineSegment::SideRight);
-                } else {
-                    // Interior: use specified side (default RIGHT)
-                    return segment->evaluateAll(x, side);
-                }
-            }
-        }
-        
-        QL_FAIL("Point " << x << " not found in any segment");
-    }
 
 }
