@@ -87,6 +87,10 @@ namespace QuantLib {
         Eigen::VectorXd evaluateAll(Real x, BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
         Eigen::VectorXd getSolution() const;
         std::vector<Real> get_solution() const;
+        
+        // Friend class for unit testing internal state
+        friend class BSplineTestAccess;
+        
       private:
         std::vector<ext::shared_ptr<BSplineSegment>> splineSegments_;
         ext::shared_ptr<SplineConstraints> splineConstraints_;
