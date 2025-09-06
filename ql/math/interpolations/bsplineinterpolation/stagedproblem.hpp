@@ -102,10 +102,12 @@ namespace QuantLib {
          * \param interpolationNodes The x coordinates for interpolation
          * \param modes The mode for each interpolation point
          * \param segments The spline segments for basis evaluation
+         * \param weights Optional weights for LS points (ignored for HARD points)
          */
         void stage(const std::vector<Real>& interpolationNodes,
                    const std::vector<InterpolationMode>& modes,
-                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments);
+                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                   const std::vector<Real>& weights = std::vector<Real>());
 
         /*!
          * \brief Stage with mode spans instead of per-point modes
@@ -113,10 +115,12 @@ namespace QuantLib {
          * \param interpolationNodes The x coordinates for interpolation
          * \param modeSpans Coordinate ranges with associated modes
          * \param segments The spline segments for basis evaluation
+         * \param weights Optional weights for LS points (ignored for HARD points)
          */
         void stage(const std::vector<Real>& interpolationNodes,
                    const std::vector<ModeSpan>& modeSpans,
-                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments);
+                   const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                   const std::vector<Real>& weights = std::vector<Real>());
 
         /*!
          * \brief Solve the staged problem with given y values
@@ -161,6 +165,7 @@ namespace QuantLib {
         Eigen::SparseMatrix<Real> Q_soft_;  // Soft points quadratic form
         std::vector<Size> hardIndices_;     // Indices of hard points
         std::vector<Size> softIndices_;     // Indices of soft points
+        std::vector<Real> weights_;         // Weights for LS points
         
         // Combined problem for solving
         ext::shared_ptr<SplineConstraints> combinedConstraints_;
@@ -177,7 +182,8 @@ namespace QuantLib {
         void buildInterpolationMatrices(
             const std::vector<Real>& interpolationNodes,
             const std::vector<InterpolationMode>& modes,
-            const std::vector<ext::shared_ptr<BSplineSegment>>& segments);
+            const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+            const std::vector<Real>& weights);
             
         void combineConstraints();
     };

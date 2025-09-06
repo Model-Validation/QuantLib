@@ -77,6 +77,26 @@ namespace QuantLib {
                                     const std::vector<Real>& values);
         std::vector<Real> interpolate_swig(const std::vector<Real>& interpolationNodes,
                                            const std::vector<Real>& values);
+        
+        // SWIG wrapper versions (return std::vector<Real>)  
+        std::vector<Real> interpolate_swig_modes(const std::vector<Real>& interpolationNodes,
+                                                  const std::vector<Real>& values,
+                                                  const std::vector<InterpolationMode>& modes);
+        
+        std::vector<Real> interpolate_swig_weighted(const std::vector<Real>& interpolationNodes,
+                                                     const std::vector<Real>& values,
+                                                     const std::vector<InterpolationMode>& modes,
+                                                     const std::vector<Real>& weights);
+                                                     
+        // Integer overloads for SWIG (enum class conversion workaround)
+        std::vector<Real> interpolate_swig_modes_int(const std::vector<Real>& interpolationNodes,
+                                                      const std::vector<Real>& values,
+                                                      const std::vector<Integer>& modes);
+        
+        std::vector<Real> interpolate_swig_weighted_int(const std::vector<Real>& interpolationNodes,
+                                                         const std::vector<Real>& values,
+                                                         const std::vector<Integer>& modes,
+                                                         const std::vector<Real>& weights);
         std::vector<std::vector<Real>> get_interpolation_a() const;
         std::vector<Real> get_interpolation_b() const;
         Eigen::VectorXd solve(const std::vector<Real>& parameters) const;
@@ -98,6 +118,12 @@ namespace QuantLib {
         Eigen::VectorXd interpolate(const std::vector<Real>& interpolationNodes,
                                     const std::vector<Real>& values,
                                     const std::vector<InterpolationMode>& modes);
+        
+        // Interpolate with mode specification and weights
+        Eigen::VectorXd interpolate(const std::vector<Real>& interpolationNodes,
+                                    const std::vector<Real>& values,
+                                    const std::vector<InterpolationMode>& modes,
+                                    const std::vector<Real>& weights);
         
         // Friend class for unit testing internal state
         friend class BSplineTestAccess;

@@ -247,6 +247,12 @@ namespace QuantLib {
          * \return The status of the solver.
          */
         int solve();
+        
+        /*!
+         * \brief Solve pure LS problem using QR decomposition for professional accuracy.
+         * \return The status of the solver (1 for success, other for failure).
+         */
+        int solveWithQRFallback();
 
         /*!
          * \brief Get the solution vector.
@@ -407,6 +413,15 @@ namespace QuantLib {
         }
         
         bool fitData_ = false; // TODO: Hack, should not be public like this
+        
+        /*!
+         * \brief Enable QR fallback for pure LS problems (professional accuracy)
+         * 
+         * When enabled, pure least squares problems (no constraints, only quadratic objective)
+         * use QR decomposition instead of SCS for maximum numerical precision.
+         * Maintains SCS architectural consistency while providing superior accuracy.
+         */
+        bool useQRFallback_ = false;
 
         void setP(Eigen::SparseMatrix<Real>& P) {
             P_ = P;
@@ -454,6 +469,10 @@ namespace QuantLib {
         >> savedStates_; /*!< Stack for storing complete constraint states. */
 
         SCS::SCSSolver* scsData_ = nullptr; /*!< Pointer to the SCS solver data. */
+        
+        // QR fallback for pure LS problems (professional accuracy)
+        mutable Eigen::VectorXd qrSolution_; /*!< Solution from QR decomposition for pure LS problems. */
+        mutable bool usedQRFallback_ = false; /*!< True if last solve used QR instead of SCS. */
 
         bool scsDataIsUpToDate_ = false; /*!< True if the SCS data structures are up to date. */
         bool isOrdered_ =

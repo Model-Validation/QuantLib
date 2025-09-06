@@ -600,6 +600,14 @@ namespace QuantLib {
     }
 
     void SplineConstraints::updateScsData() {
+        // Check if we have no constraints (pure quadratic problem)
+        // This happens when all interpolation points are LS mode
+        if (numConstraints_ == 0) {
+            // Don't create SCS solver for unconstrained problems - will use QR instead
+            scsDataIsUpToDate_ = true;
+            return;
+        }
+        
         // No reordering needed - always maintain SCS order
         A_.resize(numConstraints_, numVariables_);
         A_.setFromTriplets(A_triplets_.begin(), A_triplets_.end());
@@ -661,7 +669,18 @@ namespace QuantLib {
             updateScsData();
         }
 
-        // Solve the SCS problem
+        // Check if this is an unconstrained quadratic problem
+        // This happens when all interpolation points are LS mode in the new architecture
+        bool isUnconstrainedQuadratic = (numConstraints_ == 0 && P_.nonZeros() > 0);
+                  
+        // For unconstrained quadratic problems, ALWAYS use QR
+        // because SCS requires m > 0
+        if (isUnconstrainedQuadratic) {
+            return solveWithQRFallback();
+        }
+
+        // Standard SCS solution path
+        usedQRFallback_ = false;
         int status = scsData_->solve(warmStart_);
         warmStart_ = 1;
 
@@ -676,9 +695,63 @@ namespace QuantLib {
         return status;
     }
 
+    int SplineConstraints::solveWithQRFallback() {
+        try {
+            // For pure LS problems: min (1/2) x^T P x + c^T x
+            // This is equivalent to solving: P x = -c
+            // where P is positive definite (quadratic form from least squares)
+            
+            usedQRFallback_ = true;
+            
+            // Handle parameterized case
+            Eigen::VectorXd rhs;
+            if (hasParameters_ && C_.rows() > 0 && C_.cols() > 0) {
+                QL_REQUIRE(parameters_.size() > 0, "Parameters required but not provided");
+                QL_REQUIRE(C_.cols() == parameters_.size(), 
+                          "C matrix cols mismatch with parameters size");
+                rhs = -(c_ + C_ * parameters_);
+            } else {
+                rhs = -c_;
+            }
+            
+            // Check if P is singular
+            if (P_.nonZeros() == 0) {
+                // P matrix is empty - no quadratic term
+                qrSolution_ = Eigen::VectorXd::Zero(numVariables_);
+                return 1; // Return "success" with zero solution
+            }
+            
+            // Use sparse QR for maximum accuracy
+            // P should be positive definite from quadratic LS objective: A^T A
+            Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> qrSolver;
+            qrSolver.compute(P_);
+            
+            if (qrSolver.info() != Eigen::Success) {
+                return -1; // Factorization failed
+            }
+            
+            qrSolution_ = qrSolver.solve(rhs);
+            
+            if (qrSolver.info() != Eigen::Success) {
+                return -2; // Solve failed
+            }
+            
+            isSolved_ = true;
+            return 1; // Success
+            
+        } catch (...) {
+            return -3; // Exception occurred
+        }
+    }
+
     Eigen::VectorXd SplineConstraints::getSolution() const {
         QL_REQUIRE(isSolved_, "No solution present, call solve() first.");
-        return scsData_->solution_x();
+        
+        if (usedQRFallback_) {
+            return qrSolution_;
+        } else {
+            return scsData_->solution_x();
+        }
     }
 
     Size SplineConstraints::getNumVariables() const {
@@ -700,6 +773,12 @@ namespace QuantLib {
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
 
+        // For unconstrained problems, we just store parameters for later use in QR
+        if (numConstraints_ == 0) {
+            // No constraints to update, but store parameters for QR solver
+            return;
+        }
+        
         // Check dimensions before matrix multiplication
         QL_REQUIRE(parameters_.size() == numParameters_ || numParameters_ == 0,
                   "Parameter size mismatch: provided " << parameters_.size() << 
@@ -715,12 +794,15 @@ namespace QuantLib {
         } else {
             bp = b_;
         }
-        Eigen::VectorXd cp = Eigen::VectorXd(0);
-        scs_int status = scsData_->update(bp, cp);
+        // For unconstrained problems, we don't use SCS so no update needed
+        if (numConstraints_ > 0 && scsData_ != nullptr) {
+            Eigen::VectorXd cp = Eigen::VectorXd(0);
+            scs_int status = scsData_->update(bp, cp);
 
-        if (status != 0) {
-            // Don't print to stderr - it causes popups in some environments
-            // std::cerr << "Update returned error: " << status << "\n";
+            if (status != 0) {
+                // Don't print to stderr - it causes popups in some environments
+                // std::cerr << "Update returned error: " << status << "\n";
+            }
         }
     }
 
@@ -730,11 +812,17 @@ namespace QuantLib {
         }
         parameters_list_ = std::vector<double>(parameters);
         parameters_ = Eigen::Map<Eigen::VectorXd>(parameters_list_.data(), parameters_list_.size());
-
-        // Ensure C_ is built from triplets if needed
+        
+        // Ensure C_ is built from triplets if needed (MUST do this before early return!)
         if (C_.cols() == 0 && hasParameters_ && numParameters_ > 0) {
             C_.resize(numVariables_, numParameters_);
             C_.setFromTriplets(C_triplets_.begin(), C_triplets_.end());
+        }
+        
+        // For unconstrained problems, we just store parameters for later use in QR
+        if (numConstraints_ == 0) {
+            // No constraints, but we still have C_ built for the linear term in QR
+            return;
         }
         
         // Check dimensions before multiplication
@@ -748,11 +836,14 @@ namespace QuantLib {
         } else {
             cp = c_;
         }
-        scs_int status = scsData_->update(bp, cp);
+        // For unconstrained problems, we don't use SCS so no update needed
+        if (numConstraints_ > 0 && scsData_ != nullptr) {
+            scs_int status = scsData_->update(bp, cp);
 
-        if (status != 0) {
-            // Don't print to stderr - it causes popups in some environments
-            // std::cerr << "Update returned error: " << status << "\n";
+            if (status != 0) {
+                // Don't print to stderr - it causes popups in some environments
+                // std::cerr << "Update returned error: " << status << "\n";
+            }
         }
     }
 }

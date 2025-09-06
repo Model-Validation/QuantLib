@@ -33,10 +33,17 @@ namespace QuantLib {
 
     void StagedProblem::stage(const std::vector<Real>& interpolationNodes,
                               const std::vector<InterpolationMode>& modes,
-                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments) {
+                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                              const std::vector<Real>& weights) {
         
         QL_REQUIRE(interpolationNodes.size() == modes.size(),
                    "Number of interpolation nodes must match number of modes");
+        
+        // If weights provided, must match number of points
+        if (!weights.empty()) {
+            QL_REQUIRE(weights.size() == interpolationNodes.size(),
+                       "Number of weights must match number of interpolation nodes");
+        }
         QL_REQUIRE(!segments.empty(), "Segments cannot be empty");
         
         // Clear previous staging
@@ -46,20 +53,23 @@ namespace QuantLib {
         evaluator_ = ext::make_shared<MultiSegmentBSplineEvaluator>(segments, baseConstraints_->getNumVariables());
         
         // Build interpolation matrices
-        buildInterpolationMatrices(interpolationNodes, modes, segments);
+        buildInterpolationMatrices(interpolationNodes, modes, segments, weights);
+        
+        // Store x points and segments before combining constraints (needed for C matrix)
+        lastX_ = interpolationNodes;
+        segments_ = segments;
         
         // Combine base and interpolation constraints
         combineConstraints();
         
-        // Mark as staged and remember x points and segments
+        // Mark as staged
         staged_ = true;
-        lastX_ = interpolationNodes;
-        segments_ = segments;
     }
 
     void StagedProblem::stage(const std::vector<Real>& interpolationNodes,
                               const std::vector<ModeSpan>& modeSpans,
-                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments) {
+                              const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+                              const std::vector<Real>& weights) {
         
         // Convert spans to per-point modes
         std::vector<InterpolationMode> modes;
@@ -70,7 +80,7 @@ namespace QuantLib {
         }
         
         // Call the main stage method
-        stage(interpolationNodes, modes, segments);
+        stage(interpolationNodes, modes, segments, weights);
     }
 
     Eigen::VectorXd StagedProblem::solve(const std::vector<Real>& values) {
@@ -102,7 +112,8 @@ namespace QuantLib {
         
         // Solve using updated parameters - this enables warm-start
         combinedConstraints_->solve();
-        return combinedConstraints_->getSolution();
+        Eigen::VectorXd solution = combinedConstraints_->getSolution();
+        return solution;
     }
 
     void StagedProblem::clearStaging() {
@@ -133,7 +144,8 @@ namespace QuantLib {
     void StagedProblem::buildInterpolationMatrices(
             const std::vector<Real>& interpolationNodes,
             const std::vector<InterpolationMode>& modes,
-            const std::vector<ext::shared_ptr<BSplineSegment>>& segments) {
+            const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
+            const std::vector<Real>& weights) {
         
         Size n = interpolationNodes.size();
         Size numVariables = baseConstraints_->getNumVariables();
@@ -159,6 +171,15 @@ namespace QuantLib {
                 }
             }
         }
+        
+        // Store weights (default to 1.0 if not provided)
+        weights_.resize(n);
+        if (weights.empty()) {
+            std::fill(weights_.begin(), weights_.end(), 1.0);
+        } else {
+            weights_ = weights;
+        }
+        
         
         // Build hard constraint matrix A_hard
         if (!hardIndices_.empty()) {
@@ -196,10 +217,14 @@ namespace QuantLib {
                 Real x = interpolationNodes[i];
                 Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
                 
-                // Add outer product to Q
+                // Get weight for this point (square it for quadratic form)
+                Real weight = weights_[i];
+                Real weightSq = weight * weight;
+                
+                // Add weighted outer product to Q: weight² * (b_i * b_i')
                 for (Size row = 0; row < basis.size(); ++row) {
                     for (Size col = 0; col < basis.size(); ++col) {
-                        Q_accumulator.coeffRef(row, col) += basis[row] * basis[col];
+                        Q_accumulator.coeffRef(row, col) += weightSq * basis[row] * basis[col];
                     }
                 }
             }

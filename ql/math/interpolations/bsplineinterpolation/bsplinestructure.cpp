@@ -215,7 +215,34 @@ namespace QuantLib {
         
         // Check if we need to stage or can reuse
         if (lastStagedX_ != interpolationNodesOrg) {
-            stagedProblem_->stage(interpolationNodesOrg, modes, splineSegments_);
+            stagedProblem_->stage(interpolationNodesOrg, modes, splineSegments_, std::vector<Real>());
+            lastStagedX_ = interpolationNodesOrg;
+        }
+        
+        return stagedProblem_->solve(valuesOrg);
+    }
+
+    Eigen::VectorXd BSplineStructure::interpolate(const std::vector<Real>& interpolationNodesOrg,
+                                                  const std::vector<Real>& valuesOrg,
+                                                  const std::vector<InterpolationMode>& modes,
+                                                  const std::vector<Real>& weights) {
+        QL_REQUIRE(interpolationNodesOrg.size() == valuesOrg.size(), 
+                   "Number of interpolation nodes must match number of values");
+        QL_REQUIRE(interpolationNodesOrg.size() == modes.size(),
+                   "Number of interpolation nodes must match number of modes");
+        if (!weights.empty()) {
+            QL_REQUIRE(interpolationNodesOrg.size() == weights.size(),
+                       "Number of interpolation nodes must match number of weights");
+        }
+
+        // The staged path is the only one that correctly implements mixed HARD/LS modes with weights
+        if (!stagedProblem_) {
+            stagedProblem_ = ext::make_shared<StagedProblem>(splineConstraints_);
+        }
+        
+        // Check if we need to stage or can reuse
+        if (lastStagedX_ != interpolationNodesOrg) {
+            stagedProblem_->stage(interpolationNodesOrg, modes, splineSegments_, weights);
             lastStagedX_ = interpolationNodesOrg;
         }
         
@@ -228,6 +255,63 @@ namespace QuantLib {
         const std::vector<Real>& values) {
         Eigen::VectorXd result = interpolate(interpolationNodes, values);
         return {result.data(), result.data() + result.size()};
+    }
+
+    std::vector<Real> BSplineStructure::interpolate_swig_modes(
+        const std::vector<Real>& interpolationNodes,
+        const std::vector<Real>& values,
+        const std::vector<InterpolationMode>& modes) {
+        Eigen::VectorXd result = interpolate(interpolationNodes, values, modes);
+        // Create proper copy - the Eigen vector data might not be contiguous or might be deallocated
+        std::vector<Real> output;
+        output.reserve(result.size());
+        for (int i = 0; i < result.size(); ++i) {
+            output.push_back(result(i));
+        }
+        return output;
+    }
+
+    std::vector<Real> BSplineStructure::interpolate_swig_weighted(
+        const std::vector<Real>& interpolationNodes,
+        const std::vector<Real>& values,
+        const std::vector<InterpolationMode>& modes,
+        const std::vector<Real>& weights) {
+        Eigen::VectorXd result = interpolate(interpolationNodes, values, modes, weights);
+        // Create proper copy - the Eigen vector data might not be contiguous or might be deallocated
+        std::vector<Real> output;
+        output.reserve(result.size());
+        for (int i = 0; i < result.size(); ++i) {
+            output.push_back(result(i));
+        }
+        return output;
+    }
+    
+    // Integer overloads for SWIG (enum class conversion workaround)
+    std::vector<Real> BSplineStructure::interpolate_swig_modes_int(
+        const std::vector<Real>& interpolationNodes,
+        const std::vector<Real>& values,
+        const std::vector<Integer>& modes) {
+        // Convert integer modes to enum
+        std::vector<InterpolationMode> enumModes;
+        enumModes.reserve(modes.size());
+        for (Integer mode : modes) {
+            enumModes.push_back(static_cast<InterpolationMode>(mode));
+        }
+        return interpolate_swig_modes(interpolationNodes, values, enumModes);
+    }
+    
+    std::vector<Real> BSplineStructure::interpolate_swig_weighted_int(
+        const std::vector<Real>& interpolationNodes,
+        const std::vector<Real>& values,
+        const std::vector<Integer>& modes,
+        const std::vector<Real>& weights) {
+        // Convert integer modes to enum
+        std::vector<InterpolationMode> enumModes;
+        enumModes.reserve(modes.size());
+        for (Integer mode : modes) {
+            enumModes.push_back(static_cast<InterpolationMode>(mode));
+        }
+        return interpolate_swig_weighted(interpolationNodes, values, enumModes, weights);
     }
 
     std::vector<std::vector<Real>> BSplineStructure::get_interpolation_a() const {
