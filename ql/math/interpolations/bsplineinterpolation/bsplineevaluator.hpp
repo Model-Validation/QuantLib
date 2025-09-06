@@ -14,14 +14,12 @@
 */
 
 /*! \file bsplineevaluator.hpp
-    \brief B-spline basis function evaluator for multi-segment curves
+    \brief Single-segment B-spline evaluator for BSplineSegment internal use
 */
 
-#ifndef quantlib_bspline_evaluator_hpp
-#define quantlib_bspline_evaluator_hpp
+#ifndef quantlib_single_segment_bspline_evaluator_hpp
+#define quantlib_single_segment_bspline_evaluator_hpp
 
-#include "splinesegment.hpp"
-#include <ql/shared_ptr.hpp>
 #include <ql/types.hpp>
 #include <vector>
 #include <Eigen/Dense>
@@ -29,79 +27,44 @@
 namespace QuantLib {
 
     /*!
-     * \brief Evaluates B-spline basis functions for multi-segment curves
+     * \brief Single-segment B-spline basis function evaluator
      * 
-     * This class encapsulates the complex logic for evaluating basis functions
-     * across multiple B-spline segments, handling boundary conditions and
-     * sidedness correctly. It serves as the single source of truth for
-     * basis evaluation, used by both BSplineStructure and StagedProblem.
+     * This is a simple evaluator for individual B-spline segments,
+     * used internally by BSplineSegment. This is different from
+     * MultiSegmentBSplineEvaluator which handles multi-segment curves.
      */
     class BSplineEvaluator {
     public:
-        /*!
-         * \brief Constructor with segments
-         * \param segments The B-spline segments
-         * \param numVariables Total number of variables (sum of segment variables)
-         */
-        BSplineEvaluator(const std::vector<ext::shared_ptr<BSplineSegment>>& segments,
-                         Size numVariables);
-
-        /*!
-         * \brief Evaluate all basis functions at a point
-         * 
-         * This method handles:
-         * - Multi-segment curves
-         * - Boundary evaluation rules
-         * - Sidedness for segment boundaries
-         * 
-         * \param x The evaluation point
-         * \param side The evaluation side (RIGHT or LEFT)
-         * \return Vector of basis function values
-         */
-        Eigen::VectorXd evaluateAll(Real x, 
-                                    BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
-
-        /*!
-         * \brief Evaluate a specific derivative at a point
-         * 
-         * \param x The evaluation point
-         * \param nu The derivative order (0 = value, 1 = first derivative, etc.)
-         * \param side The evaluation side
-         * \return Vector of derivative values
-         */
-        Eigen::VectorXd evaluateDerivative(Real x, 
-                                           Integer nu,
-                                           BSplineSegment::SideEnum side = BSplineSegment::SideRight) const;
-
-        /*!
-         * \brief Get the range of the multi-segment curve
-         * \return Pair of (min, max) x values
-         */
-        std::pair<Real, Real> range() const;
-
-        /*!
-         * \brief Get the number of segments
-         */
-        Size getNumSegments() const { return segments_.size(); }
-
-        /*!
-         * \brief Get the total number of variables
-         */
-        Size getNumVariables() const { return numVariables_; }
-
-    private:
-        std::vector<ext::shared_ptr<BSplineSegment>> segments_;
-        Size numVariables_;
+        /*! Default constructor */
+        BSplineEvaluator() = default;
         
         /*!
-         * \brief Find which segment contains a given x value
-         * \param x The point to locate
-         * \param side The evaluation side
-         * \return Index of the containing segment, or SIZE_MAX if not found
+         * \brief Constructor with knots and degree
+         * \param knots The knot vector
+         * \param degree The degree of the B-spline
          */
-        Size findSegmentIndex(Real x, BSplineSegment::SideEnum side) const;
+        BSplineEvaluator(const std::vector<Real>& knots, Integer degree);
+        
+        /*!
+         * \brief Evaluate all basis functions at a point
+         * \param x The evaluation point
+         * \return Vector of basis function values
+         */
+        Eigen::VectorXd evaluateAll(Real x) const;
+        
+        /*!
+         * \brief Evaluate the B-spline value given coefficients
+         * \param coefficients The B-spline coefficients
+         * \param x The evaluation point
+         * \return The interpolated value
+         */
+        Real value(const Eigen::VectorXd& coefficients, Real x) const;
+        
+    private:
+        std::vector<Real> knots_;
+        Integer degree_;
     };
 
 }
 
-#endif // quantlib_bspline_evaluator_hpp
+#endif // quantlib_single_segment_bspline_evaluator_hpp

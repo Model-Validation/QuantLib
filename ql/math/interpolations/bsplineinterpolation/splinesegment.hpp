@@ -26,11 +26,14 @@
 #ifndef spline_segment_hpp
 #define spline_segment_hpp
 
-#include "bsplineevaluator.hpp"
+#include "bsplineevaluator.hpp"  // For internal BSplineEvaluator
 #include <ql/shared_ptr.hpp>
+#include <string_view>
 #include <ql/types.hpp>
 #include <utility>
 #include <vector>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 
 namespace QuantLib {

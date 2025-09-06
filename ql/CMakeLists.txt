@@ -372,6 +372,7 @@ set(QL_SOURCES
     math/integrals/kronrodintegral.cpp
     math/integrals/segmentintegral.cpp
     math/interpolations/bsplineinterpolation/bsplineevaluator.cpp
+    math/interpolations/bsplineinterpolation/multisegmentbsplineevaluator.cpp
     math/interpolations/bsplineinterpolation/bsplinestructure.cpp
     math/interpolations/bsplineinterpolation/eigenutilities.cpp
     math/interpolations/bsplineinterpolation/scssolver.cpp
@@ -1473,6 +1474,7 @@ set(QL_HEADERS
     math/interpolations/bicubicsplineinterpolation.hpp
     math/interpolations/bilinearinterpolation.hpp
     math/interpolations/bsplineinterpolation/bsplineevaluator.hpp
+    math/interpolations/bsplineinterpolation/multisegmentbsplineevaluator.hpp
     math/interpolations/bsplineinterpolation/bsplineinterpolation.hpp
     math/interpolations/bsplineinterpolation/bsplinestructure.hpp
     math/interpolations/bsplineinterpolation/eigenutilities.hpp
