@@ -366,10 +366,67 @@ namespace QuantLib {
                                  Integer nu,
                                  BSplineSegment::SideEnum side) const {
         const Size numSegments = this->splineSegments_.size();
+        
+        // Early exit for empty structure
+        if (numSegments == 0) {
+            return 0.0;
+        }
+        
         const Size e = nu >= 0 ? 0 : static_cast<Size>(-nu);
+        
+        // Get overall range
+        const auto firstSegment = this->splineSegments_[0];
+        const auto lastSegment = this->splineSegments_[numSegments - 1];
+        const Real xMin = firstSegment->range().first;
+        const Real xMax = lastSegment->range().second;
+        
+        // Check if we need extrapolation
+        if (x < xMin) {
+            // Left extrapolation
+            if (nu > 0) {
+                // For derivatives, flat extrapolation means derivative = 0
+                return 0.0;
+            }
+            
+            // For nu == 0 (value evaluation)
+            // Get the value at the left boundary
+            Eigen::VectorXd augmentedCoefficients = Eigen::VectorXd::Zero(firstSegment->getNumVariables() + e);
+            augmentedCoefficients.segment(0, firstSegment->getNumVariables()) = 
+                coefficients.segment(0, firstSegment->getNumVariables());
+            
+            Real boundaryValue = firstSegment->value(augmentedCoefficients, xMin, 0, BSplineSegment::SideRight);
+            
+            // Flat extrapolation: f(x) = f(xMin)
+            return boundaryValue;
+        }
+        else if (x > xMax) {
+            // Right extrapolation
+            if (nu > 0) {
+                // For derivatives, flat extrapolation means derivative = 0
+                return 0.0;
+            }
+            
+            // For nu == 0 (value evaluation)
+            // Get the value at the right boundary
+            Size cumVariables = 0;
+            for (Size i = 0; i < numSegments - 1; ++i) {
+                cumVariables += this->splineSegments_[i]->getNumVariables();
+            }
+            
+            Eigen::VectorXd augmentedCoefficients = Eigen::VectorXd::Zero(lastSegment->getNumVariables() + e);
+            augmentedCoefficients.segment(0, lastSegment->getNumVariables()) = 
+                coefficients.segment(cumVariables, lastSegment->getNumVariables());
+            
+            Real boundaryValue = lastSegment->value(augmentedCoefficients, xMax, 0, BSplineSegment::SideLeft);
+            
+            // Flat extrapolation: f(x) = f(xMax)
+            return boundaryValue;
+        }
+        
+        // Original logic for x within domain
         Size mu = 0;
         Size cumVariables = 0;
-
+        
         Eigen::VectorXd extraCoefficients = Eigen::VectorXd::Zero(e);
         Eigen::VectorXd augmentedCoefficients;
         for (Size i = 0; i < numSegments; ++i) {
