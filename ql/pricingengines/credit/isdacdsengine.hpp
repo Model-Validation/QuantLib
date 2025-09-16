@@ -18,10 +18,6 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-/*! \file isdacdsengine.hpp
-    \brief ISDA engine for credit default swaps
-*/
-
 #ifndef quantlib_isda_cds_engine_hpp
 #define quantlib_isda_cds_engine_hpp
 
@@ -45,24 +41,10 @@ namespace QuantLib {
             Version 1.16, Tuesday, 15 October 2013
 
     */
-
-    class IsdaCdsEngine : public CreditDefaultSwap::engine {
-
-      public:
-        /*! According to [1] the settings for the flags
-            AccrualBias / ForwardsInCouponPeriod corresponding
-            to the standard model implementation C code are
-
-            prior 1.8.2    HalfDayBias / Flat
-            1.8.2          NoBias / Flat
-
-            The theoretical correct setting would be NoBias / Piecewise
-
-            Todo: Clarify in which version of the standard model
-            implementation C code the numerical problem of zero denominators
-            is solved and how exactly.
-        */
-
+    //! Isda CDS engine base
+    //! \ingroup engines
+    class IsdaCdsEngineBase {
+    public:
         enum NumericalFix {
             None,  // as in [1] footnote 26 (i.e. 10^{-50} is added to
                    // denominators $f_i+h_i$$)
@@ -81,6 +63,49 @@ namespace QuantLib {
             Piecewise // as in [1], but second term in formula (52) is not
                       // included
         };
+        IsdaCdsEngineBase(const Handle<YieldTermStructure>& discountCurve,
+                        const Handle<DefaultProbabilityTermStructure>& probability,
+                        ext::optional<bool> includeSettlementDateFlows,
+                        NumericalFix numericalFix,
+                        AccrualBias accrualBias,
+                        ForwardsInCouponPeriod forwardsInCouponPeriod)
+            : discountCurve_(discountCurve), probability_(probability),includeSettlementDateFlows_(includeSettlementDateFlows),
+            numericalFix_(numericalFix), accrualBias_(accrualBias), forwardsInCouponPeriod_(forwardsInCouponPeriod) {}
+        virtual ~IsdaCdsEngineBase() {}
+
+    protected:
+        virtual Real survivalProbability(const Date& d) const = 0;
+        virtual Real defaultProbability(const Date& d1, const Date& d2) const = 0;
+        virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const = 0;
+        void calculate(const Date& refDate, const CreditDefaultSwap::arguments& arguments,
+                       CreditDefaultSwap::results& results) const;
+
+        Handle<YieldTermStructure> discountCurve_;
+        Handle<DefaultProbabilityTermStructure> probability_;
+        ext::optional<bool> includeSettlementDateFlows_;
+        NumericalFix numericalFix_;
+        AccrualBias accrualBias_;
+        ForwardsInCouponPeriod forwardsInCouponPeriod_;
+
+    };
+
+    //! Isda CDS engine
+    //! \ingroup engines
+    class IsdaCdsEngine : public CreditDefaultSwap::engine, public IsdaCdsEngineBase {
+      public:
+        /*! According to [1] the settings for the flags
+            AccrualBias / ForwardsInCouponPeriod corresponding
+            to the standard model implementation C code are
+
+            prior 1.8.2    HalfDayBias / Flat
+            1.8.2          NoBias / Flat
+
+            The theoretical correct setting would be NoBias / Piecewise
+
+            Todo: Clarify in which version of the standard model
+            implementation C code the numerical problem of zero denominators
+            is solved and how exactly.
+        */
 
         /*! Constructor where the client code is responsible for providing a
             default curve and an interest rate curve compliant with the ISDA
@@ -95,27 +120,27 @@ namespace QuantLib {
             provide the evaluation date's fixing.
         */
 
-        IsdaCdsEngine(Handle<DefaultProbabilityTermStructure> probability,
+        IsdaCdsEngine(const Handle<DefaultProbabilityTermStructure>& probability,
                       Real recoveryRate,
-                      Handle<YieldTermStructure> discountCurve,
-                      const ext::optional<bool>& includeSettlementDateFlows = ext::nullopt,
-                      NumericalFix numericalFix = Taylor,
-                      AccrualBias accrualBias = HalfDayBias,
-                      ForwardsInCouponPeriod forwardsInCouponPeriod = Piecewise);
+                      const Handle<YieldTermStructure>& discountCurve,
+                      const ext::optional<bool> includeSettlementDateFlows = ext::nullopt,
+                      const NumericalFix numericalFix = Taylor,
+                      const AccrualBias accrualBias = HalfDayBias,
+                      const ForwardsInCouponPeriod forwardsInCouponPeriod = Piecewise);
 
-        Handle<YieldTermStructure> isdaRateCurve() const { return discountCurve_; }
-        Handle<DefaultProbabilityTermStructure> isdaCreditCurve() const { return probability_; }
+        // Handle<YieldTermStructure> isdaRateCurve() const { return discountCurve_; }
+        // Handle<DefaultProbabilityTermStructure> isdaCreditCurve() const { return probability_; }
 
         void calculate() const override;
 
-      private:
-        Handle<DefaultProbabilityTermStructure> probability_;
-        const Real recoveryRate_;
-        Handle<YieldTermStructure> discountCurve_;
-        const ext::optional<bool> includeSettlementDateFlows_;
-        const NumericalFix numericalFix_;
-        const AccrualBias accrualBias_;
-        const ForwardsInCouponPeriod forwardsInCouponPeriod_;
+      protected:
+        virtual Real survivalProbability(const Date& d) const override;
+        virtual Real defaultProbability(const Date& d1, const Date& d2) const override;
+        virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const override;
+        
+        // mutable Handle<DefaultProbabilityTermStructure> probability_;
+        mutable Real recoveryRate_;
+
     };
 }
 
