@@ -22,20 +22,26 @@
 namespace QuantLib {
 
     BlackVolTermStructure::BlackVolTermStructure(BusinessDayConvention bdc,
-                                                 const DayCounter& dc)
-    : VolatilityTermStructure(bdc, dc) {}
+                                                 const DayCounter& dc, 
+                                                 const VolatilityType type,
+                                                 const Real shift)
+    : VolatilityTermStructure(bdc, dc), type_(type), shift_(shift) {}
 
     BlackVolTermStructure::BlackVolTermStructure(const Date& refDate,
                                                  const Calendar& cal,
                                                  BusinessDayConvention bdc,
-                                                 const DayCounter& dc)
-    : VolatilityTermStructure(refDate, cal, bdc, dc) {}
+                                                 const DayCounter& dc,
+                                                 const VolatilityType type,
+                                                 const Real shift)
+    : VolatilityTermStructure(refDate, cal, bdc, dc), type_(type), shift_(shift) {}
 
     BlackVolTermStructure::BlackVolTermStructure(Natural settlDays,
                                                  const Calendar& cal,
                                                  BusinessDayConvention bdc,
-                                                 const DayCounter& dc)
-    : VolatilityTermStructure(settlDays, cal, bdc, dc) {}
+                                                 const DayCounter& dc,
+                                                 const VolatilityType type, 
+                                                 const Real shift)
+    : VolatilityTermStructure(settlDays, cal, bdc, dc), type_(type), shift_(shift) {}
 
     Volatility BlackVolTermStructure::blackForwardVol(const Date& date1,
                                                       const Date& date2,
@@ -115,40 +121,52 @@ namespace QuantLib {
 
     BlackVolatilityTermStructure::BlackVolatilityTermStructure(
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(bdc, dc, type, shift) {}
 
     BlackVolatilityTermStructure::BlackVolatilityTermStructure(
                                                     const Date& refDate,
                                                     const Calendar& cal,
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(refDate, cal, bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(refDate, cal, bdc, dc, type, shift) {}
 
     BlackVolatilityTermStructure::BlackVolatilityTermStructure(
                                                     Natural settlementDays,
                                                     const Calendar& cal,
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(settlementDays, cal, bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(settlementDays, cal, bdc, dc, type, shift) {}
 
     BlackVarianceTermStructure::BlackVarianceTermStructure(
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(bdc, dc, type, shift) {}
 
     BlackVarianceTermStructure::BlackVarianceTermStructure(
                                                     const Date& refDate,
                                                     const Calendar& cal,
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(refDate, cal, bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(refDate, cal, bdc, dc, type, shift) {}
 
     BlackVarianceTermStructure::BlackVarianceTermStructure(
                                                     Natural settlementDays,
                                                     const Calendar& cal,
                                                     BusinessDayConvention bdc,
-                                                    const DayCounter& dc)
-    : BlackVolTermStructure(settlementDays, cal, bdc, dc) {}
+                                                    const DayCounter& dc,
+                                                    const VolatilityType type,
+                                                    const Real shift)
+    : BlackVolTermStructure(settlementDays, cal, bdc, dc, type, shift) {}
 
 }

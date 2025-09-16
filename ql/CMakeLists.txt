@@ -684,6 +684,7 @@ set(QL_SOURCES
     pricingengines/basket/singlefactorbsmbasketengine.cpp
     pricingengines/basket/spreadblackscholesvanillaengine.cpp
     pricingengines/basket/stulzengine.cpp
+    pricingengines/bacheliercalculator.cpp
     pricingengines/blackcalculator.cpp
     pricingengines/blackformula.cpp
     pricingengines/blackscholescalculator.cpp
@@ -1904,6 +1905,7 @@ set(QL_HEADERS
     pricingengines/basket/singlefactorbsmbasketengine.hpp
     pricingengines/basket/spreadblackscholesvanillaengine.hpp
     pricingengines/basket/stulzengine.hpp
+    pricingengines/bacheliercalculator.hpp
     pricingengines/blackcalculator.hpp
     pricingengines/blackformula.hpp
     pricingengines/blackscholescalculator.hpp
