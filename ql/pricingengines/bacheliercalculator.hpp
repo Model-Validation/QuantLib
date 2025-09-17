@@ -110,7 +110,7 @@ namespace QuantLib {
         void initialize(const ext::shared_ptr<StrikedTypePayoff>& p);
         Real strike_, forward_, stdDev_, discount_, variance_;
         Real d_;
-        Real alpha_, beta_, DalphaDd_, DbetaDd_;
+        Real alpha_, beta_, DalphaDd_, D2alphaD2d_, DbetaDd_, D2betaD2d_;
         Real n_d_, cum_d_;
         Real y_, DyDs_, DyDstrike_, DyDforward_;
         Real x_, DxDs_, DxDstrike_, DxDforward_;
@@ -123,7 +123,7 @@ namespace QuantLib {
     }
 
     inline Real BachelierCalculator::itmCashProbability() const {
-        return cum_d2_;
+        return cum_d_;
     }
 
     inline Real BachelierCalculator::itmAssetProbability() const {

@@ -17,20 +17,21 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/pricingengines/bacheliercalculator.hpp>
-#include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/math/comparison.hpp>
+#include <ql/math/distributions/normaldistribution.hpp>
+#include <ql/pricingengines/bacheliercalculator.hpp>
 
 namespace QuantLib {
 
     class BachelierCalculator::Calculator : public AcyclicVisitor,
-                                        public Visitor<Payoff>,
-                                        public Visitor<PlainVanillaPayoff>,
-                                        public Visitor<CashOrNothingPayoff>,
-                                        public Visitor<AssetOrNothingPayoff>,
-                                        public Visitor<GapPayoff> {
+                                            public Visitor<Payoff>,
+                                            public Visitor<PlainVanillaPayoff>,
+                                            public Visitor<CashOrNothingPayoff>,
+                                            public Visitor<AssetOrNothingPayoff>,
+                                            public Visitor<GapPayoff> {
       private:
         BachelierCalculator& bachelier_;
+
       public:
         explicit Calculator(BachelierCalculator& bachelier) : bachelier_(bachelier) {}
         void visit(Payoff&) override;
@@ -42,32 +43,26 @@ namespace QuantLib {
 
 
     BachelierCalculator::BachelierCalculator(const ext::shared_ptr<StrikedTypePayoff>& p,
-                                     Real forward,
-                                     Real stdDev,
-                                     Real discount)
-    : strike_(p->strike()), forward_(forward), stdDev_(stdDev),
-      discount_(discount), variance_(stdDev*stdDev) {
+                                             Real forward,
+                                             Real stdDev,
+                                             Real discount)
+    : strike_(p->strike()), forward_(forward), stdDev_(stdDev), discount_(discount),
+      variance_(stdDev * stdDev) {
         initialize(p);
     }
 
-    BachelierCalculator::BachelierCalculator(Option::Type optionType,
-                                     Real strike,
-                                     Real forward,
-                                     Real stdDev,
-                                     Real discount)
-    : strike_(strike), forward_(forward), stdDev_(stdDev),
-      discount_(discount), variance_(stdDev*stdDev) {
-        initialize(ext::shared_ptr<StrikedTypePayoff>(new
-            PlainVanillaPayoff(optionType, strike)));
+    BachelierCalculator::BachelierCalculator(
+        Option::Type optionType, Real strike, Real forward, Real stdDev, Real discount)
+    : strike_(strike), forward_(forward), stdDev_(stdDev), discount_(discount),
+      variance_(stdDev * stdDev) {
+        initialize(ext::shared_ptr<StrikedTypePayoff>(new PlainVanillaPayoff(optionType, strike)));
     }
 
     void BachelierCalculator::initialize(const ext::shared_ptr<StrikedTypePayoff>& p) {
-        QL_REQUIRE(stdDev_>=0.0,
-                   "stdDev (" << stdDev_ << ") must be non-negative");
-        QL_REQUIRE(discount_>0.0,
-                   "discount (" << discount_ << ") must be positive");
+        QL_REQUIRE(stdDev_ >= 0.0, "stdDev (" << stdDev_ << ") must be non-negative");
+        QL_REQUIRE(discount_ > 0.0, "discount (" << discount_ << ") must be positive");
 
-        if (stdDev_>=QL_EPSILON) {
+        if (stdDev_ >= QL_EPSILON) {
             d_ = (forward_ - strike_) / stdDev_;
             auto f = CumulativeNormalDistribution();
             cum_d_ = f(d_);
@@ -78,7 +73,7 @@ namespace QuantLib {
                 d_ = 0.0;
                 cum_d_ = 0.5;
                 n_d_ = M_SQRT_2 * M_1_SQRTPI;
-            } else if (forward_>strike_) {
+            } else if (forward_ > strike_) {
                 d_ = QL_MAX_REAL;
                 cum_d_ = 1.0;
                 n_d_ = 0.0;
@@ -95,27 +90,28 @@ namespace QuantLib {
 
         y_ = stdDev_;
         DyDforward_ = 0.0;
-        DyDstrike_ = 0.0; 
+        DyDstrike_ = 0.0;
 
-        // the following one will probably disappear as soon as
-        // super-share will be properly handled
-        DxDs_ = 0.0;
 
         // this part is always executed.
         // in case of plain-vanilla payoffs, it is also the only part
         // which is executed.
         switch (p->optionType()) {
             case Option::Call:
-                alpha_ = cum_d_;       //  N(d)
-                DalphaDd_ = n_d_;      //  n(d)
-                beta_ = n_d_;          // n(d)
-                DbetaDd_ = -d_ * n_d_; // -d * n(d)
+                alpha_ = cum_d_;                     //  N(d)
+                DalphaDd_ = n_d_;                    //  n(d)
+                D2alphaD2d_ = -d_ * n_d_;            // -d * n(d)
+                beta_ = n_d_;                        // n(d)
+                DbetaDd_ = -d_ * n_d_;               // -d * n(d)
+                D2betaD2d_ = (d_ * d_ - 1.0) * n_d_; // (d^2 -1) * n(d)
                 break;
             case Option::Put:
-                alpha_ = -1.0 + cum_d_; // -N(-d)
-                DalphaDd_ = n_d_;       //  n(d)
-                beta_ = n_d_;           //  n(d)
-                DbetaDd_ = -d_ * n_d_;  // -d * n(d)
+                alpha_ = -1.0 + cum_d_;              // -N(-d)
+                DalphaDd_ = n_d_;                    //  n(d)
+                D2alphaD2d_ = -d_ * n_d_;            // -d * n(d)
+                beta_ = n_d_;                        //  n(d)
+                DbetaDd_ = -d_ * n_d_;               // -d * n(d)
+                D2betaD2d_ = (d_ * d_ - 1.0) * n_d_; // (d^2 -1) * n(d)
                 break;
             default:
                 QL_FAIL("invalid option type");
@@ -136,21 +132,8 @@ namespace QuantLib {
     void BachelierCalculator::Calculator::visit(CashOrNothingPayoff& payoff) {
         bachelier_.x_ = payoff.cashPayoff();
         bachelier_.DxDforward_ = 0.0;
-        bachelier_.y_ = bachelier_.beta_ = bachelier_.DbetaDd_ = bachelier_.DyDforward_ = 0.0;
-        bachelier_.x_ = payoff.cashPayoff();
         bachelier_.DxDstrike_ = 0.0;
-        switch (payoff.optionType()) {
-            case Option::Call:
-                bachelier_.alpha_ = bachelier_.cum_d_;
-                bachelier_.DalphaDd_ = bachelier_.n_d_;
-                break;
-            case Option::Put:
-                bachelier_.alpha_ = -1.0 + bachelier_.cum_d_;
-                bachelier_.DalphaDd_ = bachelier_.n_d_;
-                break;
-            default:
-                QL_FAIL("invalid option type");
-        }
+        bachelier_.y_ = bachelier_.beta_ = bachelier_.DbetaDd_ = bachelier_.DyDforward_ = 0.0;
     }
 
     void BachelierCalculator::Calculator::visit(AssetOrNothingPayoff& payoff) {
@@ -158,50 +141,11 @@ namespace QuantLib {
         // stdDev * n(d)
         bachelier_.x_ = bachelier_.forward_;
         bachelier_.DxDforward_ = 1.0;
-        bachelier_.y_ = bachelier_.stdDev_;
-        bachelier_.DyDforward_ = 0.0;
-
-        switch (payoff.optionType()) {
-            case Option::Call:
-                bachelier_.alpha_ = bachelier_.cum_d_;                  //  N(d)
-                bachelier_.DalphaDd_ = bachelier_.n_d_;                 //  n(d)
-                bachelier_.beta_ = bachelier_.n_d_;                     // n(d)
-                bachelier_.DbetaDd_ = -bachelier_.d_ * bachelier_.n_d_; // -d * n(d)
-                break;
-            case Option::Put:
-                bachelier_.alpha_ = -1.0 + bachelier_.cum_d_;           // -N(-d)
-                bachelier_.DalphaDd_ = bachelier_.n_d_;                 //  n(d)
-                bachelier_.beta_ = bachelier_.n_d_;                     //  n(d)
-                bachelier_.DbetaDd_ = -bachelier_.d_ * bachelier_.n_d_; // -d * n(d)
-                break;
-            default:
-                QL_FAIL("invalid option type");
-        }
+        bachelier_.DxDstrike_ = 0.0;
     }
 
     void BachelierCalculator::Calculator::visit(GapPayoff& payoff) {
-        bachelier_.x_ =  bachelier_.forward_ - payoff.secondStrike();
-        bachelier_.DxDforward_ = 1.0;
-        bachelier_.DxDstrike_ = 0.0;
-        bachelier_.y_ = bachelier_.stdDev_;
-        bachelier_.DyDforward_ = 0.0;
-
-        switch (payoff.optionType()) {
-            case Option::Call:
-                bachelier_.alpha_ = bachelier_.cum_d_;                  //  N(d)
-                bachelier_.DalphaDd_ = bachelier_.n_d_;                 //  n(d)
-                bachelier_.beta_ = bachelier_.n_d_;                     // n(d)
-                bachelier_.DbetaDd_ = -bachelier_.d_ * bachelier_.n_d_; // -d * n(d)
-                break;
-            case Option::Put:
-                bachelier_.alpha_ = -1.0 + bachelier_.cum_d_;           // -N(-d)
-                bachelier_.DalphaDd_ = bachelier_.n_d_;                 //  n(d)
-                bachelier_.beta_ = bachelier_.n_d_;                     //  n(d)
-                bachelier_.DbetaDd_ = -bachelier_.d_ * bachelier_.n_d_; // -d * n(d)
-                break;
-            default:
-                QL_FAIL("invalid option type");
-        }
+        bachelier_.x_ = bachelier_.forward_ - payoff.secondStrike();
     }
 
     Real BachelierCalculator::value() const {
@@ -212,27 +156,17 @@ namespace QuantLib {
     Real BachelierCalculator::delta(Real spot) const {
 
         QL_REQUIRE(spot > 0.0, "positive spot value required: " << spot << " not allowed");
-
         Real DforwardDs = forward_ / spot;
-        Real DdDForward = 1.0 / stdDev_;
-        Real DalphaDs = DalphaDd_ * DdDForward * DforwardDs;
-
-        Real DbetaDs = DbetaDd_ * DdDForward * DforwardDs;
-
-        Real temp2 = DalphaDs * x_ + alpha_ * DxDforward_ * DforwardDs + DbetaDs * y_ +
-                     beta_ * DyDforward_ * DforwardDs;
-
+        Real temp2 = deltaForward() * DforwardDs;
         return discount_ * temp2;
     }
 
     Real BachelierCalculator::deltaForward() const {
-
         Real DdDForward = 1.0 / stdDev_;
-        Real DalphaDs = DalphaDd_ * DdDForward;
-
-        Real DbetaDs = DbetaDd_ * DdDForward;
-        Real temp2 = DalphaDs * x_ + alpha_ * DxDforward_ + DbetaDs * y_ + beta_ * DyDforward_;
-
+        Real DalphaDForward = DalphaDd_ * DdDForward;
+        Real DbetaDForward = DbetaDd_ * DdDForward;
+        Real temp2 =
+            DalphaDForward * x_ + alpha_ * DxDforward_ + DbetaDForward * y_ + beta_ * DyDforward_;
         return discount_ * temp2;
     }
 
@@ -263,104 +197,71 @@ namespace QuantLib {
     }
 
     Real BachelierCalculator::gamma(Real spot) const {
-        return 0.0;
         QL_REQUIRE(spot > 0.0, "positive spot value required: " << spot << " not allowed");
-
         Real DforwardDs = forward_ / spot;
-
-        Real temp = stdDev_ * spot;
-        Real DalphaDs = DalphaDd_ / temp;
-        Real DbetaDs = DbetaDd_ / temp;
-
-        Real D2alphaDs2 = -DalphaDs / spot * (1 + d1_ / stdDev_);
-        Real D2betaDs2 = -DbetaDs / spot * (1 + d2_ / stdDev_);
-
-        Real temp2 = D2alphaDs2 * forward_ + 2.0 * DalphaDs * DforwardDs + D2betaDs2 * x_ +
-                     2.0 * DbetaDs * DxDs_;
-
+        Real temp2 = gammaForward() * DforwardDs * DforwardDs;
         return discount_ * temp2;
     }
 
     Real BachelierCalculator::gammaForward() const {
-        return 0.0;
         Real DdDForward = 1.0 / stdDev_;
-        Real temp2 = 2.0 * DalphaDd_ * DdDForward * DxDforward_ - x_ * d_ * DalphaDd_ * DdDForward;
-
-
+        Real temp2 = 2.0 * DalphaDd_ * DdDForward * DxDforward_ +
+                     D2alphaD2d_ * DdDForward * DxDforward_ + DyDforward_ * D2betaD2d_ * DdDForward;
         return discount_ * temp2;
     }
 
     Real BachelierCalculator::theta(Real spot, Time maturity) const {
-        return 0.0;
+
         QL_REQUIRE(maturity >= 0.0, "maturity (" << maturity << ") must be non-negative");
         if (close(maturity, 0.0))
             return 0.0;
         return -(std::log(discount_) * value() + std::log(forward_ / spot) * spot * delta(spot) +
-                 0.5 * variance_ * spot * spot * gamma(spot)) /
+                 0.5 * variance_ * gamma(spot)) /
                maturity;
     }
 
     Real BachelierCalculator::vega(Time maturity) const {
-        return 0.0;
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-
-        Real temp = std::log(strike_ / forward_) / variance_;
+        Real sigma = stdDev_ / std::sqrt(maturity);
+        Real DdDsigma = -d_ / sigma;
         // actually DalphaDsigma / SQRT(T)
-        Real DalphaDsigma = DalphaDd_ * (temp + 0.5);
-        Real DbetaDsigma = DbetaDd_ * (temp - 0.5);
-
-        Real temp2 = DalphaDsigma * forward_ + DbetaDsigma * x_;
-
-        return discount_ * std::sqrt(maturity) * temp2;
+        Real DalphaDsigma = DalphaDd_ * DdDsigma;
+        Real DbetaDsigma = DbetaDd_ * DdDsigma;
+        Real DyDsigma = std::sqrt(maturity);
+        Real temp2 = DalphaDsigma * x_ + DbetaDsigma * y_ + DyDsigma * beta_;
+        return discount_ * temp2;
     }
 
     Real BachelierCalculator::rho(Time maturity) const {
-        return 0.0;
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-
-        // actually DalphaDr / T
-        Real DalphaDr = DalphaDd_ / stdDev_;
-        Real DbetaDr = DbetaDd_ / stdDev_;
-        Real temp = DalphaDr * forward_ + alpha_ * forward_ + DbetaDr * x_;
-
-        return maturity * (discount_ * temp - value());
+        Real DForwardDrho = maturity * forward_;
+        return deltaForward() * DForwardDrho + maturity * value();
     }
 
     Real BachelierCalculator::dividendRho(Time maturity) const {
-        return 0.0;
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-
         // actually DalphaDq / T
-        Real DalphaDq = -DalphaDd_ / stdDev_;
-        Real DbetaDq = -DbetaDd_ / stdDev_;
-
-        Real temp = DalphaDq * forward_ - alpha_ * forward_ + DbetaDq * x_;
-
-        return maturity * discount_ * temp;
+        Real DForwardDrho = -maturity * forward_;
+        return deltaForward() * DForwardDrho - maturity * value();
     }
 
     Real BachelierCalculator::strikeSensitivity() const {
-        return 0.0;
-        Real temp = stdDev_ * strike_;
-        Real DalphaDstrike = -DalphaDd_ / temp;
-        Real DbetaDstrike = -DbetaDd_ / temp;
+        Real DdDstrike = -stdDev_; // actually -1/stdDev
+        Real DalphaDstrike = -DalphaDd_ / DdDstrike;
+        Real DbetaDstrike = -DbetaDd_ / DdDstrike;
 
-        Real temp2 = DalphaDstrike * forward_ + DbetaDstrike * x_ + beta_ * DxDstrike_;
-
+        Real temp2 =
+            DalphaDstrike * x_ + alpha_ * DxDstrike_ + DbetaDstrike * y_ + beta_ * DyDstrike_;
         return discount_ * temp2;
     }
 
     Real BachelierCalculator::strikeGamma() const {
-        return 0.0;
-        Real temp = stdDev_ * strike_;
-        Real DalphaDstrike = -DalphaDd_ / temp;
-        Real DbetaDstrike = -DbetaDd_ / temp;
+        Real DdDStrike = -stdDev_;
+        Real DalphaDstrike = -DalphaDd_ / DdDStrike;
+        Real DbetaDstrike = -DbetaDd_ / DdDStrike;
 
-        Real D2alphaD2strike = -DalphaDstrike / strike_ * (1 - d1_ / stdDev_);
-        Real D2betaD2strike = -DbetaDstrike / strike_ * (1 - d2_ / stdDev_);
-
-        Real temp2 =
-            D2alphaD2strike * forward_ + D2betaD2strike * x_ + 2.0 * DbetaDstrike * DxDstrike_;
+        Real temp2 = 2.0 * DalphaDstrike * DxDstrike_ + D2alphaD2d_ / DdDStrike * DxDstrike_ +
+                     DyDstrike_ * D2betaD2d_ / DdDStrike;
 
         return discount_ * temp2;
     }
