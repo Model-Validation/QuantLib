@@ -18,24 +18,46 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 #include <ql/exercise.hpp>
-#include <ql/pricingengines/blackcalculator.hpp>
+#include <ql/pricingengines/diffusioncalculator.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
+#include <ql/pricingengines/blackformula.hpp>
 #include <utility>
 
 namespace QuantLib {
 
+    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+        double forward, double strike, double ttm, double nVol, double displacement) {
+        auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
+        double premium = bachelierBlackFormula(optionType, strike, forward, nVol * ttm);
+        double slnVol =
+            blackFormulaImpliedStdDev(optionType, strike, forward, premium, 1.0, displacement);
+        return slnVol / sqrt(ttm);
+    }
+
+    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+        double forward, double strike, double ttm, double slnVol, double displacement) {
+        auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
+        double price = blackFormula(optionType, strike, forward, slnVol, 1.0, displacement);
+        double nVol = bachelierBlackFormulaImpliedVol(optionType, strike, forward, ttm, price);
+        return nVol;
+    }
+
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process)
-    : process_(std::move(process)) {
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process, 
+        BlackBachelierModel model, Real displacement)
+    : process_(std::move(process)), modelType_(model), displacement_(displacement) {
         registerWith(process_);
     }
 
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                                    Handle<YieldTermStructure> discountCurve,
                                                    ext::optional<unsigned int> spotDays,
-                                                   ext::optional<Calendar> spotCalendar)
-        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar) {
+                                                   ext::optional<Calendar> spotCalendar,
+                                                   BlackBachelierModel model, 
+                                                   Real displacement)
+        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar),
+          modelType_(model), displacement_(displacement) {
         registerWith(process_);
         registerWith(discountCurve_);
     }
@@ -55,11 +77,7 @@ namespace QuantLib {
         ext::shared_ptr<StrikedTypePayoff> payoff =
             ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "non-striked payoff given");
-
-        Real variance =
-            process_->blackVolatility()->blackVariance(
-                                              arguments_.exercise->lastDate(),
-                                              payoff->strike());
+ 
         const unsigned int spotDays = spotDays_.get_value_or(0);
         const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
         Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
@@ -84,7 +102,36 @@ namespace QuantLib {
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
         Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance), df);
+        Real variance = process_->blackVolatility()->blackVariance(
+                                              arguments_.exercise->lastDate(),
+                                              payoff->strike());;
+        VolatilityType volType = process_->blackVolatility()->volType();
+        Real displacement = process_->blackVolatility()->shift();
+
+        if (modelType_ == BlackBachelierModel::Bachelier &&
+            volType == VolatilityType::ShiftedLognormal) {
+            double ttm =
+                process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
+            double slnVol = process_->blackVolatility()->blackVol(arguments_.exercise->lastDate(),
+                                                                  payoff->strike());
+            double nVol = convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+                forwardPrice, payoff->strike(), ttm, slnVol, process_->blackVolatility()->shift());
+            volType = VolatilityType::Normal;
+            displacement = 0;
+            variance = nVol * nVol * ttm;
+        } else if (modelType_ == BlackBachelierModel::Black && volType == VolatilityType::Normal) {
+            double ttm =
+                process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
+            double nVol = process_->blackVolatility()->blackVol(arguments_.exercise->lastDate(),
+                                                                payoff->strike());
+            double slnVol = convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+                forwardPrice, payoff->strike(), ttm, nVol, process_->blackVolatility()->shift());
+            volType = VolatilityType::Normal;
+            displacement = displacement_;
+            variance = slnVol * slnVol * ttm;
+        }
+
+        DiffusionCalculator black(payoff, forwardPrice, std::sqrt(variance), df, volType, displacement);
 
         results_.value = black.value();
         results_.delta = black.delta(spot);

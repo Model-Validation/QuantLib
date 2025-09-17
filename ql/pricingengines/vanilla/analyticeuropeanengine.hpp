@@ -31,6 +31,18 @@
 
 namespace QuantLib {
 
+    enum class BlackBachelierModel {
+      Black,
+      Bachelier,
+      AsVolType
+    };
+
+    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+        double forward, double strike, double ttm, double nVol, double displacement);
+
+    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+        double forward, double strike, double ttm, double slnVol, double displacement);
+
     //! Pricing engine for European vanilla options using analytical formulae
     /*! \ingroup vanillaengines
 
@@ -64,7 +76,9 @@ namespace QuantLib {
             the risk-free rate in the given process is used for both
             forecasting and discounting.
         */
-        explicit AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess>);
+        explicit AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess>,
+                                        BlackBachelierModel model = BlackBachelierModel::AsVolType,                                
+                                        Real displacement = 0);
 
         /*! This constructor allows to use a different term structure
             for discounting the payoff. As usual, the risk-free rate
@@ -73,7 +87,9 @@ namespace QuantLib {
         */
         AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                Handle<YieldTermStructure> discountCurve, ext::optional<unsigned int> spotDays = {},
-                               ext::optional<Calendar> spotCalendar = {});
+                               ext::optional<Calendar> spotCalendar = {},
+                               BlackBachelierModel model = BlackBachelierModel::AsVolType,                                
+                               Real displacement = 0);
         void calculate() const override;
 
       private:
@@ -81,6 +97,9 @@ namespace QuantLib {
           Handle<YieldTermStructure> discountCurve_;
           ext::optional<unsigned int> spotDays_;
           ext::optional<Calendar> spotCalendar_;
+          BlackBachelierModel modelType_;
+          Real displacement_;
+
     };
 
 }

@@ -45,9 +45,10 @@ namespace QuantLib {
     BlackCalculator::BlackCalculator(const ext::shared_ptr<StrikedTypePayoff>& p,
                                      Real forward,
                                      Real stdDev,
-                                     Real discount)
-    : strike_(p->strike()), forward_(forward), stdDev_(stdDev),
-      discount_(discount), variance_(stdDev*stdDev) {
+                                     Real discount,
+                                     Real displacement)
+    : strike_(p->strike() + displacement), forward_(forward + displacement), stdDev_(stdDev),
+      discount_(discount), variance_(stdDev*stdDev), displacement_(displacement) {
         initialize(p);
     }
 
@@ -55,9 +56,10 @@ namespace QuantLib {
                                      Real strike,
                                      Real forward,
                                      Real stdDev,
-                                     Real discount)
-    : strike_(strike), forward_(forward), stdDev_(stdDev),
-      discount_(discount), variance_(stdDev*stdDev) {
+                                     Real discount, 
+                                     Real displacement)
+    : strike_(strike + displacement), forward_(forward + displacement), stdDev_(stdDev),
+      discount_(discount), variance_(stdDev*stdDev), displacement_(displacement) {
         initialize(ext::shared_ptr<StrikedTypePayoff>(new
             PlainVanillaPayoff(optionType, strike)));
     }
@@ -190,7 +192,7 @@ namespace QuantLib {
     }
 
     void BlackCalculator::Calculator::visit(GapPayoff& payoff) {
-        black_.x_ = payoff.secondStrike();
+        black_.x_ = payoff.secondStrike() + black_.displacement_;
         black_.DxDstrike_ = 0.0;
     }
 

@@ -23,7 +23,7 @@
 
 #ifndef quantlib_bacheliercalculator_hpp
 #define quantlib_bacheliercalculator_hpp
-
+#include <ql/pricingengines/diffusioncalculator.hpp>
 #include <ql/instruments/payoffs.hpp>
 
 namespace QuantLib {
@@ -33,7 +33,7 @@ namespace QuantLib {
              the calculation of delta, delta forward, gamma, gamma
              forward, rho, dividend rho, vega, and strike sensitivity.
     */
-    class BachelierCalculator {
+    class BachelierCalculator : public DiffusionCalculator::Impl {
       private:
         class Calculator;
       public:
@@ -48,64 +48,64 @@ namespace QuantLib {
                         Real discount = 1.0);
         virtual ~BachelierCalculator() = default;
 
-        Real value() const;
+        Real value() const override;
 
         /*! Sensitivity to change in the underlying forward price. */
-        Real deltaForward() const;
+        Real deltaForward() const override;
         /*! Sensitivity to change in the underlying spot price. */
-        virtual Real delta(Real spot) const;
+        Real delta(Real spot) const override;
 
         /*! Sensitivity in percent to a percent change in the
             underlying forward price. */
-        Real elasticityForward() const;
+        Real elasticityForward() const override;
         /*! Sensitivity in percent to a percent change in the
             underlying spot price. */
-        virtual Real elasticity(Real spot) const;
+        Real elasticity(Real spot) const override;
 
         /*! Second order derivative with respect to change in the
             underlying forward price. */
-        Real gammaForward() const;
+        Real gammaForward() const override;
         /*! Second order derivative with respect to change in the
             underlying spot price. */
-        virtual Real gamma(Real spot) const;
+        Real gamma(Real spot) const override;
 
         /*! Sensitivity to time to maturity. */
-        virtual Real theta(Real spot,
-                           Time maturity) const;
+        Real theta(Real spot,
+                   Time maturity) const override;
         /*! Sensitivity to time to maturity per day,
             assuming 365 day per year. */
-        virtual Real thetaPerDay(Real spot,
-                                 Time maturity) const;
+        Real thetaPerDay(Real spot,
+                         Time maturity) const override;
 
         /*! Sensitivity to volatility. */
-        Real vega(Time maturity) const;
+        Real vega(Time maturity) const override;
 
         /*! Sensitivity to discounting rate. */
-        Real rho(Time maturity) const;
+        Real rho(Time maturity) const override;
 
         /*! Sensitivity to dividend/growth rate. */
-        Real dividendRho(Time maturity) const;
+        Real dividendRho(Time maturity) const override;
 
         /*! Probability of being in the money in the bond martingale
             measure, i.e. N(d2).
             It is a risk-neutral probability, not the real world one.
         */
-        Real itmCashProbability() const;
+        Real itmCashProbability() const override;
 
         /*! Probability of being in the money in the asset martingale
             measure, i.e. N(d1).
             It is a risk-neutral probability, not the real world one.
         */
-        Real itmAssetProbability() const;
+        Real itmAssetProbability() const override;
 
         /*! Sensitivity to strike. */
-        Real strikeSensitivity() const;
+        Real strikeSensitivity() const override;
 
         /*! gamma w.r.t. strike. */
-        Real strikeGamma() const;
+        Real strikeGamma() const override;
 
-        Real alpha() const;
-        Real beta() const;
+        Real alpha() const override;
+        Real beta() const override;
       protected:
         void initialize(const ext::shared_ptr<StrikedTypePayoff>& p);
         Real strike_, forward_, stdDev_, discount_, variance_;
