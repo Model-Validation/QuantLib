@@ -1,7 +1,6 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2025 AcadiaSoft Inc.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -24,11 +23,11 @@
 namespace QuantLib {
 
     class BachelierCalculator::Calculator : public AcyclicVisitor,
-                                            public Visitor<Payoff>,
-                                            public Visitor<PlainVanillaPayoff>,
-                                            public Visitor<CashOrNothingPayoff>,
-                                            public Visitor<AssetOrNothingPayoff>,
-                                            public Visitor<GapPayoff> {
+                                        public Visitor<Payoff>,
+                                        public Visitor<PlainVanillaPayoff>,
+                                        public Visitor<CashOrNothingPayoff>,
+                                        public Visitor<AssetOrNothingPayoff>,
+                                        public Visitor<GapPayoff> {
       private:
         BachelierCalculator& bachelier_;
 
@@ -43,18 +42,18 @@ namespace QuantLib {
 
 
     BachelierCalculator::BachelierCalculator(const ext::shared_ptr<StrikedTypePayoff>& p,
-                                             Real forward,
-                                             Real stdDev,
-                                             Real discount)
-    : strike_(p->strike()), forward_(forward), stdDev_(stdDev), discount_(discount),
-      variance_(stdDev * stdDev) {
+                                     Real forward,
+                                     Real stdDev,
+                                     Real discount)
+    : strike_(p->strike()), forward_(forward), stdDev_(stdDev),
+      discount_(discount), variance_(stdDev*stdDev) {
         initialize(p);
     }
 
     BachelierCalculator::BachelierCalculator(
         Option::Type optionType, Real strike, Real forward, Real stdDev, Real discount)
-    : strike_(strike), forward_(forward), stdDev_(stdDev), discount_(discount),
-      variance_(stdDev * stdDev) {
+    : strike_(strike), forward_(forward), stdDev_(stdDev),
+      discount_(discount), variance_(stdDev*stdDev) {
         initialize(ext::shared_ptr<StrikedTypePayoff>(new PlainVanillaPayoff(optionType, strike)));
     }
 
@@ -62,15 +61,18 @@ namespace QuantLib {
         QL_REQUIRE(stdDev_ >= 0.0, "stdDev (" << stdDev_ << ") must be non-negative");
         QL_REQUIRE(discount_ > 0.0, "discount (" << discount_ << ") must be positive");
 
+        // For Bachelier model, we use d = (F - K) / σ instead of the Black-Scholes d1, d2
         if (stdDev_ >= QL_EPSILON) {
+            // Bachelier d parameter: d = (F - K) / σ
             d_ = (forward_ - strike_) / stdDev_;
-            auto f = CumulativeNormalDistribution();
+            
+            CumulativeNormalDistribution f;
             cum_d_ = f(d_);
             n_d_ = f.derivative(d_);
-
         } else {
+            // When volatility is zero
             if (close(forward_, strike_)) {
-                d_ = 0.0;
+                d_ = 0;
                 cum_d_ = 0.5;
                 n_d_ = M_SQRT_2 * M_1_SQRTPI;
             } else if (forward_ > strike_) {
@@ -84,41 +86,37 @@ namespace QuantLib {
             }
         }
 
-        x_ = forward_ - strike_;
-        DxDforward_ = 1.0;
-        DxDstrike_ = -1.0;
+        x_ = strike_;
+        DxDstrike_ = 1.0;
+        DxDs_ = 0.0;
 
-        y_ = stdDev_;
-        DyDforward_ = 0.0;
-        DyDstrike_ = 0.0;
-
-
-        // this part is always executed.
-        // in case of plain-vanilla payoffs, it is also the only part
-        // which is executed.
+        // For Bachelier model, the option values are:
+        // Call: max(F-K, 0) = (F-K)*N(d) + σ*n(d)
+        // Put:  max(K-F, 0) = (K-F)*N(-d) + σ*n(d)
+        // 
+        // We represent this as: discount * (forward * alpha + x * beta)
+        // where for Bachelier:
+        // Call: alpha = N(d), beta = -N(d) + σ*n(d)/x (when x != 0)
+        // Put:  alpha = -N(-d), beta = N(-d) + σ*n(d)/x (when x != 0)
+        
         switch (p->optionType()) {
             case Option::Call:
-                alpha_ = cum_d_;                     //  N(d)
-                DalphaDd_ = n_d_;                    //  n(d)
-                D2alphaD2d_ = -d_ * n_d_;            // -d * n(d)
-                beta_ = n_d_;                        // n(d)
-                DbetaDd_ = -d_ * n_d_;               // -d * n(d)
-                D2betaD2d_ = (d_ * d_ - 1.0) * n_d_; // (d^2 -1) * n(d)
+                alpha_ = cum_d_;        // N(d)
+                DalphaDd_ = n_d_;       // n(d)
+                beta_ = -cum_d_;        // -N(d) - base part
+                DbetaDd_ = -n_d_;       // -n(d)
                 break;
             case Option::Put:
-                alpha_ = -1.0 + cum_d_;              // -N(-d)
-                DalphaDd_ = n_d_;                    //  n(d)
-                D2alphaD2d_ = -d_ * n_d_;            // -d * n(d)
-                beta_ = n_d_;                        //  n(d)
-                DbetaDd_ = -d_ * n_d_;               // -d * n(d)
-                D2betaD2d_ = (d_ * d_ - 1.0) * n_d_; // (d^2 -1) * n(d)
+                alpha_ = cum_d_ - 1.0;  // N(d) - 1 = -N(-d)
+                DalphaDd_ = n_d_;       // n(d)
+                beta_ = 1.0 - cum_d_;   // 1 - N(d) = N(-d)
+                DbetaDd_ = -n_d_;       // -n(d)
                 break;
             default:
                 QL_FAIL("invalid option type");
         }
 
         // now dispatch on type.
-
         Calculator calc(*this);
         p->accept(calc);
     }
@@ -130,44 +128,89 @@ namespace QuantLib {
     void BachelierCalculator::Calculator::visit(PlainVanillaPayoff&) {}
 
     void BachelierCalculator::Calculator::visit(CashOrNothingPayoff& payoff) {
+        bachelier_.alpha_ = bachelier_.DalphaDd_ = 0.0;
         bachelier_.x_ = payoff.cashPayoff();
-        bachelier_.DxDforward_ = 0.0;
         bachelier_.DxDstrike_ = 0.0;
-        bachelier_.y_ = bachelier_.beta_ = bachelier_.DbetaDd_ = bachelier_.DyDforward_ = 0.0;
+        switch (payoff.optionType()) {
+            case Option::Call:
+                bachelier_.beta_ = bachelier_.cum_d_;
+                bachelier_.DbetaDd_ = bachelier_.n_d_;
+                break;
+            case Option::Put:
+                bachelier_.beta_ = 1.0 - bachelier_.cum_d_;
+                bachelier_.DbetaDd_ = -bachelier_.n_d_;
+                break;
+            default:
+                QL_FAIL("invalid option type");
+        }
     }
 
     void BachelierCalculator::Calculator::visit(AssetOrNothingPayoff& payoff) {
-        // NPV = discount * forward * N(d) + stdDev * n(d) for calls, for puts  - forward * N(-d) +
-        // stdDev * n(d)
-        bachelier_.x_ = bachelier_.forward_;
-        bachelier_.DxDforward_ = 1.0;
-        bachelier_.DxDstrike_ = 0.0;
+        bachelier_.beta_ = bachelier_.DbetaDd_ = 0.0;
+        switch (payoff.optionType()) {
+            case Option::Call:
+                bachelier_.alpha_ = bachelier_.cum_d_;
+                bachelier_.DalphaDd_ = bachelier_.n_d_;
+                break;
+            case Option::Put:
+                bachelier_.alpha_ = 1.0 - bachelier_.cum_d_;
+                bachelier_.DalphaDd_ = -bachelier_.n_d_;
+                break;
+            default:
+                QL_FAIL("invalid option type");
+        }
     }
 
     void BachelierCalculator::Calculator::visit(GapPayoff& payoff) {
-        bachelier_.x_ = bachelier_.forward_ - payoff.secondStrike();
+        bachelier_.x_ = payoff.secondStrike();
+        bachelier_.DxDstrike_ = 0.0;
     }
 
     Real BachelierCalculator::value() const {
-        Real result = discount_ * (x_ * alpha_ + y_ * beta_);
-        return result;
+        // Bachelier option value formula:
+        // Call: (F-K)*N(d) + σ*n(d)
+        // Put:  (K-F)*N(-d) + σ*n(d)
+        // where d = (F-K)/σ
+        
+        Real intrinsic = forward_ - strike_;
+        Real timeValue = 0.0;
+        
+        if (stdDev_ > QL_EPSILON) {
+            timeValue = stdDev_ * n_d_;
+        }
+        
+        Real result;
+        if (alpha_ >= 0) // Call option (alpha_ = N(d) >= 0)
+            result = intrinsic * cum_d_ + timeValue;
+        else // Put option (alpha_ = N(d) - 1 < 0)
+            result = -intrinsic * (1.0 - cum_d_) + timeValue;
+        
+        return discount_ * std::max(result, 0.0);
     }
 
     Real BachelierCalculator::delta(Real spot) const {
 
-        QL_REQUIRE(spot > 0.0, "positive spot value required: " << spot << " not allowed");
+        // For Bachelier model:
+        // Delta = dV/dS = (dV/dF) * (dF/dS)
+        // where dF/dS = F/S (assuming forward = spot * exp(r*T))
+        // and dV/dF = N(d) for calls, -N(-d) for puts
+        
         Real DforwardDs = forward_ / spot;
-        Real temp2 = deltaForward() * DforwardDs;
-        return discount_ * temp2;
+        Real deltaFwd = deltaForward();
+
+        return deltaFwd * DforwardDs;
     }
 
     Real BachelierCalculator::deltaForward() const {
-        Real DdDForward = 1.0 / stdDev_;
-        Real DalphaDForward = DalphaDd_ * DdDForward;
-        Real DbetaDForward = DbetaDd_ * DdDForward;
-        Real temp2 =
-            DalphaDForward * x_ + alpha_ * DxDforward_ + DbetaDForward * y_ + beta_ * DyDforward_;
-        return discount_ * temp2;
+        // For Bachelier model:
+        // Delta_Forward = dV/dF = N(d) for calls, -N(-d) for puts
+        // where d = (F-K)/σ
+        
+        if (alpha_ >= 0) { // Call option
+            return discount_ * cum_d_; // N(d)
+        } else { // Put option  
+            return discount_ * (cum_d_ - 1.0); // N(d) - 1 = -N(-d)
+        }
     }
 
     Real BachelierCalculator::elasticity(Real spot) const {
@@ -197,72 +240,109 @@ namespace QuantLib {
     }
 
     Real BachelierCalculator::gamma(Real spot) const {
-        QL_REQUIRE(spot > 0.0, "positive spot value required: " << spot << " not allowed");
+
+        // For Bachelier model:
+        // Gamma = d²V/dS² = d/dS(dV/dS) = d/dS(N(d) * dF/dS) * dF/dS
+        // = n(d) * (1/σ) * (dF/dS)² * (dd/dF)
+        // where dd/dF = 1/σ
+        
+        if (stdDev_ <= QL_EPSILON) {
+            return 0.0;
+        }
+        
         Real DforwardDs = forward_ / spot;
-        Real temp2 = gammaForward() * DforwardDs * DforwardDs;
-        return discount_ * temp2;
+        Real gammaForward = n_d_ / stdDev_; // dn(d)/dF = n(d) * (1/σ) * (dd/dF) = n(d)/σ
+        
+        return discount_ * gammaForward * DforwardDs * DforwardDs;
     }
 
     Real BachelierCalculator::gammaForward() const {
-        Real DdDForward = 1.0 / stdDev_;
-        Real temp2 = 2.0 * DalphaDd_ * DdDForward * DxDforward_ +
-                     D2alphaD2d_ * DdDForward * DxDforward_ + DyDforward_ * D2betaD2d_ * DdDForward;
-        return discount_ * temp2;
+        // For Bachelier model:
+        // Gamma_Forward = d²V/dF² = d/dF(N(d)) = n(d) * dd/dF = n(d)/σ
+        
+        if (stdDev_ <= QL_EPSILON) {
+            return 0.0;
+        }
+        
+        return discount_ * n_d_ / stdDev_;
     }
 
     Real BachelierCalculator::theta(Real spot, Time maturity) const {
 
         QL_REQUIRE(maturity >= 0.0, "maturity (" << maturity << ") must be non-negative");
-        if (close(maturity, 0.0))
-            return 0.0;
+        if (close(maturity, 0.0)) return 0.0;
+        
+        // Theta = -dV/dt = -(r*V - r*S*Delta + 0.5*σ²*Gamma)
+
         return -(std::log(discount_) * value() + std::log(forward_ / spot) * spot * delta(spot) +
-                 0.5 * variance_ * gamma(spot)) /
-               maturity;
+                 0.5 * variance_ * gamma(spot)) / maturity;
     }
 
     Real BachelierCalculator::vega(Time maturity) const {
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-        Real sigma = stdDev_ / std::sqrt(maturity);
-        Real DdDsigma = -d_ / sigma;
-        // actually DalphaDsigma / SQRT(T)
-        Real DalphaDsigma = DalphaDd_ * DdDsigma;
-        Real DbetaDsigma = DbetaDd_ * DdDsigma;
-        Real DyDsigma = std::sqrt(maturity);
-        Real temp2 = DalphaDsigma * x_ + DbetaDsigma * y_ + DyDsigma * beta_;
-        return discount_ * temp2;
+
+        // For Bachelier model:
+        // Vega = dV/dσ = d/dσ[(F-K)*N(d) + σ*n(d)]
+        // = (F-K)*n(d)*dd/dσ + n(d) + σ*n'(d)*dd/dσ
+        // where d = (F-K)/σ, so dd/dσ = -(F-K)/σ² = -d/σ
+        // and n'(d) = -d*n(d)
+        // Therefore: Vega = n(d) + σ*(-d*n(d))*(-d/σ) = n(d) + d²*n(d) = n(d)*(1 + d²) - (F-K)*n(d)*d/σ
+        // Simplifying: Vega = n(d) for Bachelier model
+        
+        if (maturity <= QL_EPSILON || stdDev_ <= QL_EPSILON) {
+            return 0.0;
+        }
+        
+        return discount_ * std::sqrt(maturity) * n_d_;
     }
 
     Real BachelierCalculator::rho(Time maturity) const {
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-        Real DForwardDrho = maturity * forward_;
-        return deltaForward() * DForwardDrho + maturity * value();
+        
+        // For Bachelier model:
+        // Rho = dV/dr = T * (discount * delta_forward * forward - value)
+        // where delta_forward = N(d) for calls, N(d)-1 for puts
+        
+        Real deltaFwd = deltaForward();
+        Real rho_value = maturity * (deltaFwd * forward_ - value());
+        
+        return rho_value;
     }
 
     Real BachelierCalculator::dividendRho(Time maturity) const {
         QL_REQUIRE(maturity >= 0.0, "negative maturity not allowed");
-        // actually DalphaDq / T
-        Real DForwardDrho = -maturity * forward_;
-        return deltaForward() * DForwardDrho - maturity * value();
+        
+        // For Bachelier model:
+        // Dividend rho = -T * discount * delta_forward * forward
+        // where delta_forward = N(d) for calls, N(d)-1 for puts
+        
+        Real deltaFwd = (alpha_ >= 0) ? cum_d_ : (cum_d_ - 1.0);
+        
+        return -maturity * discount_ * deltaFwd * forward_;
     }
 
     Real BachelierCalculator::strikeSensitivity() const {
-        Real DdDstrike = -stdDev_; // actually -1/stdDev
-        Real DalphaDstrike = -DalphaDd_ / DdDstrike;
-        Real DbetaDstrike = -DbetaDd_ / DdDstrike;
-
-        Real temp2 =
-            DalphaDstrike * x_ + alpha_ * DxDstrike_ + DbetaDstrike * y_ + beta_ * DyDstrike_;
-        return discount_ * temp2;
+        // For Bachelier model:
+        // dV/dK = -N(d) for calls, N(-d) for puts
+        // where d = (F-K)/σ, so dd/dK = -1/σ
+        
+        if (alpha_ >= 0) { // Call option
+            return -discount_ * cum_d_; // -N(d)
+        } else { // Put option
+            return discount_ * (1.0 - cum_d_); // N(-d) = 1 - N(d)
+        }
     }
 
+
     Real BachelierCalculator::strikeGamma() const {
-        Real DdDStrike = -stdDev_;
-        Real DalphaDstrike = -DalphaDd_ / DdDStrike;
-        Real DbetaDstrike = -DbetaDd_ / DdDStrike;
-
-        Real temp2 = 2.0 * DalphaDstrike * DxDstrike_ + D2alphaD2d_ / DdDStrike * DxDstrike_ +
-                     DyDstrike_ * D2betaD2d_ / DdDStrike;
-
-        return discount_ * temp2;
+        // For Bachelier model:
+        // d²V/dK² = d/dK(-N(d)) = -n(d) * dd/dK = -n(d) * (-1/σ) = n(d)/σ
+        // This is the same for both calls and puts
+        
+        if (stdDev_ <= QL_EPSILON) {
+            return 0.0;
+        }
+        
+        return discount_ * n_d_ / stdDev_;
     }
 }

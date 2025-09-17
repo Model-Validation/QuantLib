@@ -31,10 +31,6 @@
 namespace QuantLib {
 
     //! Black 1976 calculator class
-    /*! \bug When the variance is null, division by zero occur during
-             the calculation of delta, delta forward, gamma, gamma
-             forward, rho, dividend rho, vega, and strike sensitivity.
-    */
     class BlackCalculator : public DiffusionCalculator::Impl {
       private:
         class Calculator;
@@ -106,10 +102,12 @@ namespace QuantLib {
         /*! gamma w.r.t. strike. */
         Real strikeGamma() const override;
 
-        Real alpha() const override;
-        Real beta() const override;
+        Real alpha() const;
+        Real beta() const;
+        
       protected:
         void initialize(const ext::shared_ptr<StrikedTypePayoff>& p);
+        
         Real strike_, forward_, stdDev_, discount_, variance_;
         Real d1_, d2_;
         Real alpha_, beta_, DalphaDd1_, DbetaDd2_;
