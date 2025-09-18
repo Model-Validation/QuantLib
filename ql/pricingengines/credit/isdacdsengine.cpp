@@ -381,9 +381,7 @@ IsdaCdsEngine::IsdaCdsEngine(const Handle<DefaultProbabilityTermStructure>& prob
 
 Real IsdaCdsEngine::survivalProbability(const Date& d) const { return probability_->survivalProbability(d); }
 
-Real IsdaCdsEngine::defaultProbability(const Date& d1, const Date& d2) const {
-    return probability_->defaultProbability(d1, d2);
-}
+Real IsdaCdsEngine::defaultProbability(const Date& d1, const Date& d2) const { return probability_->defaultProbability(d1, d2); }
 
 Real IsdaCdsEngine::expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2,
                                      const Real notional) const {
@@ -419,11 +417,10 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     Actual360 dc1;
     Actual360 dc2(true);
 
-    Date evalDate = Settings::instance().evaluationDate();
+    Date today = Settings::instance().evaluationDate();
 
     Date maturity = arguments.maturity;
-    Date effectiveProtectionStart =
-        std::max<Date>(arguments.protectionStart, evalDate + 1);
+    Date effectiveProtectionStart = std::max<Date>(arguments.protectionStart, today + 1);
 
     // collect nodes from both curves and sort them
     std::vector<Date> yDates, cDates;
@@ -515,20 +512,16 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
     Real premiumNpv = 0.0, defaultAccrualNpv = 0.0;
     for (auto& i : arguments.leg) {
-        ext::shared_ptr<FixedRateCoupon> coupon = ext::dynamic_pointer_cast<FixedRateCoupon>(i);
+        ext::shared_ptr<Coupon> coupon = ext::dynamic_pointer_cast<Coupon>(i);
+        QL_REQUIRE(coupon, "IsdaCdsEngine: expected coupon, simple cashflows are not allowed");
 
-        QL_REQUIRE(coupon->dayCounter() == dc ||
-                        coupon->dayCounter() == dc1 ||
-                        coupon->dayCounter() == dc2,
+        QL_REQUIRE(coupon->dayCounter() == dc || coupon->dayCounter() == dc1 || coupon->dayCounter() == dc2,
                     "ISDA engine requires a coupon day counter Act/365Fixed "
                         << "or Act/360 (" << coupon->dayCounter() << ")");
 
         // premium coupons
         if (!i->hasOccurred(effectiveProtectionStart, includeSettlementDateFlows_)) {
-            premiumNpv +=
-                coupon->amount() *
-                discountCurve_->discount(coupon->date()) *
-                survivalProbability(coupon->date()-1);
+            premiumNpv += coupon->amount() * discountCurve_->discount(coupon->date()) * survivalProbability(coupon->date()-1);
         }
 
         // default accruals
@@ -591,8 +584,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
                 P0 = P1;
                 Q0 = Q1;
             }
-            defaultAccrualNpv += defaultAccrThisNode * arguments.notional *
-                coupon->rate() * 365. / 360.;
+            defaultAccrualNpv += defaultAccrThisNode * arguments.notional * coupon->rate() * 365. / 360.;
         }
     }
 
@@ -602,10 +594,8 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
     Real upfPVO1 = 0.0;
     results.upfrontNPV = 0.0;
-    if (!arguments.upfrontPayment->hasOccurred(
-            evalDate, includeSettlementDateFlows_)) {
-        upfPVO1 =
-            discountCurve_->discount(arguments.upfrontPayment->date());
+    if (!arguments.upfrontPayment->hasOccurred(today, includeSettlementDateFlows_)) {
+        upfPVO1 = discountCurve_->discount(arguments.upfrontPayment->date());
         if(arguments.upfrontPayment->amount() != 0.) {
             results.upfrontNPV = upfPVO1 * arguments.upfrontPayment->amount();
         }
@@ -614,10 +604,22 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     results.accrualRebateNPV = 0.;
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (arguments.accrualRebate && arguments.accrualRebate->amount() != 0. &&
-        !arguments.accrualRebate->hasOccurred(evalDate, includeSettlementDateFlows_)) {
+        !arguments.accrualRebate->hasOccurred(today, includeSettlementDateFlows_)) {
         results.accrualRebateNPV =
             discountCurve_->discount(arguments.accrualRebate->date()) *
             arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebateAmount"] = arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebatePaymentDate"] = arguments.accrualRebate->date();
+        results.additionalResults["accrualRebateDiscountFactor"] = discountCurve_->discount(arguments.accrualRebate->date());
+    }
+
+    if (arguments.accrualRebateCurrent && arguments.accrualRebateCurrent->amount() != 0. &&
+        !arguments.accrualRebateCurrent->hasOccurred(today, includeSettlementDateFlows_)) {
+        results.accrualRebateNPVCurrent = discountCurve_->discount(arguments.accrualRebateCurrent->date()) *
+            arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentAmount"] = arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentPaymentDate"] = arguments.accrualRebateCurrent->date();
+        results.additionalResults["accrualRebateCurrentDiscountFactor"] = discountCurve_->discount(arguments.accrualRebateCurrent->date());
     }
 
     Real upfrontSign = 1.0;
@@ -625,6 +627,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
         case Protection::Seller:
         results.defaultLegNPV *= -1.0;
         results.accrualRebateNPV *= -1.0;
+        results.accrualRebateNPVCurrent *= -1.0;
         break;
         case Protection::Buyer:
         results.couponLegNPV *= -1.0;
@@ -641,11 +644,13 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     results.errorEstimate = Null<Real>();
 
     if (results.couponLegNPV != 0.0) {
-        results.fairSpread =
-            -results.defaultLegNPV * arguments.spread /
-            (results.couponLegNPV + results.accrualRebateNPV);
+        results.fairSpreadDirty = 
+            -results.defaultLegNPV * arguments.spread / (results.couponLegNPV + results.accrualRebateNPV);
+        results.fairSpreadClean =
+            -results.defaultLegNPV * arguments.spread / (results.couponLegNPV + results.accrualRebateNPVCurrent);
     } else {
-        results.fairSpread = Null<Rate>();
+        results.fairSpreadDirty = Null<Rate>();
+        results.fairSpreadClean = Null<Rate>();
     }
 
     Real upfrontSensitivity = upfPVO1 * arguments.notional;
@@ -674,15 +679,16 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     } else {
         results.upfrontBPS = Null<Rate>();
     }
+
     results.additionalResults["upfrontPremium"] = arguments.upfrontPayment->amount() * upfrontSign;
     results.additionalResults["upfrontPremiumNPV"] = results.upfrontNPV;
     results.additionalResults["premiumLegNPVDirty"] = results.couponLegNPV;
     results.additionalResults["premiumLegNPVClean"] = results.couponLegNPV + results.accrualRebateNPVCurrent;
     results.additionalResults["accrualRebateNPV"] = results.accrualRebateNPV;
-    // results.additionalResults["accrualRebateNPVCurrent"] = results.accrualRebateNPVCurrent;
+    results.additionalResults["accrualRebateNPVCurrent"] = results.accrualRebateNPVCurrent;
     results.additionalResults["protectionLegNPV"] = results.defaultLegNPV;
-    // results.additionalResults["fairSpreadDirty"] = results.fairSpreadDirty;
-    // results.additionalResults["fairSpreadClean"] = results.fairSpreadClean;
+    results.additionalResults["fairSpreadDirty"] = results.fairSpreadDirty;
+    results.additionalResults["fairSpreadClean"] = results.fairSpreadClean;
     results.additionalResults["fairUpfront"] = results.fairUpfront;
     results.additionalResults["couponLegBPS"] = results.couponLegBPS;
     results.additionalResults["upfrontBPS"] = results.upfrontBPS;
