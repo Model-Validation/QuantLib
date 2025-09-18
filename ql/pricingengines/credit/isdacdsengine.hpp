@@ -77,6 +77,7 @@ namespace QuantLib {
         virtual Real survivalProbability(const Date& d) const = 0;
         virtual Real defaultProbability(const Date& d1, const Date& d2) const = 0;
         virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const = 0;
+        virtual Real claimLoss(const Date& defaultDate, const Real notional) const = 0;
         void calculate(const Date& refDate, const CreditDefaultSwap::arguments& arguments,
                        CreditDefaultSwap::results& results) const;
 
@@ -137,6 +138,7 @@ namespace QuantLib {
         virtual Real survivalProbability(const Date& d) const override;
         virtual Real defaultProbability(const Date& d1, const Date& d2) const override;
         virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const override;
+        virtual Real claimLoss(const Date& defaultDate, const Real notional) const override;
         
         // mutable Handle<DefaultProbabilityTermStructure> probability_;
         mutable Real recoveryRate_;

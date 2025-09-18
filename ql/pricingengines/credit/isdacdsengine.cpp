@@ -390,6 +390,10 @@ Real IsdaCdsEngine::expectedLoss(const Date& defaultDate, const Date& d1, const 
     return arguments_.claim->amount(defaultDate, notional, recoveryRate_) * probability_->defaultProbability(d1, d2);
 }
 
+Real IsdaCdsEngine::claimLoss(const Date& defaultDate, const Real notional) const {
+    return arguments_.claim->amount(defaultDate, notional, recoveryRate_);
+}
+
 void IsdaCdsEngine::calculate() const {
     QL_REQUIRE(!discountCurve_.empty(), "no discount term structure set");
     QL_REQUIRE(!probability_.empty(), "no probability term structure set");
@@ -427,7 +431,6 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     // the calls to dates() below might not trigger bootstrap (because
     // they will call the InterpolatedCurve methods, not the ones from
     // PiecewiseYieldCurve or PiecewiseDefaultCurve) so we force it here
-
     if(ext::shared_ptr<InterpolatedDiscountCurve<LogLinear> > castY1 =
         ext::dynamic_pointer_cast<
             InterpolatedDiscountCurve<LogLinear> >(*discountCurve_)) {
@@ -450,14 +453,10 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     if(ext::shared_ptr<InterpolatedSurvivalProbabilityCurve<LogLinear>>
         castC1 = ext::dynamic_pointer_cast<InterpolatedSurvivalProbabilityCurve<LogLinear>>(*probability_)) {
         cDates = castC1->dates();
-    } else if(
-    ext::shared_ptr<InterpolatedHazardRateCurve<BackwardFlat> > castC2 =
-        ext::dynamic_pointer_cast<
-        InterpolatedHazardRateCurve<BackwardFlat> >(*probability_)) {
+    } else if(ext::shared_ptr<InterpolatedHazardRateCurve<BackwardFlat>> 
+        castC2 = ext::dynamic_pointer_cast<InterpolatedHazardRateCurve<BackwardFlat> >(*probability_)) {
         cDates = castC2->dates();
-    } else if(
-    ext::shared_ptr<FlatHazardRate> castC3 =
-        ext::dynamic_pointer_cast<FlatHazardRate>(*probability_)) {
+    } else if(ext::shared_ptr<FlatHazardRate> castC3 = ext::dynamic_pointer_cast<FlatHazardRate>(*probability_)) {
         // no dates to extract
     } else{
         QL_FAIL("Credit curve must be flat forward interpolated");
@@ -479,8 +478,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     Real P0 = discountCurve_->discount(d0);
     Real Q0 = survivalProbability(d0);
     Date d1;
-    auto it =
-        std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
+    auto it = std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
 
     for(;it != nodes.end(); ++it) {
         if(*it > maturity) {
@@ -509,7 +507,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
         P0 = P1;
         Q0 = Q1;
     }
-    // protectionNpv *= arguments.claim->amount(Date(), arguments.notional, recoveryRate_);
+    protectionNpv *= claimLoss(Date(), arguments.notional);
 
     results.defaultLegNPV = protectionNpv;
 
@@ -598,7 +596,6 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
         }
     }
 
-
     results.couponLegNPV = premiumNpv + defaultAccrualNpv;
 
     // upfront flow npv
@@ -682,10 +679,10 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     results.additionalResults["premiumLegNPVDirty"] = results.couponLegNPV;
     results.additionalResults["premiumLegNPVClean"] = results.couponLegNPV + results.accrualRebateNPVCurrent;
     results.additionalResults["accrualRebateNPV"] = results.accrualRebateNPV;
-    results.additionalResults["accrualRebateNPVCurrent"] = results.accrualRebateNPVCurrent;
+    // results.additionalResults["accrualRebateNPVCurrent"] = results.accrualRebateNPVCurrent;
     results.additionalResults["protectionLegNPV"] = results.defaultLegNPV;
-    results.additionalResults["fairSpreadDirty"] = results.fairSpreadDirty;
-    results.additionalResults["fairSpreadClean"] = results.fairSpreadClean;
+    // results.additionalResults["fairSpreadDirty"] = results.fairSpreadDirty;
+    // results.additionalResults["fairSpreadClean"] = results.fairSpreadClean;
     results.additionalResults["fairUpfront"] = results.fairUpfront;
     results.additionalResults["couponLegBPS"] = results.couponLegBPS;
     results.additionalResults["upfrontBPS"] = results.upfrontBPS;
