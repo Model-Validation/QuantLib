@@ -28,20 +28,9 @@
 
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/pricingengines/diffusioncalculator.hpp>
 
 namespace QuantLib {
-
-    enum class BlackBachelierModel {
-      Black,
-      Bachelier,
-      AsVolType
-    };
-
-    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
-        double forward, double strike, double ttm, double nVol, double displacement);
-
-    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
-        double forward, double strike, double ttm, double slnVol, double displacement);
 
     //! Pricing engine for European vanilla options using analytical formulae
     /*! \ingroup vanillaengines
@@ -77,7 +66,7 @@ namespace QuantLib {
             forecasting and discounting.
         */
         explicit AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess>,
-                                        BlackBachelierModel model = BlackBachelierModel::AsVolType,                                
+                                        DiffusionModelType model = DiffusionModelType::AsInputVolatilityType,                                
                                         Real displacement = 0);
 
         /*! This constructor allows to use a different term structure
@@ -88,7 +77,7 @@ namespace QuantLib {
         AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                Handle<YieldTermStructure> discountCurve, ext::optional<unsigned int> spotDays = {},
                                ext::optional<Calendar> spotCalendar = {},
-                               BlackBachelierModel model = BlackBachelierModel::AsVolType,                                
+                               DiffusionModelType model = DiffusionModelType::AsInputVolatilityType,                                
                                Real displacement = 0);
         void calculate() const override;
 
@@ -97,7 +86,7 @@ namespace QuantLib {
           Handle<YieldTermStructure> discountCurve_;
           ext::optional<unsigned int> spotDays_;
           ext::optional<Calendar> spotCalendar_;
-          BlackBachelierModel modelType_;
+          DiffusionModelType modelType_;
           Real displacement_;
 
     };

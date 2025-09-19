@@ -26,26 +26,11 @@
 
 namespace QuantLib {
 
-    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
-        double forward, double strike, double ttm, double nVol, double displacement) {
-        auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
-        double premium = bachelierBlackFormula(optionType, strike, forward, nVol * ttm);
-        double slnVol =
-            blackFormulaImpliedStdDev(optionType, strike, forward, premium, 1.0, displacement);
-        return slnVol / sqrt(ttm);
-    }
 
-    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
-        double forward, double strike, double ttm, double slnVol, double displacement) {
-        auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
-        double price = blackFormula(optionType, strike, forward, slnVol, 1.0, displacement);
-        double nVol = bachelierBlackFormulaImpliedVol(optionType, strike, forward, ttm, price);
-        return nVol;
-    }
 
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(
         ext::shared_ptr<GeneralizedBlackScholesProcess> process, 
-        BlackBachelierModel model, Real displacement)
+        DiffusionModelType model, Real displacement)
     : process_(std::move(process)), modelType_(model), displacement_(displacement) {
         registerWith(process_);
     }
@@ -54,7 +39,7 @@ namespace QuantLib {
                                                    Handle<YieldTermStructure> discountCurve,
                                                    ext::optional<unsigned int> spotDays,
                                                    ext::optional<Calendar> spotCalendar,
-                                                   BlackBachelierModel model, 
+                                                   DiffusionModelType model, 
                                                    Real displacement)
         : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar),
           modelType_(model), displacement_(displacement) {
@@ -108,7 +93,7 @@ namespace QuantLib {
         VolatilityType volType = process_->blackVolatility()->volType();
         Real displacement = process_->blackVolatility()->shift();
 
-        if (modelType_ == BlackBachelierModel::Bachelier &&
+        if (modelType_ == DiffusionModelType::Bachelier &&
             volType == VolatilityType::ShiftedLognormal) {
             double ttm =
                 process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
@@ -119,7 +104,7 @@ namespace QuantLib {
             volType = VolatilityType::Normal;
             displacement = 0;
             variance = nVol * nVol * ttm;
-        } else if (modelType_ == BlackBachelierModel::Black && volType == VolatilityType::Normal) {
+        } else if (modelType_ == DiffusionModelType::Black && volType == VolatilityType::Normal) {
             double ttm =
                 process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
             double nVol = process_->blackVolatility()->blackVol(arguments_.exercise->lastDate(),

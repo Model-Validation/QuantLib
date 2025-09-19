@@ -27,7 +27,35 @@
 
 #include <ql/instruments/payoffs.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 namespace QuantLib {
+
+    // TODO move into own hpp/cpp
+    enum class DiffusionModelType {
+      Black,
+      Bachelier,
+      AsInputVolatilityType
+    };
+
+    // Return the implied volatility and its type (shifted lognormal or normal) and a displacement
+    // given the model type requested (Black, Bachelier, or AsInputVolatilityType)
+    // and the input vol termstructure with a given volType and (shifted lognormal or normal) and
+    // displacement
+    std::tuple<double, VolatilityType, double>
+    getImpliedVarianceFromModelType(DiffusionModelType outputModelType,
+                                      double displacement,
+                                      QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
+                                      double forward,
+                                      double strike,
+                                      double t);
+
+    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+        double forward, double strike, double ttm, double nVol, double displacement);
+
+    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+        double forward, double strike, double ttm, double slnVol, double displacement);
+
+
     //! Calculator class supporting shifted lognormal (Black) and normal (Bachelier) models
     /*! \bug When the variance is null, division by zero occur during
              the calculation of delta, delta forward, gamma, gamma
