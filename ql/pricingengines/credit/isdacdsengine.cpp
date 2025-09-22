@@ -606,8 +606,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     if (arguments.accrualRebate && arguments.accrualRebate->amount() != 0. &&
         !arguments.accrualRebate->hasOccurred(today, includeSettlementDateFlows_)) {
         results.accrualRebateNPV =
-            discountCurve_->discount(arguments.accrualRebate->date()) *
-            arguments.accrualRebate->amount();
+            discountCurve_->discount(arguments.accrualRebate->date()) * arguments.accrualRebate->amount();
         results.additionalResults["accrualRebateAmount"] = arguments.accrualRebate->amount();
         results.additionalResults["accrualRebatePaymentDate"] = arguments.accrualRebate->date();
         results.additionalResults["accrualRebateDiscountFactor"] = discountCurve_->discount(arguments.accrualRebate->date());
@@ -615,8 +614,8 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
     if (arguments.accrualRebateCurrent && arguments.accrualRebateCurrent->amount() != 0. &&
         !arguments.accrualRebateCurrent->hasOccurred(today, includeSettlementDateFlows_)) {
-        results.accrualRebateNPVCurrent = discountCurve_->discount(arguments.accrualRebateCurrent->date()) *
-            arguments.accrualRebateCurrent->amount();
+        results.accrualRebateNPVCurrent = 
+            discountCurve_->discount(arguments.accrualRebateCurrent->date()) * arguments.accrualRebateCurrent->amount();
         results.additionalResults["accrualRebateCurrentAmount"] = arguments.accrualRebateCurrent->amount();
         results.additionalResults["accrualRebateCurrentPaymentDate"] = arguments.accrualRebateCurrent->date();
         results.additionalResults["accrualRebateCurrentDiscountFactor"] = discountCurve_->discount(arguments.accrualRebateCurrent->date());
@@ -639,7 +638,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     }
 
     results.value = results.defaultLegNPV + results.couponLegNPV +
-                        results.upfrontNPV + results.accrualRebateNPV;
+                    results.upfrontNPV + results.accrualRebateNPV;
 
     results.errorEstimate = Null<Real>();
 
@@ -655,10 +654,8 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
     Real upfrontSensitivity = upfPVO1 * arguments.notional;
     if (upfrontSensitivity != 0.0) {
-        results.fairUpfront =
-            -upfrontSign * (results.defaultLegNPV + results.couponLegNPV +
-                            results.accrualRebateNPV) /
-            upfrontSensitivity;
+        results.fairUpfront = -upfrontSign * (results.defaultLegNPV + results.couponLegNPV +
+                              results.accrualRebateNPV) / upfrontSensitivity;
     } else {
         results.fairUpfront = Null<Rate>();
     }
@@ -666,16 +663,14 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
     static const Rate basisPoint = 1.0e-4;
 
     if (arguments.spread != 0.0) {
-        results.couponLegBPS =
-            results.couponLegNPV * basisPoint / arguments.spread;
+        results.couponLegBPS = results.couponLegNPV * basisPoint / arguments.spread;
     } else {
         results.couponLegBPS = Null<Rate>();
     }
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (arguments.upfront && *arguments.upfront != 0.0) {
-        results.upfrontBPS =
-            results.upfrontNPV * basisPoint / (*arguments.upfront);
+        results.upfrontBPS = results.upfrontNPV * basisPoint / (*arguments.upfront);
     } else {
         results.upfrontBPS = Null<Rate>();
     }
