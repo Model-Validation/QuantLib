@@ -58,28 +58,27 @@ namespace QuantLib {
 
         Real variance = volTS->blackVariance(t, strike);
         VolatilityType volType = volTS->volType();
-        Real displacement = volTS->shift();
-
+        Real inputDisplacement = volTS->shift();
+        Real outputDisplacement = displacement;
         if (outputModelType == DiffusionModelType::Bachelier &&
             volType == VolatilityType::ShiftedLognormal) {
             double slnVol = volTS->blackVol(t, strike);
 
             double nVol = convertEuropeanImpliedShiftedLognormalVolToNormalVol(
-                forward, strike, t, slnVol, volTS->shift());
+                forward, strike, t, slnVol, inputDisplacement);
             volType = VolatilityType::Normal;
-            displacement = 0;
+            outputDisplacement = 0;
             variance = nVol * nVol * t;
         } else if (outputModelType == DiffusionModelType::Black &&
                    volType == VolatilityType::Normal) {
 
             double nVol = volTS->blackVol(t, strike);
             double slnVol = convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
-                forward, strike, t, nVol, volTS->shift());
+                forward, strike, t, nVol, outputDisplacement);
             volType = VolatilityType::ShiftedLognormal;
-            displacement = displacement;
             variance = slnVol * slnVol * t;
         }
-        return std::make_tuple(variance, volType, displacement);
+        return std::make_tuple(variance, volType, outputDisplacement);
     }
 
     DiffusionCalculator::DiffusionCalculator(const ext::shared_ptr<StrikedTypePayoff>& p,
@@ -120,3 +119,4 @@ namespace QuantLib {
                 QL_FAIL("unknown volatility type");
         }
     }
+}

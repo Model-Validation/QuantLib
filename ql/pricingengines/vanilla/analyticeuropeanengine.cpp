@@ -87,35 +87,10 @@ namespace QuantLib {
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
         Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        Real variance = process_->blackVolatility()->blackVariance(
-                                              arguments_.exercise->lastDate(),
-                                              payoff->strike());;
-        VolatilityType volType = process_->blackVolatility()->volType();
-        Real displacement = process_->blackVolatility()->shift();
-
-        if (modelType_ == DiffusionModelType::Bachelier &&
-            volType == VolatilityType::ShiftedLognormal) {
-            double ttm =
-                process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
-            double slnVol = process_->blackVolatility()->blackVol(arguments_.exercise->lastDate(),
-                                                                  payoff->strike());
-            double nVol = convertEuropeanImpliedShiftedLognormalVolToNormalVol(
-                forwardPrice, payoff->strike(), ttm, slnVol, process_->blackVolatility()->shift());
-            volType = VolatilityType::Normal;
-            displacement = 0;
-            variance = nVol * nVol * ttm;
-        } else if (modelType_ == DiffusionModelType::Black && volType == VolatilityType::Normal) {
-            double ttm =
-                process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate());
-            double nVol = process_->blackVolatility()->blackVol(arguments_.exercise->lastDate(),
-                                                                payoff->strike());
-            double slnVol = convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
-                forwardPrice, payoff->strike(), ttm, nVol, process_->blackVolatility()->shift());
-            volType = VolatilityType::Normal;
-            displacement = displacement_;
-            variance = slnVol * slnVol * ttm;
-        }
-
+        auto [variance, volType, displacement] = getImpliedVarianceFromModelType(
+            modelType_, displacement_, *process_->blackVolatility(), forwardPrice, payoff->strike(),
+            process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate()));
+        
         DiffusionCalculator black(payoff, forwardPrice, std::sqrt(variance), df, volType, displacement);
 
         results_.value = black.value();

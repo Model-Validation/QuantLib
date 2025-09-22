@@ -66,6 +66,8 @@ namespace QuantLib {
         // Implementation of the calculator shifted lognormal (black) or normal (bachelier)
         class Impl {
           public:
+
+            virtual ~Impl() = default;
             virtual Real value() const;
 
             /*! Sensitivity to change in the underlying forward price. */
@@ -197,7 +199,7 @@ namespace QuantLib {
         Real strikeGamma() const { return impl_->strikeGamma(); };
 
         Real alpha() const { return impl_->alpha(); };
-        Real beta() const const { return impl_->beta(); };
+        Real beta() const { return impl_->beta(); };
 
       private:
         std::unique_ptr<Impl> impl_;

@@ -102,8 +102,8 @@ namespace QuantLib {
         /*! gamma w.r.t. strike. */
         Real strikeGamma() const override;
 
-        Real alpha() const;
-        Real beta() const;
+        Real alpha() const override;
+        Real beta() const override;
         
       protected:
         void initialize(const ext::shared_ptr<StrikedTypePayoff>& p);
