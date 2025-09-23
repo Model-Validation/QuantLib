@@ -42,17 +42,25 @@ namespace QuantLib {
     // and the input vol termstructure with a given volType and (shifted lognormal or normal) and
     // displacement
     std::tuple<double, VolatilityType, double>
-    getImpliedVarianceFromModelType(DiffusionModelType outputModelType,
+    convertInputVariance(DiffusionModelType outputModelType,
                                       double displacement,
                                       QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
                                       double forward,
                                       double strike,
                                       double t);
 
-    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+    std::tuple<double, VolatilityType, double>
+    convertInputVolatility(DiffusionModelType outputModelType,
+                                 double displacement,
+                                 QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
+                                 double forward,
+                                 double strike,
+                                 double t);
+
+    double convertNormalToShiftedLogNormalVol(
         double forward, double strike, double ttm, double nVol, double displacement);
 
-    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+    double convertShiftedLognormalToNormalVol(
         double forward, double strike, double ttm, double slnVol, double displacement);
 
 
@@ -68,62 +76,62 @@ namespace QuantLib {
           public:
 
             virtual ~Impl() = default;
-            virtual Real value() const;
+            virtual Real value() const = 0;
 
             /*! Sensitivity to change in the underlying forward price. */
-            virtual Real deltaForward() const;
+            virtual Real deltaForward() const = 0;
             /*! Sensitivity to change in the underlying spot price. */
-            virtual Real delta(Real spot) const;
+            virtual Real delta(Real spot) const = 0;
 
             /*! Sensitivity in percent to a percent change in the
                 underlying forward price. */
-            virtual Real elasticityForward() const;
+            virtual Real elasticityForward() const = 0;
             /*! Sensitivity in percent to a percent change in the
                 underlying spot price. */
-            virtual Real elasticity(Real spot) const;
+            virtual Real elasticity(Real spot) const = 0;
 
             /*! Second order derivative with respect to change in the
                 underlying forward price. */
-            virtual Real gammaForward() const;
+            virtual Real gammaForward() const = 0;
             /*! Second order derivative with respect to change in the
                 underlying spot price. */
-            virtual Real gamma(Real spot) const;
+            virtual Real gamma(Real spot) const = 0;
 
             /*! Sensitivity to time to maturity. */
-            virtual Real theta(Real spot, Time maturity) const;
+            virtual Real theta(Real spot, Time maturity) const = 0;
             /*! Sensitivity to time to maturity per day,
                 assuming 365 day per year. */
-            virtual Real thetaPerDay(Real spot, Time maturity) const;
+            virtual Real thetaPerDay(Real spot, Time maturity) const = 0;
 
             /*! Sensitivity to volatility. */
-            virtual Real vega(Time maturity) const;
+            virtual Real vega(Time maturity) const = 0;
 
             /*! Sensitivity to discounting rate. */
-            virtual Real rho(Time maturity) const;
+            virtual Real rho(Time maturity) const = 0;
 
             /*! Sensitivity to dividend/growth rate. */
-            virtual Real dividendRho(Time maturity) const;
+            virtual Real dividendRho(Time maturity) const = 0;
 
             /*! Probability of being in the money in the bond martingale
                 measure, i.e. N(d2).
                 It is a risk-neutral probability, not the real world one.
             */
-            virtual Real itmCashProbability() const;
+            virtual Real itmCashProbability() const = 0;
 
             /*! Probability of being in the money in the asset martingale
                 measure, i.e. N(d1).
                 It is a risk-neutral probability, not the real world one.
             */
-            virtual Real itmAssetProbability() const;
+            virtual Real itmAssetProbability() const = 0;
 
             /*! Sensitivity to strike. */
-            virtual Real strikeSensitivity() const;
+            virtual Real strikeSensitivity() const = 0;
 
             /*! gamma w.r.t. strike. */
-            virtual Real strikeGamma() const;
+            virtual Real strikeGamma() const = 0;
 
-            virtual Real alpha() const;
-            virtual Real beta() const;
+            virtual Real alpha() const = 0;
+            virtual Real beta() const = 0;
         };
 
 

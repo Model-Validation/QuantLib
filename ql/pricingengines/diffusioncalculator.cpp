@@ -26,7 +26,7 @@
 #include <ql/pricingengines/diffusioncalculator.hpp>
 namespace QuantLib {
 
-    double convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
+    double convertNormalToShiftedLogNormalVol(
         double forward, double strike, double ttm, double nVol, double displacement) {
         auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
         double premium = bachelierBlackFormula(optionType, strike, forward, nVol * ttm);
@@ -35,7 +35,7 @@ namespace QuantLib {
         return slnVol / sqrt(ttm);
     }
 
-    double convertEuropeanImpliedShiftedLognormalVolToNormalVol(
+    double convertShiftedLognormalToNormalVol(
         double forward, double strike, double ttm, double slnVol, double displacement) {
         auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
         double price = blackFormula(optionType, strike, forward, slnVol, 1.0, displacement);
@@ -43,43 +43,99 @@ namespace QuantLib {
         return nVol;
     }
 
-
-        // Return the implied volatility and its type (shifted lognormal or normal) and a displacement
-    // given the model type requested (Black, Bachelier, or AsInputVolatilityType)
-    // and the input vol termstructure with a given volType and (shifted lognormal or normal) and
-    // displacement
-    std::tuple<double, VolatilityType, double>
-    getImpliedVarianceFromModelType(DiffusionModelType outputModelType,
-                                      double displacement,
-                                      QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
-                                      double forward,
-                                      double strike,
-                                      double t) {
-
-        Real variance = volTS->blackVariance(t, strike);
-        VolatilityType volType = volTS->volType();
-        Real inputDisplacement = volTS->shift();
-        Real outputDisplacement = displacement;
-        if (outputModelType == DiffusionModelType::Bachelier &&
-            volType == VolatilityType::ShiftedLognormal) {
-            double slnVol = volTS->blackVol(t, strike);
-
-            double nVol = convertEuropeanImpliedShiftedLognormalVolToNormalVol(
-                forward, strike, t, slnVol, inputDisplacement);
-            volType = VolatilityType::Normal;
-            outputDisplacement = 0;
-            variance = nVol * nVol * t;
-        } else if (outputModelType == DiffusionModelType::Black &&
-                   volType == VolatilityType::Normal) {
-
-            double nVol = volTS->blackVol(t, strike);
-            double slnVol = convertEuropeanImpliedNormalVolToShiftedLogNormalVol(
-                forward, strike, t, nVol, outputDisplacement);
-            volType = VolatilityType::ShiftedLognormal;
-            variance = slnVol * slnVol * t;
-        }
-        return std::make_tuple(variance, volType, outputDisplacement);
+    double convertShiftedLognormalToShiftedLognormalVol(
+        double forward, double strike, double ttm, double slnVol, double oldDisplacement,
+        double newDisplacement) {
+        if (close_enough(oldDisplacement, newDisplacement))
+            return slnVol;
+        auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
+        double price = blackFormula(optionType, strike, forward, slnVol, 1.0, oldDisplacement);
+        double newSlnVol =
+            blackFormulaImpliedStdDev(optionType, strike, forward, price, 1.0, newDisplacement);
+        return newSlnVol / sqrt(ttm);
     }
+
+
+    double targetDisplacement(DiffusionModelType modelType,
+                              double displacement,
+                              const QuantLib::ext::shared_ptr<BlackVolTermStructure>& volTS) {
+        if (modelType == DiffusionModelType::Black) {
+            return displacement;
+        } else if (modelType == DiffusionModelType::AsInputVolatilityType &&
+                   volTS->volType() == VolatilityType::ShiftedLognormal) {
+            return volTS->shift();
+        }
+        return 0.0;
+    }
+
+    VolatilityType targetVolatilityType(DiffusionModelType modelType,
+                                        const QuantLib::ext::shared_ptr<BlackVolTermStructure>& volTS) {
+        if (modelType == DiffusionModelType::Black) {
+            return VolatilityType::ShiftedLognormal;
+        } else if (modelType == DiffusionModelType::Bachelier) {
+            return VolatilityType::Normal;
+        } else if (modelType == DiffusionModelType::AsInputVolatilityType) {
+            return volTS->volType();
+        }
+        QL_FAIL("unknown model type");
+    }
+
+
+    // Convert the given implied volatility to the implied volatility of the target model type
+    // (Black, Bachelier, or AsInputVolatilityType i.e no conversion)
+    std::tuple<double, VolatilityType, double>
+    convertInputVolatility(DiffusionModelType outputModelType,
+                                       double displacement,
+                                       QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
+                                       double forward,
+                                       double strike,
+                                       double t) {
+
+        auto volType = volTS->volType();
+        auto targetVolType = targetVolatilityType(outputModelType, volTS);
+        auto targetVolDisplacement = targetDisplacement(outputModelType, displacement, volTS);
+
+        if (volType == VolatilityType::ShiftedLognormal &&
+            targetVolType == VolatilityType::Normal) {
+            double slnVol = volTS->blackVol(t, strike);
+            double nVol =
+                convertShiftedLognormalToNormalVol(forward, strike, t, slnVol, volTS->shift());
+            return std::make_tuple(nVol, VolatilityType::Normal, targetVolDisplacement);
+        } 
+
+        if (volType == VolatilityType::Normal &&
+            targetVolType == VolatilityType::ShiftedLognormal) {
+            double nVol = volTS->blackVol(t, strike);
+            double slnVol =
+                convertNormalToShiftedLogNormalVol(forward, strike, t, nVol, displacement);
+            return std::make_tuple(slnVol, VolatilityType::ShiftedLognormal, targetVolDisplacement);
+        }
+
+        if (volType == VolatilityType::ShiftedLognormal &&
+            targetVolType == VolatilityType::ShiftedLognormal && !close_enough(displacement, targetVolDisplacement)) {
+            // need to convert the vol to the new displacement
+            double slnVol = volTS->blackVol(t, strike);
+            double newSlnVol = convertShiftedLognormalToShiftedLognormalVol(
+                forward, strike, t, slnVol, volTS->shift(), targetVolDisplacement);
+            return std::make_tuple(newSlnVol, VolatilityType::ShiftedLognormal, targetVolDisplacement);
+        }
+
+        return std::make_tuple(volTS->blackVol(t, strike), targetVolType, targetVolDisplacement);
+    }
+
+    std::tuple<double, VolatilityType, double>
+    convertInputVariance(DiffusionModelType outputModelType,
+                         double displacement,
+                         QuantLib::ext::shared_ptr<BlackVolTermStructure> volTS,
+                         double forward,
+                         double strike,
+                         double t) {
+
+        auto [vol, volType, outputDisplacement] =
+            convertInputVolatility(outputModelType, displacement, volTS, forward, strike, t);
+        return std::make_tuple(vol * vol * t, volType, outputDisplacement);
+    }
+
 
     DiffusionCalculator::DiffusionCalculator(const ext::shared_ptr<StrikedTypePayoff>& p,
                                      Real forward,

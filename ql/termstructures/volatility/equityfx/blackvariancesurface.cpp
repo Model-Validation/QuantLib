@@ -34,8 +34,10 @@ namespace QuantLib {
                                                DayCounter dayCounter,
                                                BlackVarianceSurface::Extrapolation lowerEx,
                                                BlackVarianceSurface::Extrapolation upperEx,
-                                               BlackVolTimeExtrapolation timeExtrapolation)
-    : BlackVarianceTermStructure(referenceDate, cal), dayCounter_(std::move(dayCounter)),
+                                               BlackVolTimeExtrapolation timeExtrapolation,
+                                               QuantLib::VolatilityType volType,
+                                               Real shift)
+    : BlackVarianceTermStructure(referenceDate, cal, QuantLib::Following, DayCounter(), volType, shift), dayCounter_(std::move(dayCounter)),
       maxDate_(dates.back()), strikes_(std::move(strikes)), lowerExtrapolation_(lowerEx),
       upperExtrapolation_(upperEx), timeExtrapolation_(timeExtrapolation) {
 

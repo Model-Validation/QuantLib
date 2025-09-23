@@ -87,7 +87,7 @@ namespace QuantLib {
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
         Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        auto [variance, volType, displacement] = getImpliedVarianceFromModelType(
+        auto [variance, volType, displacement] = convertInputVariance(
             modelType_, displacement_, *process_->blackVolatility(), forwardPrice, payoff->strike(),
             process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate()));
         
