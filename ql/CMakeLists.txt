@@ -150,6 +150,7 @@ set(QL_SOURCES
     experimental/finitedifferences/glued1dmesher.cpp
     experimental/finitedifferences/vanillavppoption.cpp
     experimental/forward/analytichestonforwardeuropeanengine.cpp
+    experimental/fx/bachelierdeltacalculator.cpp
     experimental/fx/blackdeltacalculator.cpp
     experimental/fx/deltavolquote.cpp
     experimental/inflation/cpicapfloorengines.cpp
@@ -1153,6 +1154,7 @@ set(QL_HEADERS
     experimental/finitedifferences/vanillavppoption.hpp
     experimental/forward/analytichestonforwardeuropeanengine.hpp
     experimental/fx/blackdeltacalculator.hpp
+    experimental/fx/bachelierdeltacalculator.hpp
     experimental/fx/deltavolquote.hpp
     experimental/inflation/cpicapfloorengines.hpp
     experimental/inflation/cpicapfloortermpricesurface.hpp
