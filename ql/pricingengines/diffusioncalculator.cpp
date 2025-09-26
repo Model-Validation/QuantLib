@@ -28,17 +28,18 @@ namespace QuantLib {
 
     double convertNormalToShiftedLogNormalVol(
         double forward, double strike, double ttm, double nVol, double displacement) {
+        QL_REQUIRE(!close_enough(forward, 0.0), "forward is 0.0, can not convert normal vol to shifted lognormal vol");
         auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
-        double premium = bachelierBlackFormula(optionType, strike, forward, nVol * ttm);
+        double premium = bachelierBlackFormula(optionType, strike, forward, nVol * std::sqrt(ttm));
         double slnVol =
-            blackFormulaImpliedStdDev(optionType, strike, forward, premium, 1.0, displacement);
+            blackFormulaImpliedStdDev(optionType, strike, forward, premium, 1.0, displacement, nVol / forward );
         return slnVol / sqrt(ttm);
     }
 
     double convertShiftedLognormalToNormalVol(
         double forward, double strike, double ttm, double slnVol, double displacement) {
         auto optionType = forward > strike ? Option::Type::Put : Option::Type::Call;
-        double price = blackFormula(optionType, strike, forward, slnVol, 1.0, displacement);
+        double price = blackFormula(optionType, strike, forward, slnVol * std::sqrt(ttm), 1.0, displacement);
         double nVol = bachelierBlackFormulaImpliedVol(optionType, strike, forward, ttm, price);
         return nVol;
     }
