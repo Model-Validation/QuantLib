@@ -51,7 +51,7 @@ namespace QuantLib {
                              bool forceMonotoneVariance = true, 
                              BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility,
                              const VolatilityType type = VolatilityType::ShiftedLognormal,
-                             const Real shifts = 0.0);
+                             const Real shift = 0.0);
           //! \name TermStructure interface
           //@{
           DayCounter dayCounter() const override { return dayCounter_; }
@@ -66,7 +66,6 @@ namespace QuantLib {
           //@{
           template <class Interpolator> void setInterpolation(const Interpolator& i = Interpolator()) {
               varianceCurve_ = i.interpolate(times_.begin(), times_.end(), variances_.begin());
-              shiftCurve_ = i.interpolate(times_.begin(), times_.end(), shifts_.begin());
               varianceCurve_.update();
               notifyObservers();
           }
@@ -83,9 +82,7 @@ namespace QuantLib {
         Date maxDate_;
         std::vector<Time> times_;
         std::vector<Real> variances_;
-        std::vector<Real> shifts_;
         Interpolation varianceCurve_;
-        Interpolation shiftCurve_;
         BlackVolTimeExtrapolation timeExtrapolation_;
     };
 

@@ -47,16 +47,19 @@ namespace QuantLib {
         QL_REQUIRE(dates[0]>referenceDate,
                    "cannot have dates[0] <= referenceDate");
 
-        variances_ = std::vector<Real>(dates.size() + 1);
-        times_ = std::vector<Time>(dates.size() + 1);
+        variances_ = std::vector<Real>(dates.size()+1);
+        times_ = std::vector<Time>(dates.size()+1);
         variances_[0] = 0.0;
         times_[0] = 0.0;
         Size j;
-        for (j = 1; j <= blackVolCurve.size(); j++) {
-            times_[j] = timeFromReference(dates[j - 1]);
-            QL_REQUIRE(times_[j] > times_[j - 1], "dates must be sorted unique!");
-            variances_[j] = times_[j] * blackVolCurve[j - 1] * blackVolCurve[j - 1];
-            QL_REQUIRE(variances_[j] >= variances_[j - 1] || !forceMonotoneVariance,
+        for (j=1; j<=blackVolCurve.size(); j++) {
+            times_[j] = timeFromReference(dates[j-1]);
+            QL_REQUIRE(times_[j]>times_[j-1],
+                       "dates must be sorted unique!");
+            variances_[j] = times_[j] *
+                blackVolCurve[j-1]*blackVolCurve[j-1];
+            QL_REQUIRE(variances_[j]>=variances_[j-1]
+                       || !forceMonotoneVariance,
                        "variance must be non-decreasing");
         }
 
@@ -76,5 +79,7 @@ namespace QuantLib {
             QL_FAIL("Unknown time extrapolation method");
         }
     }
+
+
 }
 
