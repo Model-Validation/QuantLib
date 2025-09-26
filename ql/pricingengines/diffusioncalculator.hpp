@@ -57,6 +57,17 @@ namespace QuantLib {
                                  double strike,
                                  double t);
 
+    std::tuple<double, VolatilityType, double>
+    convertInputVolatility(DiffusionModelType outputModelType,
+                           double outputDisplacement,
+                           VolatilityType inputVolType,
+                           double inputDisplacement,
+                           double inputVol,
+                           double forward,
+                           double strike,
+                           double t);
+
+
     double convertNormalToShiftedLogNormalVol(
         double forward, double strike, double ttm, double nVol, double displacement);
 

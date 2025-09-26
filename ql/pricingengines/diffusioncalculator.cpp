@@ -55,31 +55,55 @@ namespace QuantLib {
         return newSlnVol / sqrt(ttm);
     }
 
-
-    double targetDisplacement(DiffusionModelType modelType,
-                              double displacement,
-                              const QuantLib::ext::shared_ptr<BlackVolTermStructure>& volTS) {
-        if (modelType == DiffusionModelType::Black) {
-            return displacement;
-        } else if (modelType == DiffusionModelType::AsInputVolatilityType &&
-                   volTS->volType() == VolatilityType::ShiftedLognormal) {
-            return volTS->shift();
+    std::tuple<double, VolatilityType, double>
+    convertInputVolatility(DiffusionModelType outputModelType,
+                           double outputDisplacement,
+                           VolatilityType inputVolType,
+                           double inputDisplacement,
+                           double inputVol,
+                           double forward,
+                           double strike,
+                           double t) {
+        if (outputModelType == DiffusionModelType::AsInputVolatilityType){
+            return std::make_tuple(inputVol, inputVolType, inputDisplacement);
         }
-        return 0.0;
-    }
 
-    VolatilityType targetVolatilityType(DiffusionModelType modelType,
-                                        const QuantLib::ext::shared_ptr<BlackVolTermStructure>& volTS) {
-        if (modelType == DiffusionModelType::Black) {
-            return VolatilityType::ShiftedLognormal;
-        } else if (modelType == DiffusionModelType::Bachelier) {
-            return VolatilityType::Normal;
-        } else if (modelType == DiffusionModelType::AsInputVolatilityType) {
-            return volTS->volType();
+        auto targetVolType = outputModelType == DiffusionModelType::Black ?
+                                 VolatilityType::ShiftedLognormal :
+                                 VolatilityType::Normal;
+        auto targetDisplacement =
+            outputModelType == DiffusionModelType::Black ? outputDisplacement : 0.0;
+
+
+        if (inputVolType == VolatilityType::ShiftedLognormal &&
+            targetVolType == VolatilityType::Normal) {
+            double slnVol = inputVol;
+            double nVol =
+                convertShiftedLognormalToNormalVol(forward, strike, t, slnVol, inputDisplacement);
+            return std::make_tuple(nVol, VolatilityType::Normal, targetDisplacement);
         }
-        QL_FAIL("unknown model type");
-    }
 
+        if (inputVolType == VolatilityType::Normal &&
+            targetVolType == VolatilityType::ShiftedLognormal) {
+            double nVol = inputVol;
+            double slnVol =
+                convertNormalToShiftedLogNormalVol(forward, strike, t, nVol, targetDisplacement);
+            return std::make_tuple(slnVol, VolatilityType::ShiftedLognormal, targetDisplacement);
+        }
+
+        if (inputVolType == VolatilityType::ShiftedLognormal &&
+            targetVolType == VolatilityType::ShiftedLognormal &&
+            !close_enough(inputDisplacement, targetDisplacement)) {
+            // need to convert the vol to the new displacement
+            double slnVol = inputVol;
+            double newSlnVol = convertShiftedLognormalToShiftedLognormalVol(
+                forward, strike, t, slnVol, inputDisplacement, targetDisplacement);
+            return std::make_tuple(newSlnVol, VolatilityType::ShiftedLognormal,
+                                   targetDisplacement);
+        }
+
+        return std::make_tuple(inputVol, targetVolType, targetDisplacement);
+    }
 
     // Convert the given implied volatility to the implied volatility of the target model type
     // (Black, Bachelier, or AsInputVolatilityType i.e no conversion)
@@ -90,37 +114,9 @@ namespace QuantLib {
                                        double forward,
                                        double strike,
                                        double t) {
-
-        auto volType = volTS->volType();
-        auto targetVolType = targetVolatilityType(outputModelType, volTS);
-        auto targetVolDisplacement = targetDisplacement(outputModelType, displacement, volTS);
-
-        if (volType == VolatilityType::ShiftedLognormal &&
-            targetVolType == VolatilityType::Normal) {
-            double slnVol = volTS->blackVol(t, strike);
-            double nVol =
-                convertShiftedLognormalToNormalVol(forward, strike, t, slnVol, volTS->shift());
-            return std::make_tuple(nVol, VolatilityType::Normal, targetVolDisplacement);
-        } 
-
-        if (volType == VolatilityType::Normal &&
-            targetVolType == VolatilityType::ShiftedLognormal) {
-            double nVol = volTS->blackVol(t, strike);
-            double slnVol =
-                convertNormalToShiftedLogNormalVol(forward, strike, t, nVol, displacement);
-            return std::make_tuple(slnVol, VolatilityType::ShiftedLognormal, targetVolDisplacement);
-        }
-
-        if (volType == VolatilityType::ShiftedLognormal &&
-            targetVolType == VolatilityType::ShiftedLognormal && !close_enough(displacement, targetVolDisplacement)) {
-            // need to convert the vol to the new displacement
-            double slnVol = volTS->blackVol(t, strike);
-            double newSlnVol = convertShiftedLognormalToShiftedLognormalVol(
-                forward, strike, t, slnVol, volTS->shift(), targetVolDisplacement);
-            return std::make_tuple(newSlnVol, VolatilityType::ShiftedLognormal, targetVolDisplacement);
-        }
-
-        return std::make_tuple(volTS->blackVol(t, strike), targetVolType, targetVolDisplacement);
+        return convertInputVolatility(outputModelType, displacement, volTS->volType(),
+                                      volTS->shift(), volTS->blackVol(t, strike), forward, strike,
+                                      t);
     }
 
     std::tuple<double, VolatilityType, double>
