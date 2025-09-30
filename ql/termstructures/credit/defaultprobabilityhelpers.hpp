@@ -258,13 +258,13 @@ namespace QuantLib {
                         const DayCounter& dayCounter,
                         Real recoveryRate,
                         const Handle<YieldTermStructure>& discountCurve,
+                        CreditDefaultSwap::PricingModel model,
                         bool settlesAccrual = true,
                         CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime =
                             CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                         const Date& startDate = Date(),
                         const DayCounter& lastPeriodDayCounter = DayCounter(),
-                        bool rebatesAccrual = true,
-                        CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
+                        bool rebatesAccrual = true);
 
         SpreadCdsHelper(Rate runningSpread,
                         const Period& tenor,
@@ -276,13 +276,13 @@ namespace QuantLib {
                         const DayCounter& dayCounter,
                         Real recoveryRate,
                         const Handle<YieldTermStructure>& discountCurve,
+                        CreditDefaultSwap::PricingModel model,
                         bool settlesAccrual = true,
                         CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime =
                             CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                         const Date& startDate = Date(),
                         const DayCounter& lastPeriodDayCounter = DayCounter(),
-                        bool rebatesAccrual = true,
-                        CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);                    
+                        bool rebatesAccrual = true);
         
         Real impliedQuote() const override;
 
@@ -347,14 +347,14 @@ namespace QuantLib {
                          const DayCounter& dayCounter,
                          Real recoveryRate,
                          const Handle<YieldTermStructure>& discountCurve,
+                         CreditDefaultSwap::PricingModel model,
                          Natural upfrontSettlementDays = 3,
                          bool settlesAccrual = true,
                          CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime =
                              CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                          const Date& startDate = Date(),
                          const DayCounter& lastPeriodDayCounter = DayCounter(),
-                         bool rebatesAccrual = true,
-                         CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
+                         bool rebatesAccrual = true);
 
         /*! \note the upfront must be quoted in fractional units. */
         UpfrontCdsHelper(Rate upfront,
@@ -368,14 +368,14 @@ namespace QuantLib {
                          const DayCounter& dayCounter,
                          Real recoveryRate,
                          const Handle<YieldTermStructure>& discountCurve,
+                         CreditDefaultSwap::PricingModel model,
                          Natural upfrontSettlementDays = 3,
                          bool settlesAccrual = true,
                          CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime =
                              CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                          const Date& startDate = Date(),
                          const DayCounter& lastPeriodDayCounter = DayCounter(),
-                         bool rebatesAccrual = true,
-                         CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
+                         bool rebatesAccrual = true);
 
         Real impliedQuote() const override;
         

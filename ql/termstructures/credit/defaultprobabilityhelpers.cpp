@@ -263,12 +263,12 @@ namespace QuantLib {
                               const DayCounter& dayCounter,
                               Real recoveryRate,
                               const Handle<YieldTermStructure>& discountCurve,
+                              CreditDefaultSwap::PricingModel model,
                               bool settlesAccrual,
                               CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
                               const Date& startDate,
                               const DayCounter& lastPeriodDayCounter,
-                              bool rebatesAccrual,
-                              CreditDefaultSwap::PricingModel model)
+                              bool rebatesAccrual)
     : CdsHelper(runningSpread, tenor, settlementDays, calendar,
                 frequency, paymentConvention, rule, dayCounter,
                 recoveryRate, discountCurve, settlesAccrual, protectionPaymentTime,
@@ -285,12 +285,12 @@ namespace QuantLib {
                               const DayCounter& dayCounter,
                               Real recoveryRate,
                               const Handle<YieldTermStructure>& discountCurve,
+                              CreditDefaultSwap::PricingModel model,
                               bool settlesAccrual,
                               CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
                               const Date& startDate,
                               const DayCounter& lastPeriodDayCounter,
-                              bool rebatesAccrual,
-                              CreditDefaultSwap::PricingModel model)
+                              bool rebatesAccrual)
     : CdsHelper(runningSpread, tenor, settlementDays, calendar,
                 frequency, paymentConvention, rule, dayCounter,
                 recoveryRate, discountCurve, settlesAccrual, protectionPaymentTime,
@@ -395,13 +395,13 @@ namespace QuantLib {
                               const DayCounter& dayCounter,
                               Real recoveryRate,
                               const Handle<YieldTermStructure>& discountCurve,
+                              CreditDefaultSwap::PricingModel model,
                               Natural upfrontSettlementDays,
                               bool settlesAccrual,
                               CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
                               const Date& startDate,
                               const DayCounter& lastPeriodDayCounter,
-                              bool rebatesAccrual,
-                              CreditDefaultSwap::PricingModel model)
+                              bool rebatesAccrual)
     : CdsHelper(upfront, tenor, settlementDays, calendar,
                 frequency, paymentConvention, rule, dayCounter,
                 recoveryRate, discountCurve, settlesAccrual, protectionPaymentTime,
@@ -422,13 +422,13 @@ namespace QuantLib {
                               const DayCounter& dayCounter,
                               Real recoveryRate,
                               const Handle<YieldTermStructure>& discountCurve,
+                              CreditDefaultSwap::PricingModel model,
                               Natural upfrontSettlementDays,
                               bool settlesAccrual,
                               CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
                               const Date& startDate,
                               const DayCounter& lastPeriodDayCounter,
-                              bool rebatesAccrual,
-                              CreditDefaultSwap::PricingModel model)
+                              bool rebatesAccrual)
     : CdsHelper(upfrontSpread, tenor, settlementDays, calendar,
                 frequency, paymentConvention, rule, dayCounter,
                 recoveryRate, discountCurve, settlesAccrual, protectionPaymentTime,
