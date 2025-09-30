@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2002, 2003 Ferdinando Ametrano
+ Copyright (C) 2025 AcadiaSoft, Inc.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/

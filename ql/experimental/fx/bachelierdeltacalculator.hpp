@@ -2,6 +2,7 @@
 
 /*
  Copyright (C) 2025 AcadiaSoft Inc.
+ Copyright (C) 2010 Dimitri Reiswich
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -18,7 +19,8 @@
 */
 
 /*! \file bachelierdeltacalculator.hpp
-    \brief Bachelier-Scholes formula delta calculator class
+    \brief Bachelier formula delta calculator class, following the design / interface of
+   BlackDeltaCalculator in ql/experimental/fx/blackcalculator.hpp
 */
 
 #ifndef quantlib_bachelier_delta_calculator_hpp
@@ -32,9 +34,9 @@
 namespace QuantLib {
 
     //! Bachelier delta calculator class
-    /*! Class includes many operations needed for different applications
-        in FX markets, which has special quoation mechanisms, since
-        every price can be expressed in both numeraires.
+    /*! Class includes many operations needed for converting 
+        strikes into deltas and vice versa for the different delta
+        types in a normal Bachelier model.
     */
     class BachelierDeltaCalculator {
       public:
