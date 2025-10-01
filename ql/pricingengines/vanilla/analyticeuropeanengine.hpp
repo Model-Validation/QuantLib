@@ -4,7 +4,8 @@
  Copyright (C) 2002, 2003, 2004 Ferdinando Ametrano
  Copyright (C) 2002, 2003 RiskMap srl
  Copyright (C) 2003, 2004, 2007 StatPro Italia srl
-
+ Copyright (C) 2025 AcadiaSoft, Inc.
+ 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
 
@@ -28,6 +29,7 @@
 
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/pricingengines/diffusioncalculator.hpp>
 
 namespace QuantLib {
 
@@ -64,7 +66,9 @@ namespace QuantLib {
             the risk-free rate in the given process is used for both
             forecasting and discounting.
         */
-        explicit AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess>);
+        explicit AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess>,
+                                        DiffusionModelType model = DiffusionModelType::AsInputVolatilityType,                                
+                                        Real displacement = 0);
 
         /*! This constructor allows to use a different term structure
             for discounting the payoff. As usual, the risk-free rate
@@ -73,7 +77,9 @@ namespace QuantLib {
         */
         AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                Handle<YieldTermStructure> discountCurve, ext::optional<unsigned int> spotDays = {},
-                               ext::optional<Calendar> spotCalendar = {});
+                               ext::optional<Calendar> spotCalendar = {},
+                               DiffusionModelType model = DiffusionModelType::AsInputVolatilityType,                                
+                               Real displacement = 0);
         void calculate() const override;
 
       private:
@@ -81,6 +87,9 @@ namespace QuantLib {
           Handle<YieldTermStructure> discountCurve_;
           ext::optional<unsigned int> spotDays_;
           ext::optional<Calendar> spotCalendar_;
+          DiffusionModelType modelType_;
+          Real displacement_;
+
     };
 
 }
