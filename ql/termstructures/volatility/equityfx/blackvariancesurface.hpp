@@ -3,6 +3,7 @@
 /*
  Copyright (C) 2002, 2003, 2004 Ferdinando Ametrano
  Copyright (C) 2003, 2004 StatPro Italia srl
+ Copyright (C) 2025 AcadiaSoft, Inc.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -56,7 +57,9 @@ namespace QuantLib {
                              DayCounter dayCounter,
                              Extrapolation lowerExtrapolation = InterpolatorDefaultExtrapolation,
                              Extrapolation upperExtrapolation = InterpolatorDefaultExtrapolation,
-                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility);
+                             BlackVolTimeExtrapolation timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility,
+                             QuantLib::VolatilityType volType = VolatilityType::ShiftedLognormal,
+                             Real shift = 0.0);
         //! \name TermStructure interface
         //@{
         DayCounter dayCounter() const override { return dayCounter_; }
