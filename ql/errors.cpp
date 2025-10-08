@@ -24,7 +24,7 @@ namespace {
 
     #if defined(_MSC_VER)
     // allow Visual Studio integration
-    std::string formatError(
+    std::string format_error(
                        #ifdef QL_ERROR_LINES
                        const std::string& file, long line,
                        #else
@@ -49,7 +49,7 @@ namespace {
     }
     #else
     // use gcc format (e.g. for integration with Emacs)
-    std::string formatError(const std::string& file, long line,
+    std::string format_error(const std::string& file, long line,
                        const std::string& function,
                        const std::string& message) {
         std::ostringstream msg;
@@ -72,7 +72,7 @@ namespace boost {
     // must be defined by the user
     void assertion_failed(char const * expr, char const * function,
                           char const * file, long line) {
-        throw std::runtime_error(formatError(file, line, function,
+        throw std::runtime_error(format_error(file, line, function,
                                         "Boost assertion failed: " +
                                         std::string(expr)));
     }
@@ -80,7 +80,7 @@ namespace boost {
     void assertion_failed_msg(char const * expr, char const * msg,
                               char const * function, char const * file,
                               long line) {
-        throw std::runtime_error(formatError(file, line, function,
+        throw std::runtime_error(format_error(file, line, function,
                                         "Boost assertion failed: " +
                                         std::string(expr) + ": " +
                                         std::string(msg)));
@@ -94,7 +94,7 @@ namespace QuantLib {
                  const std::string& function,
                  const std::string& message) {
         message_ = ext::make_shared<std::string>(
-                                      formatError(file, line, function, message));
+                                      format_error(file, line, function, message));
     }
 
     const char* Error::what() const noexcept { return message_->c_str(); }
