@@ -26,6 +26,7 @@
 
 #include <ql/instruments/partialtimebarrieroption.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/instruments/vanillaoption.hpp>
 
 namespace QuantLib {
 
@@ -71,6 +72,9 @@ namespace QuantLib {
         Real g3(Real barrier, Real strike, Rate b)const;
         Real g4(Real barrier, Real strike, Rate b)const;
         Real HS(Real S, Real H, Real power)const;
+        const ext::shared_ptr<VanillaOption>
+        underlyingOption(PartialTimeBarrierOption::arguments& arguments,
+                         const ext::shared_ptr<GeneralizedBlackScholesProcess>& process) const;
     };
 
 }

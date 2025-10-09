@@ -95,8 +95,10 @@ namespace QuantLib {
                   return CIA(-1, barrier, strike, r, q);
                   break;
                 case PartialBarrier::EndB1:
+                  QL_FAIL("Up-and-in B1 partial-time end barrier is not implemented");
                 case PartialBarrier::EndB2:
-                  QL_FAIL("Up-and-in partial-time end barrier is not implemented");
+                    // up-and-in call  =  vanilla call  minus  up-and-out call
+                    return underlyingOption(arguments, process)->NPV() - CoB2(Barrier::UpOut, barrier, strike, r, q);
                 default:
                   QL_FAIL("invalid barrier range");
               }
@@ -377,6 +379,22 @@ namespace QuantLib {
 
     Real AnalyticPartialTimeBarrierOptionEngine::HS(Real S, Real H, Real power) const {
         return std::pow((H / S), power);
+    }
+
+    const ext::shared_ptr<VanillaOption> AnalyticPartialTimeBarrierOptionEngine::underlyingOption(
+        PartialTimeBarrierOption::arguments& arguments,
+        const ext::shared_ptr<GeneralizedBlackScholesProcess>& process) const {
+        ext::shared_ptr<EuropeanExercise> exercise =
+            ext::dynamic_pointer_cast<EuropeanExercise>(arguments.exercise);
+
+        ext::shared_ptr<PlainVanillaPayoff> payoff =
+            ext::dynamic_pointer_cast<PlainVanillaPayoff>(arguments.payoff);
+
+        ext::shared_ptr<VanillaOption> europeanOption =
+            ext::make_shared<VanillaOption>(payoff, exercise);
+
+        europeanOption->setPricingEngine(ext::make_shared<AnalyticEuropeanEngine>(process));
+        return europeanOption;
     }
 
 }
