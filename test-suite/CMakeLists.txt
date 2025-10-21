@@ -127,6 +127,7 @@ set(QL_TEST_SOURCES
     partialtimebarrieroption.cpp
     pathgenerator.cpp
     period.cpp
+    perpetualfutures.cpp
     piecewiseyieldcurve.cpp
     piecewisezerospreadedtermstructure.cpp
     preconditions.cpp
@@ -143,6 +144,7 @@ set(QL_TEST_SOURCES
     settings.cpp
     shortratemodels.cpp
     sofrfutures.cpp
+    softbarrieroption.cpp
     solvers.cpp
     spreadoption.cpp
     squarerootclvmodel.cpp

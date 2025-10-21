@@ -10,7 +10,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -27,7 +27,6 @@
 #include <ql/functional.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/optimization/levenbergmarquardt.hpp>
-#include <ql/termstructures/bootstraperror.hpp>
 #include <ql/termstructures/bootstraphelper.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <algorithm>
@@ -150,8 +149,8 @@ class GlobalBootstrap : public MultiCurveBootstrapContributor {
     AdditionalPenalties additionalPenalties_;
     ext::shared_ptr<AdditionalBootstrapVariables> additionalVariables_;
     mutable bool initialized_ = false, validCurve_ = false;
-    mutable Size firstHelper_, numberHelpers_;
-    mutable Size firstAdditionalHelper_, numberAdditionalHelpers_;
+    mutable Size firstHelper_ = 0, numberHelpers_ = 0;
+    mutable Size firstAdditionalHelper_ = 0, numberAdditionalHelpers_ = 0;
     mutable Array guess_;
     mutable std::function<void(const Array&)> costFunctionSet_;
     mutable std::function<Array(void)> costFunctionEval_;

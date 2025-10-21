@@ -5,14 +5,14 @@ cmake_policy(SET CMP0091 NEW)
 
 # Version info
 set(QUANTLIB_VERSION_MAJOR 1)
-set(QUANTLIB_VERSION_MINOR 38)
+set(QUANTLIB_VERSION_MINOR 40)
 set(QUANTLIB_VERSION_PATCH 0)
 set(QUANTLIB_VERSION ${QUANTLIB_VERSION_MAJOR}.${QUANTLIB_VERSION_MINOR}.${QUANTLIB_VERSION_PATCH})
 
 # Project Info
 set(PACKAGE_NAME          "QuantLib")
-set(PACKAGE_VERSION       "${QUANTLIB_VERSION}")
-set(PACKAGE_VERSION_HEX   "0x013800f0")
+set(PACKAGE_VERSION       "1.40")
+set(PACKAGE_VERSION_HEX   "0x014000f0")
 set(PACKAGE_STRING        "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME       "${PACKAGE_NAME}-${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT     "https://github.com/lballabio/QuantLib/issues/")
@@ -65,9 +65,9 @@ option(QL_USE_PCH "Use precompiled headers" OFF)
 # Deleted from QL 1.27
 option(QL_USE_DISPOSABLE "Use the Disposable class template. Not needed for C++11" OFF)
 option(QL_USE_INDEXED_COUPON "Use indexed coupons instead of par coupons" OFF)
-option(QL_USE_STD_ANY "Use std::any instead of boost::any" OFF)
+option(QL_USE_STD_ANY "Use std::any instead of boost::any" ON)
 option(QL_USE_STD_CLASSES "Enable all QL_USE_STD_ options" OFF)
-option(QL_USE_STD_OPTIONAL "Use std::optional instead of boost::optional" OFF)
+option(QL_USE_STD_OPTIONAL "Use std::optional instead of boost::optional" ON)
 option(QL_USE_STD_SHARED_PTR "Use standard smart pointers instead of Boost ones" OFF)
 set(QL_EXTERNAL_SUBDIRECTORIES "" CACHE STRING "Optional list of external source directories to be added to the build (semicolon-separated)")
 # set -lpapi here
