@@ -151,8 +151,6 @@ set(QL_SOURCES
     experimental/finitedifferences/vanillavppoption.cpp
     experimental/forward/analytichestonforwardeuropeanengine.cpp
     experimental/fx/bachelierdeltacalculator.cpp
-    experimental/fx/blackdeltacalculator.cpp
-    experimental/fx/deltavolquote.cpp
     experimental/inflation/cpicapfloorengines.cpp
     experimental/inflation/cpicapfloortermpricesurface.cpp
     experimental/inflation/yoycapfloortermpricesurface.cpp
