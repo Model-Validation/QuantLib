@@ -201,6 +201,11 @@ namespace QuantLib {
 
     Real ZeroInflationIndex::fixing(const Date& fixingDate,
                                     bool /*forecastTodaysFixing*/) const {
+        return fixing(fixingDate, false, true);
+    }
+
+    Real ZeroInflationIndex::fixing(const Date& fixingDate,
+                                    bool /*forecastTodaysFixing*/, bool applySeasonality) const {
         if (!needsForecast(fixingDate)) {
             const Real I1 = pastFixing(fixingDate);
             QL_REQUIRE(I1 != Null<Real>(),
@@ -209,7 +214,7 @@ namespace QuantLib {
 
             return I1;
         } else {
-            return forecastFixing(fixingDate);
+            return forecastFixing(fixingDate, applySeasonality);
         }
     }
 
@@ -254,8 +259,7 @@ namespace QuantLib {
         }
     }
 
-
-    Real ZeroInflationIndex::forecastFixing(const Date& fixingDate) const {
+    Real ZeroInflationIndex::forecastFixing(const Date& fixingDate, bool applySeasonality) const {
         // the term structure is relative to the fixing value at the base date.
         Date baseDate = zeroInflation_->baseDate();
         QL_REQUIRE(!needsForecast(baseDate),
@@ -265,7 +269,7 @@ namespace QuantLib {
         std::pair<Date, Date> fixingPeriod = inflationPeriod(fixingDate, frequency_);
 
         Date firstDateInPeriod = fixingPeriod.first;
-        Rate Z1 = zeroInflation_->zeroRate(firstDateInPeriod, Period(0,Days), false);
+        Rate Z1 = zeroInflation_->zeroRate(firstDateInPeriod, Period(0,Days), false, false, applySeasonality);
         Time t1 = inflationYearFraction(frequency_, false, zeroInflation_->dayCounter(),
                                         baseDate, firstDateInPeriod);
         return baseFixing * std::pow(1.0 + Z1, t1);
