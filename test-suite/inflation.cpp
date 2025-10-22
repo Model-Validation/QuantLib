@@ -384,7 +384,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
 
     ext::shared_ptr<PiecewiseZeroInflationCurve<Linear> > pZITS =
         ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-            evaluationDate, baseDate, frequency, dc, helpers);
+            evaluationDate, baseDate, observationLag, frequency, dc, helpers);
     hz.linkTo(pZITS);
 
     //===========================================================================================
@@ -533,7 +533,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructureLazyBaseDate) {
     // we can pass this curve to create further objects, as long as they don't
     // trigger the calculation before the fixings are available.
     auto curveLazy = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-        evaluationDate, [&]() { return ii->lastFixingDate(); }, frequency, dc, helpers);
+        evaluationDate, [&]() { return ii->lastFixingDate(); }, observationLag, frequency, dc, helpers);
 
     // set zc swaps quotes
     for (Size i=0; i<std::size(zcData); i++) {
@@ -562,7 +562,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructureLazyBaseDate) {
     // Create a curve with an explicit baseDate and check that the lazy curve
     // produces the same results.
     auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-        evaluationDate, ii->lastFixingDate(), frequency, dc, helpers);
+        evaluationDate, ii->lastFixingDate(), observationLag, frequency, dc, helpers);
 
     BOOST_CHECK_EQUAL(curveLazy->baseDate(), curve->baseDate());
     BOOST_CHECK(curveLazy->nodes() == curve->nodes());

@@ -79,7 +79,7 @@ namespace QuantLib {
                         base date now.
                         Deprecated in version 1.39.
         */
-        [[deprecated("Do not use; inflation curves always have an explicit base date now.")]]
+        //[[deprecated("Do not use; inflation curves always have an explicit base date now.")]]
         virtual Period observationLag() const;
 
         virtual Frequency frequency() const;

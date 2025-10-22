@@ -241,8 +241,6 @@ namespace QuantLib {
                          bool rebatesAccrual = true,
                          CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
 
-        Real impliedQuote() const override;
-
         /*! \note the upfront must be quoted in fractional units. */
         UpfrontCdsHelper(const std::variant<Rate, Handle<Quote>>& upfront,
                          Rate runningSpread,
