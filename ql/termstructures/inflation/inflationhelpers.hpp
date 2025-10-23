@@ -47,6 +47,17 @@ namespace QuantLib {
             CPI::InterpolationType observationInterpolation,
             const Date& start = Date());
 
+        ZeroCouponInflationSwapHelper(
+            const Handle<Quote>& quote,
+            const Period& swapObsLag, // lag on swap observation of index
+            const Date& startDate,
+            const Date& endDate,
+            Calendar calendar, // index may have null calendar as valid on every day
+            BusinessDayConvention paymentConvention,
+            DayCounter dayCounter,
+            const ext::shared_ptr<ZeroInflationIndex>& zii,
+            CPI::InterpolationType observationInterpolation);
+
         /*! \deprecated Use the overload that does not take a nominal curve.
                         Deprecated in version 1.39.
         */
@@ -74,7 +85,7 @@ namespace QuantLib {
         void initializeDates() override;
 
         Period swapObsLag_;
-        Date maturity_;
+        Date startDate_, maturity_;
         Calendar calendar_;
         BusinessDayConvention paymentConvention_;
         DayCounter dayCounter_;
@@ -83,7 +94,18 @@ namespace QuantLib {
         ext::shared_ptr<ZeroCouponInflationSwap> zciis_;
         Handle<YieldTermStructure> nominalTermStructure_;
         RelinkableHandle<ZeroInflationTermStructure> termStructureHandle_;
-        Date start_;
+      private:
+        ZeroCouponInflationSwapHelper(
+            const Handle<Quote>& quote,
+            const Period& swapObsLag,
+            const Date& startDate,
+            const Date& endDate,
+            Calendar calendar,
+            BusinessDayConvention paymentConvention,
+            DayCounter dayCounter,
+            const ext::shared_ptr<ZeroInflationIndex>& zii,
+            CPI::InterpolationType observationInterpolation,
+            Handle<YieldTermStructure> nominalTermStructure);
     };
 
 

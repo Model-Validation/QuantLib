@@ -42,12 +42,26 @@ namespace QuantLib {
         CPI::InterpolationType observationInterpolation,
         const Date& start)
     : ZeroCouponInflationSwapHelper(
-        quote, swapObsLag, maturity, std::move(calendar), paymentConvention,
-        dayCounter, zii, observationInterpolation,
+        quote, swapObsLag, start, maturity, std::move(calendar), paymentConvention,
+        std::move(dayCounter), zii, observationInterpolation) {}
+
+    ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
+        const Handle<Quote>& quote,
+        const Period& swapObsLag,
+        const Date& startDate,
+        const Date& endDate,
+        Calendar calendar,
+        BusinessDayConvention paymentConvention,
+        DayCounter dayCounter,
+        const ext::shared_ptr<ZeroInflationIndex>& zii,
+        CPI::InterpolationType observationInterpolation)
+    : ZeroCouponInflationSwapHelper(
+        quote, swapObsLag, startDate, endDate, std::move(calendar), paymentConvention,
+        std::move(dayCounter), zii, observationInterpolation,
         // any nominal term structure will give the same result;
         // when calculating the fair rate, the equal discount factors
         // for the payments on the two legs will cancel out.
-        Handle<YieldTermStructure>(ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, dayCounter)), start) {}
+        Handle<YieldTermStructure>(ext::make_shared<FlatForward>(0, NullCalendar(), 0.0, dayCounter))) {}
 
     ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
         const Handle<Quote>& quote,
@@ -60,10 +74,26 @@ namespace QuantLib {
         CPI::InterpolationType observationInterpolation,
         Handle<YieldTermStructure> nominalTermStructure,
         const Date& start)
-    : RelativeDateBootstrapHelper<ZeroInflationTermStructure>(quote), swapObsLag_(swapObsLag),
-      maturity_(maturity), calendar_(std::move(calendar)), paymentConvention_(paymentConvention),
+    : ZeroCouponInflationSwapHelper(
+        quote, swapObsLag, start, maturity, std::move(calendar), paymentConvention,
+        dayCounter, zii, observationInterpolation, std::move(nominalTermStructure)) {}
+
+    ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
+        const Handle<Quote>& quote,
+        const Period& swapObsLag,
+        const Date& startDate,
+        const Date& endDate,
+        Calendar calendar,
+        BusinessDayConvention paymentConvention,
+        DayCounter dayCounter,
+        const ext::shared_ptr<ZeroInflationIndex>& zii,
+        CPI::InterpolationType observationInterpolation,
+        Handle<YieldTermStructure> nominalTermStructure)
+    : RelativeDateBootstrapHelper<ZeroInflationTermStructure>(quote, startDate == Date()),
+      swapObsLag_(swapObsLag), startDate_(startDate), maturity_(endDate),
+      calendar_(std::move(calendar)), paymentConvention_(paymentConvention),
       dayCounter_(std::move(dayCounter)), observationInterpolation_(observationInterpolation),
-      nominalTermStructure_(std::move(nominalTermStructure)), start_(start) {
+      nominalTermStructure_(std::move(nominalTermStructure)) {
         zii_ = zii->clone(termStructureHandle_);
         // We want to be notified of changes of fixings, but we don't
         // want notifications from termStructureHandle_ (they would
@@ -71,9 +101,9 @@ namespace QuantLib {
         zii_->unregisterWith(termStructureHandle_);
 
         auto fixingPeriod = inflationPeriod(maturity_ - swapObsLag_, zii_->frequency());
-        auto interpolationPeriod = inflationPeriod(maturity, zii_->frequency());
+        auto interpolationPeriod = inflationPeriod(maturity_, zii_->frequency());
 
-        if (detail::CPI::isInterpolated(observationInterpolation_) && maturity > interpolationPeriod.first) {
+        if (detail::CPI::isInterpolated(observationInterpolation_) && maturity_ > interpolationPeriod.first) {
             // if interpolated, we need to cover the end of the interpolation period
             earliestDate_ = fixingPeriod.first;
             latestDate_ = fixingPeriod.second + 1;
@@ -108,12 +138,11 @@ namespace QuantLib {
     }
 
     void ZeroCouponInflationSwapHelper::initializeDates() {
-        Date start = start_ == Date() ? evaluationDate_ : start_;
+        Date start = startDate_ == Date() ? evaluationDate_ : startDate_;
         Real nominal = 1000000.0; // has to be something but doesn't matter what
-        Rate K = quote()->value();
         zciis_ = ext::make_shared<ZeroCouponInflationSwap>(
             Swap::Payer, nominal, start, maturity_, calendar_,
-            paymentConvention_, dayCounter_, K, zii_, swapObsLag_,
+            paymentConvention_, dayCounter_, 0.0, zii_, swapObsLag_,
             observationInterpolation_);
 
         // Because very simple instrument only takes

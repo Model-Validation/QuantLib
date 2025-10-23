@@ -534,7 +534,6 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructureLazyBaseDate) {
     // trigger the calculation before the fixings are available.
     auto curveLazy = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
         evaluationDate, [&]() { return ii->lastFixingDate(); }, observationLag, frequency, dc, helpers);
-
     // set zc swaps quotes
     for (Size i=0; i<std::size(zcData); i++) {
         quotes[i]->setValue(zcData[i].rate / 100.0);

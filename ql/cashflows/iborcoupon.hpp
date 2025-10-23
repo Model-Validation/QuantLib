@@ -191,7 +191,7 @@ namespace QuantLib {
         Calendar exCouponCalendar_;
         BusinessDayConvention exCouponAdjustment_ = Unadjusted;
         bool exCouponEndOfMonth_ = false;
-        boost::optional<bool> useIndexedCoupons_;
+        ext::optional<bool> useIndexedCoupons_;
         std::vector<Date> paymentDates_;
     };
 
