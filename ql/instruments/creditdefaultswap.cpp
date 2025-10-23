@@ -106,7 +106,7 @@ namespace QuantLib {
                                          bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
+    : side_(side), notional_(notional), upfront_(ext::nullopt), runningSpread_(spread),
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(protectionPaymentTime == atDefault ? true : false),
       protectionPaymentTime_(protectionPaymentTime), claim_(claim),
@@ -161,7 +161,7 @@ namespace QuantLib {
                                          bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
+    : side_(side), notional_(notional), upfront_(ext::nullopt), runningSpread_(spread),
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(protectionPaymentTime == atDefault ? true : false),
       protectionPaymentTime_(protectionPaymentTime), claim_(claim), leg_(amortized_leg),

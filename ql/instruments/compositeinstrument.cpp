@@ -69,7 +69,7 @@ namespace QuantLib {
     void CompositeInstrument::updateAdditionalResults() const {
 
         using std::string;
-        typedef std::map<string, boost::any> Results;
+        typedef std::map<string, ext::any> Results;
         typedef Results::const_iterator RIt;
 
         // Loop over each component's additional results and add them to additionalResults_.
