@@ -41,15 +41,14 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
     std::vector<Size> guessSizes;
     std::vector<Real> globalGuess;
 
-    for(auto const& c: contributors_) {
+    for (auto const& c : contributors_) {
         c->setupCostFunction();
         Array guess = c->guess();
-        globalGuess.insert(globalGuess.end(), guess.begin(),guess.end());
+        globalGuess.insert(globalGuess.end(), guess.begin(), guess.end());
         guessSizes.push_back(guess.size());
     }
 
     auto fn = [this, &guessSizes](const Array& x) {
-
         // call the contributors' cost functions' set part
 
         std::size_t offset = 0;
@@ -97,7 +96,7 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
 
     // set all contributors to valid
 
-    for(auto const& c: contributors_)
+    for (auto const& c : contributors_)
         c->setToValid();
 }
 

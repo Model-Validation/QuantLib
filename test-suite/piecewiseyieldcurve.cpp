@@ -40,6 +40,7 @@
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/quotes/futuresconvadjustmentquote.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/termstructures/multicurve.hpp>
 #include <ql/termstructures/globalbootstrap.hpp>
 #include <ql/termstructures/globalbootstrapvars.hpp>
 #include <ql/termstructures/yield/bondhelpers.hpp>
@@ -1536,10 +1537,10 @@ BOOST_AUTO_TEST_CASE(testMultiCurve) {
     Handle<YieldTermStructure> discountCurve(
         ext::make_shared<FlatForward>(vars.settlement, 0.02, Actual360()));
 
-    RelinkableHandle<YieldTermStructure> curve3m, curve6m;
+    RelinkableHandle<YieldTermStructure> intcurve3m, intcurve6m;
 
-    auto euribor3m = ext::make_shared<Euribor3M>(curve3m);
-    auto euribor6m = ext::make_shared<Euribor6M>(curve6m);
+    auto euribor3m = ext::make_shared<Euribor3M>(intcurve3m);
+    auto euribor6m = ext::make_shared<Euribor6M>(intcurve6m);
 
     std::vector<ext::shared_ptr<RateHelper>> helpers3m, helpers6m;
 
@@ -1580,13 +1581,10 @@ BOOST_AUTO_TEST_CASE(testMultiCurve) {
     auto ptr6m = ext::make_shared<CurveType>(vars.today, helpers6m, Actual360(), LogLinear(),
                                              GlobalBootstrap<CurveType>(accuracy));
 
-    curve3m.linkTo(ptr3m);
-    curve6m.linkTo(ptr6m);
+    auto multiCurve = ext::make_shared<MultiCurve>(ext::make_shared<MultiCurveBootstrap>(accuracy));
 
-    auto multiCurveBootstrapper = QuantLib::ext::make_shared<MultiCurveBootstrap>(accuracy);
-
-    multiCurveBootstrapper->add(&ptr3m->bootstrap());
-    multiCurveBootstrapper->add(&ptr6m->bootstrap());
+    auto curve3m = multiCurve->addCurve(ptr3m, &ptr3m->bootstrap());
+    auto curve6m = multiCurve->addCurve(ptr6m, &ptr6m->bootstrap());
 
     // check instrument npvs
 
