@@ -64,8 +64,8 @@ namespace QuantLib {
             ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "non-striked payoff given");
  
-        const unsigned int spotDays = spotDays_.get_value_or(0);
-        const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
+        const unsigned int spotDays = spotDays_.value_or(0);
+        const Calendar spotCalendar = spotCalendar_.value_or(NullCalendar());
         Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
                                            : arguments_.exercise->lastDate();
 
