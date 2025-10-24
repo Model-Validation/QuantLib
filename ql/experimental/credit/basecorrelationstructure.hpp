@@ -27,7 +27,7 @@
 #include <ql/experimental/credit/correlationstructure.hpp>
 #include <ql/time/dategenerationrule.hpp>
 #include <ql/time/schedule.hpp>
-#include <boost/optional/optional.hpp>
+#include <ql/optional.hpp>
 
 namespace QuantLib {
 
