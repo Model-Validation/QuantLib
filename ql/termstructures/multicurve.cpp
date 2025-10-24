@@ -43,12 +43,14 @@ namespace QuantLib {
 
         curves_.push_back({std::move(curve), ext::make_shared<Updater>()});
 
-        curves_.back().updater->addObvervable(curves.back().ptr);
+        curves_.back().updater->addObservable(curves_.back().ptr);
 
         for(Size i=0;i<curves_.size()-1;++i) {
             curves_.back().updater->addObserver(curves_[i].ptr);
             curves_[i].updater->addObserver(curves_.back().ptr);
         }
+
+        return externalHandle;
     }
 
     void MultiCurve::Updater::addObservable(const ext::shared_ptr<Observable>& curve) {
