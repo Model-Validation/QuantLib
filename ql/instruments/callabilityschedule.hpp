@@ -88,7 +88,7 @@ namespace QuantLib {
         void accept(AcyclicVisitor&) override;
         //@}
       private:
-        boost::optional<boost::variant<Bond::Price, InterestRate>> variable_;
+        QuantLib::ext::optional<boost::variant<Bond::Price, InterestRate>> variable_;
         // QuantLib-v1.30:
         ext::optional<Bond::Price> price_;
         Type type_;

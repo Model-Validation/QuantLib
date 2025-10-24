@@ -68,7 +68,7 @@ namespace QuantLib {
             const std::vector<std::vector<Handle<Quote> > >& correls,
             const DayCounter& dc = DayCounter(),
             const Date& startDate = Date(),
-            boost::optional<DateGeneration::Rule> rule = boost::none
+            QuantLib::ext::optional<DateGeneration::Rule> rule = QuantLib::ext::nullopt
             )
         : CorrelationTermStructure(settlementDays, cal, bdc, dc),
           correlHandles_(correls),
