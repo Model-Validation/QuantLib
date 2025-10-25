@@ -36,52 +36,35 @@ void MultiCurveBootstrap::add(const MultiCurveBootstrapContributor* c) {
     c->setParentBootstrapper(shared_from_this());
 }
 
-void MultiCurveBootstrap::addCostFunction(std::function<void(const Array&)>* set,
-                                          std::function<Array(void)>* eval,
-                                          Array* guess) {
-    costFunctionsSet_.push_back(set);
-    costFunctionsEval_.push_back(eval);
-    guesses_.push_back(guess);
-}
-
-void MultiCurveBootstrap::triggerOtherContributors() const {
-    for (std::size_t i = 1; i < contributors_.size(); ++i)
-        contributors_[i]->sendContribution();
-}
-
 void MultiCurveBootstrap::runMultiCurveBootstrap() {
 
-    // concatenate the contributors' guesses to one guess
+    std::vector<Size> guessSizes;
+    std::vector<Real> globalGuess;
 
-    std::size_t totalSizeInput = std::accumulate(
-        guesses_.begin(), guesses_.end(), 0, [](std::size_t l, Array* a) { return l + a->size(); });
-
-    Array guess(totalSizeInput);
-
-    std::size_t offset = 0;
-    for (auto const& g : guesses_) {
-        std::copy(g->begin(), g->end(), std::next(guess.begin(), offset));
-        offset += g->size();
+    for (auto const& c : contributors_) {
+        c->setupCostFunction();
+        Array guess = c->guess();
+        globalGuess.insert(globalGuess.end(), guess.begin(), guess.end());
+        guessSizes.push_back(guess.size());
     }
 
-    auto fn = [this](const Array& x) {
-
+    auto fn = [this, &guessSizes](const Array& x) {
         // call the contributors' cost functions' set part
 
         std::size_t offset = 0;
-        for (std::size_t c = 0; c < guesses_.size(); ++c) {
-            Array tmp(guesses_[c]->size());
-            std::copy(std::next(x.begin(), offset),
-                      std::next(x.begin(), offset + guesses_[c]->size()), tmp.begin());
-            offset += guesses_[c]->size();
-            costFunctionsSet_[c]->operator()(tmp);
+        for (std::size_t c = 0; c < contributors_.size(); ++c) {
+            Array tmp(guessSizes[c]);
+            std::copy(std::next(x.begin(), offset), std::next(x.begin(), offset + guessSizes[c]),
+                      tmp.begin());
+            offset += guessSizes[c];
+            contributors_[c]->setCostFunctionArgument(tmp);
         }
 
         // collect the contributoes result
 
         std::vector<Array> results;
-        for (std::size_t c = 0; c < guesses_.size(); ++c) {
-            results.push_back(costFunctionsEval_[c]->operator()());
+        for (std::size_t c = 0; c < contributors_.size(); ++c) {
+            results.push_back(contributors_[c]->evaluateCostFunction());
         }
 
         // concatenate the contributors' values and return the concatenation as the result
@@ -103,7 +86,7 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
 
     SimpleCostFunction<decltype(fn)> costFunction(fn);
     NoConstraint noConstraint;
-    Problem problem(costFunction, noConstraint, guess);
+    Problem problem(costFunction, noConstraint, Array(globalGuess.begin(), globalGuess.end()));
     EndCriteria::Type endType = optimizer_->minimize(problem, *endCriteria_);
 
     QL_REQUIRE(
@@ -111,18 +94,10 @@ void MultiCurveBootstrap::runMultiCurveBootstrap() {
         "global bootstrap failed to minimize to required accuracy (during multi curve bootstrap): "
             << endType);
 
-}
+    // set all contributors to valid
 
-void MultiCurveBootstrap::setOtherContributorsToValid() const {
-    for (std::size_t i = 1; i < contributors_.size(); ++i)
-        contributors_[i]->setToValid();
-}
-
-void MultiCurveBootstrap::finalizeCalculation() {
-    contributors_.clear();
-    costFunctionsSet_.clear();
-    costFunctionsEval_.clear();
-    guesses_.clear();
+    for (auto const& c : contributors_)
+        c->setToValid();
 }
 
 } // namespace QuantLib
