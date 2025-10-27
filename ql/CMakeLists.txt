@@ -818,6 +818,7 @@ set(QL_SOURCES
     termstructures/inflation/inflationhelpers.cpp
     termstructures/inflation/seasonality.cpp
     termstructures/inflationtermstructure.cpp
+    termstructures/multicurve.cpp
     termstructures/volatility/abcd.cpp
     termstructures/volatility/abcdcalibration.cpp
     termstructures/volatility/atmadjustedsmilesection.cpp
@@ -2081,6 +2082,7 @@ set(QL_HEADERS
     termstructures/interpolatedcurve.hpp
     termstructures/iterativebootstrap.hpp
     termstructures/localbootstrap.hpp
+    termstructures/multicurve.hpp
     termstructures/volatility/abcd.hpp
     termstructures/volatility/abcdcalibration.hpp
     termstructures/volatility/atmadjustedsmilesection.hpp

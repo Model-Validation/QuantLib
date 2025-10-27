@@ -120,7 +120,7 @@ namespace QuantLib {
         Real maxStrike() const override = 0;
         //@}
 
-        // acts as zero time value for boostrapping
+        // acts as zero time value for bootstrapping
         virtual Volatility baseLevel() const {
             QL_REQUIRE(baseLevel_ != Null<Volatility>(),
                        "Base volatility, for baseDate(), not set.");
@@ -137,7 +137,7 @@ namespace QuantLib {
         virtual Volatility volatilityImpl(Time length,
                                           Rate strike) const = 0;
 
-        // acts as zero time value for boostrapping
+        // acts as zero time value for bootstrapping
         virtual void setBaseLevel(Volatility v) { baseLevel_ = v; }
         mutable Volatility baseLevel_;
 
