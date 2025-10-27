@@ -226,7 +226,7 @@ namespace QuantLib {
         }
 
         QL_REQUIRE(weights_.size() == n,
-                   "Given weights do not cover all boostrapping helpers");
+                   "Given weights do not cover all bootstrapping helpers");
 
         if (!l2_.empty()) {
             QL_REQUIRE(l2_.size() == size(),
