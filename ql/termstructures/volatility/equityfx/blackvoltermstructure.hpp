@@ -3,6 +3,7 @@
 /*
  Copyright (C) 2002, 2003 Ferdinando Ametrano
  Copyright (C) 2003, 2004, 2005, 2006 StatPro Italia srl
+ Copyright (C) 2025 AcadiaSoft, Inc.
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -26,6 +27,7 @@
 #define quantlib_black_vol_term_structures_hpp
 
 #include <ql/termstructures/voltermstructure.hpp>
+#include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/patterns/visitor.hpp>
 
 namespace QuantLib {
@@ -56,17 +58,23 @@ enum class BlackVolTimeExtrapolation {
                      by overriding the referenceDate() method.
         */
         BlackVolTermStructure(BusinessDayConvention bdc = Following,
-                              const DayCounter& dc = DayCounter());
+                              const DayCounter& dc = DayCounter(),
+                              const VolatilityType type = VolatilityType::ShiftedLognormal,
+                              const Real shift = 0.0);
         //! initialize with a fixed reference date
         BlackVolTermStructure(const Date& referenceDate,
                               const Calendar& cal = Calendar(),
                               BusinessDayConvention bdc = Following,
-                              const DayCounter& dc = DayCounter());
+                              const DayCounter& dc = DayCounter(),
+                              const VolatilityType type = VolatilityType::ShiftedLognormal,
+                              const Real shift = 0.0);
         //! calculate the reference date based on the global evaluation date
         BlackVolTermStructure(Natural settlementDays,
                               const Calendar&,
                               BusinessDayConvention bdc = Following,
-                              const DayCounter& dc = DayCounter());
+                              const DayCounter& dc = DayCounter(),
+                              const VolatilityType type = VolatilityType::ShiftedLognormal,
+                              const Real shift = 0.0);
         //@}
         ~BlackVolTermStructure() override = default;
         //! \name Black Volatility
@@ -107,6 +115,10 @@ enum class BlackVolTimeExtrapolation {
                                   Time time2,
                                   Real strike,
                                   bool extrapolate = false) const;
+        //! volatility Type 
+        VolatilityType volType() const { return type_; }
+        //! displacement for shifted lognormal vols
+        Real shift() const { return shift_; }
         //@}
         //! \name Visitability
         //@{
@@ -126,6 +138,9 @@ enum class BlackVolTimeExtrapolation {
         //! Black volatility calculation
         virtual Volatility blackVolImpl(Time t, Real strike) const = 0;
         //@}
+
+        VolatilityType type_;
+        Real shift_;
     };
 
     //! Black-volatility term structure
@@ -148,17 +163,23 @@ enum class BlackVolTimeExtrapolation {
                      by overriding the referenceDate() method.
         */
         BlackVolatilityTermStructure(BusinessDayConvention bdc = Following,
-                                     const DayCounter& dc = DayCounter());
+                                     const DayCounter& dc = DayCounter(),
+                                     const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                     const Real shift = 0.0);
         //! initialize with a fixed reference date
         BlackVolatilityTermStructure(const Date& referenceDate,
                                      const Calendar& cal = Calendar(),
                                      BusinessDayConvention bdc = Following,
-                                     const DayCounter& dc = DayCounter());
+                                     const DayCounter& dc = DayCounter(),
+                                     const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                     const Real shift = 0.0);
         //! calculate the reference date based on the global evaluation date
         BlackVolatilityTermStructure(Natural settlementDays,
                                      const Calendar& cal,
                                      BusinessDayConvention bdc = Following,
-                                     const DayCounter& dc = DayCounter());
+                                     const DayCounter& dc = DayCounter(),
+                                     const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                     const Real shift = 0.0);
         //@}
         //! \name Visitability
         //@{
@@ -193,17 +214,23 @@ enum class BlackVolTimeExtrapolation {
                      by overriding the referenceDate() method.
         */
         BlackVarianceTermStructure(BusinessDayConvention bdc = Following,
-                                   const DayCounter& dc = DayCounter());
+                                   const DayCounter& dc = DayCounter(),
+                                   const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                   const Real shift = 0.0);
         //! initialize with a fixed reference date
         BlackVarianceTermStructure(const Date& referenceDate,
                                    const Calendar& cal = Calendar(),
                                    BusinessDayConvention bdc = Following,
-                                   const DayCounter& dc = DayCounter());
+                                   const DayCounter& dc = DayCounter(),
+                                   const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                   const Real shift = 0.0);
         //! calculate the reference date based on the global evaluation date
         BlackVarianceTermStructure(Natural settlementDays,
                                    const Calendar&,
                                    BusinessDayConvention bdc = Following,
-                                   const DayCounter& dc = DayCounter());
+                                   const DayCounter& dc = DayCounter(),
+                                   const VolatilityType type = VolatilityType::ShiftedLognormal,
+                                   const Real shift = 0.0);
         //@}
         //! \name Visitability
         //@{
