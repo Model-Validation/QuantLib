@@ -1,6 +1,6 @@
 
 SUBDIRS = asian barrier basket bond capfloor cliquet credit exotic \
-          forward inflation lookback quanto swap swaption vanilla
+          forward futures inflation lookback quanto swap swaption vanilla
 
 AM_CPPFLAGS = -I${top_builddir} -I${top_srcdir}
 
@@ -10,6 +10,7 @@ this_include_HEADERS = \
     americanpayoffatexpiry.hpp \
     americanpayoffathit.hpp \
     blackcalculator.hpp \
+    blackdeltacalculator.hpp \
     bacheliercalculator.hpp \
     blackformula.hpp \
     blackscholescalculator.hpp \
@@ -23,6 +24,7 @@ cpp_files = \
 	americanpayoffatexpiry.cpp \
 	americanpayoffathit.cpp \
 	blackcalculator.cpp \
+	blackdeltacalculator.cpp \
     bacheliercalculator.cpp \
 	blackformula.cpp \
 	blackscholescalculator.cpp \
@@ -60,6 +62,7 @@ libPricingEngines_la_LIBADD = \
     credit/libCreditEngines.la \
     exotic/libExoticEngines.la \
     forward/libForwardEngines.la \
+    futures/libFuturesEngines.la \
     inflation/libInflationEngines.la \
     lookback/libLookbackEngines.la \
     swap/libSwapEngines.la \

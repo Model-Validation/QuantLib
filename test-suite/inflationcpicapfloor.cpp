@@ -11,7 +11,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -62,17 +62,15 @@ std::vector<ext::shared_ptr<BootstrapHelper<T> > > makeHelpers(
         const ext::shared_ptr<I> &ii, const Period &observationLag,
         const Calendar &calendar,
         const BusinessDayConvention &bdc,
-        const DayCounter &dc,
-        const Handle<YieldTermStructure>& discountCurve) {
+        const DayCounter &dc) {
 
     std::vector<ext::shared_ptr<BootstrapHelper<T> > > instruments;
     for (Size i=0; i<N; i++) {
         Date maturity = iiData[i].date;
         Handle<Quote> quote(ext::shared_ptr<Quote>(
                                 new SimpleQuote(iiData[i].rate/100.0)));
-        ext::shared_ptr<BootstrapHelper<T> > anInstrument(new U(quote, observationLag, maturity,
-                                                                calendar, bdc, dc, ii,
-                                                                CPI::AsIndex, discountCurve));
+        auto anInstrument = ext::make_shared<U>(quote, observationLag, maturity,
+                                                calendar, bdc, dc, ii, CPI::AsIndex);
         instruments.push_back(anInstrument);
     }
 
@@ -239,12 +237,11 @@ struct CommonVars {
         }
 
         // now build the helpers ...
-        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure> > > helpers =
+        auto helpers =
             makeHelpers<ZeroInflationTermStructure,ZeroCouponInflationSwapHelper,
             ZeroInflationIndex>(zciisData, zciisDataLength, ii,
                                 observationLag,
-                                calendar, convention, dcZCIIS,
-                                Handle<YieldTermStructure>(nominalTS));
+                                calendar, convention, dcZCIIS);
 
         // we can use historical or first ZCIIS for this
         // we know historical is WAY off market-implied, so use market implied flat.
