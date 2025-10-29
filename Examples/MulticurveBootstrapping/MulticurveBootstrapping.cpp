@@ -24,7 +24,7 @@
     and then price a simple 5 year swap.
 
     Example based on market data in paper by F. M. Ametrano and M. Bianchetti,
-    Everything You Always Wanted to Know About Multiple Interest Rate Curve Boostrapping
+    Everything You Always Wanted to Know About Multiple Interest Rate Curve Bootstrapping
     but Were Afraid to Ask (April 2, 2013).
     http://ssrn.com/abstract=2219548
     Eonia curve was taken from Figure 25 and Euribor 6m from figure 31.

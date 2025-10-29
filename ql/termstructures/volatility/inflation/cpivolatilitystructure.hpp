@@ -106,7 +106,7 @@ namespace QuantLib {
         //! base date will be in the past because of observation lag
         virtual Time timeFromBase(const Date &date,
                                   const Period& obsLag = Period(-1,Days)) const;
-        // acts as zero time value for boostrapping
+        // acts as zero time value for bootstrapping
         virtual Volatility baseLevel() const {
             QL_REQUIRE(baseLevel_ != Null<Volatility>(),
                        "Base volatility, for baseDate(), not set.");
