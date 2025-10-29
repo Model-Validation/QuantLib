@@ -12,7 +12,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -334,7 +334,7 @@ namespace QuantLib {
         inline void _fill_array_(Array& a,
                                  std::unique_ptr<Real[]>& data_,
                                  Size& n_,
-                                 I begin, I end,
+                                 const I& begin, const I& end,
                                  const std::false_type&) {
             // true iterators
             Size n = std::distance(begin, end);
@@ -354,7 +354,7 @@ namespace QuantLib {
     }
 
     template <class ForwardIterator>
-    inline Array::Array(ForwardIterator begin, ForwardIterator end) {
+    inline Array::Array(ForwardIterator begin, ForwardIterator end) {   // NOLINT(performance-unnecessary-value-param)
         // Unfortunately, calls such as Array(3, 4) match this constructor.
         // We have to detect integral types and dispatch.
         detail::_fill_array_(*this, data_, n_, begin, end,

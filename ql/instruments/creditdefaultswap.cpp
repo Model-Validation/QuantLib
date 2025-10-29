@@ -12,7 +12,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -106,7 +106,7 @@ namespace QuantLib {
                                          bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
+    : side_(side), notional_(notional), upfront_(ext::nullopt), runningSpread_(spread),
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(protectionPaymentTime == atDefault ? true : false),
       protectionPaymentTime_(protectionPaymentTime), claim_(claim),
@@ -161,7 +161,7 @@ namespace QuantLib {
                                          bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
+    : side_(side), notional_(notional), upfront_(ext::nullopt), runningSpread_(spread),
       schedule_(schedule), paymentConvention_(convention), settlesAccrual_(settlesAccrual),
       paysAtDefaultTime_(protectionPaymentTime == atDefault ? true : false),
       protectionPaymentTime_(protectionPaymentTime), claim_(claim), leg_(amortized_leg),

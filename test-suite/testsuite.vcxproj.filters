@@ -374,6 +374,9 @@
     <ClCompile Include="sofrfutures.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="softbarrieroption.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="solvers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -526,6 +529,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="equitycashflow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="perpetualfutures.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="blackcalculator.cpp">
