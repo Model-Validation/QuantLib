@@ -24,7 +24,7 @@
 
 #include <ql/pricingengines/credit/isdacdsengine.hpp>
 #include <ql/pricingengines/credit/midpointcdsengine.hpp>
-#include <ql/termstructures/credit/defaultprobadebilityhelpers.hpp>
+#include <ql/termstructures/credit/defaultprobabilityhelpers.hpp>
 #include <ql/utilities/null_deleter.hpp>
 #include <utility>
 #include <iostream>
@@ -269,7 +269,7 @@ namespace QuantLib {
       upfrontSettlementDays_(upfrontSettlementDays), runningSpread_(runningSpread) {
         UpfrontCdsHelper::initializeDates();
     }
-    
+
     Date UpfrontCdsHelper::upfrontDate() {
         return calendar_.advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
     }
