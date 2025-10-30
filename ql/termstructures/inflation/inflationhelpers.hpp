@@ -61,7 +61,8 @@ namespace QuantLib {
         /*! \deprecated Use the overload that does not take a nominal curve.
                         Deprecated in version 1.39.
         */
-        [[deprecated("Use the overload that does not take a nominal curve.")]]
+        // Dont deprecate it for the time being as it is still used in tests
+        //[[deprecated("Use the overload that does not take a nominal curve.")]]
         ZeroCouponInflationSwapHelper(
             const Handle<Quote>& quote,
             const Period& swapObsLag,
