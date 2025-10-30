@@ -29,7 +29,7 @@
 #include <ql/pricingengines/bacheliercalculator.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/math/solvers1d/brent.hpp>
-#include <ql/experimental/fx/deltavolquote.hpp>
+#include <ql/quotes/deltavolquote.hpp>
 
 namespace QuantLib {
 

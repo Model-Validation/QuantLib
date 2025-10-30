@@ -12,7 +12,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -64,8 +64,8 @@ namespace QuantLib {
             ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "non-striked payoff given");
  
-        const unsigned int spotDays = spotDays_.get_value_or(0);
-        const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
+        const unsigned int spotDays = spotDays_.value_or(0);
+        const Calendar spotCalendar = spotCalendar_.value_or(NullCalendar());
         Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
                                            : arguments_.exercise->lastDate();
 

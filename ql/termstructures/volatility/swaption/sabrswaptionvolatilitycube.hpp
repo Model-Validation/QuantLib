@@ -12,7 +12,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -866,6 +866,7 @@ namespace QuantLib {
                        << swapLengths.size() << ")");
 
         std::vector<Time> betaTimes;
+        betaTimes.reserve(beta.size());
         for (Size i = 0; i < beta.size(); i++)
             betaTimes.push_back(
                 timeFromReference(optionDateFromTenor(swapLengths[i])));
@@ -1107,6 +1108,7 @@ namespace QuantLib {
     template<class Model> std::vector<Real> XabrSwaptionVolatilityCube<Model>::Cube::operator()(
                             const Time optionTime, const Time swapLength) const {
         std::vector<Real> result;
+        result.reserve(nLayers_);
         for (Size k=0; k<nLayers_; ++k)
             result.push_back((*interpolators_[k])(optionTime, swapLength));
         return result;

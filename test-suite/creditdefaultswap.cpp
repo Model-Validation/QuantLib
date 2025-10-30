@@ -10,7 +10,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -589,6 +589,7 @@ BOOST_AUTO_TEST_CASE(testIsdaEngine) {
                            0.014,
                            0.015488};
 
+    isdaRateHelpers.reserve(sizeof(dep_tenors) / sizeof(int));
     for(size_t i = 0; i < sizeof(dep_tenors) / sizeof(int); i++) {
         isdaRateHelpers.push_back(ext::make_shared<DepositRateHelper>(
                                      dep_quotes[i], dep_tenors[i] * Months, 2,
@@ -787,6 +788,7 @@ BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleQuote) {
     int dep_tenors[] = {1, 3, 6, 12};
     double dep_quotes[] = {-0.0056,-0.005440,-0.005190,-0.004930};
 
+    isdaRateHelpers.reserve(sizeof(dep_tenors) / sizeof(int));
     for(size_t i = 0; i < sizeof(dep_tenors) / sizeof(int); i++) {
         isdaRateHelpers.push_back(ext::make_shared<DepositRateHelper>(
                                      dep_quotes[i], dep_tenors[i] * Months, 2,
@@ -900,6 +902,7 @@ BOOST_AUTO_TEST_CASE(testIsdaCalculatorReconcileSingleWithIssueDateInThePast) {
     int dep_tenors[] = {1, 3, 6, 12};
     double dep_quotes[] = {-0.0056,-0.005440,-0.005190,-0.004930};
 
+    isdaRateHelpers.reserve(sizeof(dep_tenors) / sizeof(int));
     for(size_t i = 0; i < sizeof(dep_tenors) / sizeof(int); i++) {
         isdaRateHelpers.push_back(ext::make_shared<DepositRateHelper>(
                                      dep_quotes[i], dep_tenors[i] * Months, 2,
