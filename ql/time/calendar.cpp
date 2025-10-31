@@ -15,7 +15,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -157,13 +157,21 @@ namespace QuantLib {
             Date d1 = d + n*unit;
             return adjust(d1,c);
         } else {
-            Date d1 = d + n*unit;
+            Date d1 = d + n * unit;
 
             // we are sure the unit is Months or Years
-            if(endOfMonth && isEndOfMonth(d) && !eomConvention && c == Unadjusted){
-                return Date::endOfMonth(d1);
-            } else if(endOfMonth && isEndOfMonth(d)){
-                return Calendar::endOfMonth(d1, eomConvention);
+            if (endOfMonth) {
+                if (Date::isEndOfMonth(d) && c == Unadjusted) {
+                    // move to the last calendar day if d is the last calendar day, adjust by end of
+                    // month convention if given
+                    return !eomConvention.has_value() ? Date::endOfMonth(d1) :
+                                                        Calendar::endOfMonth(d1, eomConvention);
+                }
+                if (isEndOfMonth(d) && c != Unadjusted) {
+                    // move to the last last business day if d is the last business day, adjust by
+                    // end of month convention if given
+                    return Calendar::endOfMonth(d1, eomConvention);
+                }
             }
             return adjust(d1, c);
         }
