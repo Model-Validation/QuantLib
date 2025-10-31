@@ -118,7 +118,9 @@ namespace QuantLib {
                         base date now.
                         Deprecated in version 1.39.
         */
-        [[deprecated("Do not use; inflation curves always have an explicit base date now.")]]
+        // Dont deprecate it, we need the observation lag in the curve for the while being
+        // Get it from conventions in cross asset model and par rate conversion in the future
+        //[[deprecated("Do not use; inflation curves always have an explicit base date now.")]]
         Period observationLag_;
 
         Frequency frequency_;
