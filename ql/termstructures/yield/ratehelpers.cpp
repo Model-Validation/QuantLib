@@ -23,8 +23,9 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/cashflows/iborcoupon.hpp>
 #include <ql/cashflows/cashflows.hpp>
+#include <ql/cashflows/couponpricer.hpp>
+#include <ql/cashflows/iborcoupon.hpp>
 #include <ql/currency.hpp>
 #include <ql/indexes/swapindex.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
@@ -229,8 +230,7 @@ namespace QuantLib {
         if (updateDates_) {
             // if the evaluation date is not a business day
             // then move to the next business day
-            Date referenceDate =
-                iborIndex_->fixingCalendar().adjust(evaluationDate_);
+            Date referenceDate = iborIndex_->fixingCalendar().adjust(evaluationDate_);
             earliestDate_ = iborIndex_->valueDate(referenceDate);
             fixingDate_ = iborIndex_->fixingDate(earliestDate_);
         } else {
@@ -238,6 +238,16 @@ namespace QuantLib {
         }
         maturityDate_ = iborIndex_->maturityDate(earliestDate_);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+    }
+
+    ext::shared_ptr<IborCoupon> DepositRateHelper::iborCoupon() const {
+        auto coupon = ext::make_shared<IborCoupon>(maturityDate_, 1.0, earliestDate_, maturityDate_,
+                                                   iborIndex_->fixingDays(), iborIndex_);
+        coupon->setPricer(ext::make_shared<BlackIborCouponPricer>(
+            Handle<OptionletVolatilityStructure>(),
+            BlackIborCouponPricer::TimingAdjustment::Black76,
+            Handle<Quote>(ext::make_shared<SimpleQuote>(1.0)), true));
+        return coupon;
     }
 
     void DepositRateHelper::accept(AcyclicVisitor& v) {

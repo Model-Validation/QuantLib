@@ -40,6 +40,7 @@
 
 namespace QuantLib {
 
+    class IborCoupon;
     class SwapIndex;
     class Quote;
 
@@ -112,6 +113,8 @@ namespace QuantLib {
         //@{
         void accept(AcyclicVisitor&) override;
         //@}
+        ext::shared_ptr<IborCoupon> iborCoupon() const;
+
       private:
         void initializeDates() override;
         Date fixingDate_;
