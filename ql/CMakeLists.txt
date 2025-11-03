@@ -57,6 +57,7 @@ set(QL_SOURCES
     experimental/barrieroption/quantodoublebarrieroption.cpp
     experimental/barrieroption/suowangdoublebarrierengine.cpp
     experimental/barrieroption/vannavolgabarrierengine.cpp
+    experimental/barrieroption/vannavolgapartialtimebarrierengine.cpp
     experimental/basismodels/swaptioncfs.cpp
     experimental/basismodels/tenoroptionletvts.cpp
     experimental/basismodels/tenorswaptionvts.cpp
