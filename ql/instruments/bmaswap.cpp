@@ -48,11 +48,11 @@ namespace QuantLib {
                      Natural overnightLockoutDays,
                      bool telescopicValueDates)
     : Swap(2), type_(type), nominal_(nominal), indexFraction_(indexFraction),
-      indexSpread_(indexSpread), indexPaymentCalendar_(indexPaymentCalendar),
-      indexPaymentConvention_(indexPaymentConvention), indexPaymentLag_(indexPaymentLag),
-      bmaPaymentCalendar_(bmaPaymentCalendar), bmaPaymentConvention_(bmaPaymentConvention),
-      bmaPaymentLag_(bmaPaymentLag), overnightLockoutDays_(overnightLockoutDays),
-      telescopicValueDates_(telescopicValueDates) {
+      indexSpread_(indexSpread), bmaIndex_(bmaIndex), index_(index),
+      indexPaymentCalendar_(indexPaymentCalendar), indexPaymentConvention_(indexPaymentConvention),
+      indexPaymentLag_(indexPaymentLag), bmaPaymentCalendar_(bmaPaymentCalendar),
+      bmaPaymentConvention_(bmaPaymentConvention), bmaPaymentLag_(bmaPaymentLag),
+      overnightLockoutDays_(overnightLockoutDays), telescopicValueDates_(telescopicValueDates) {
 
         auto ois = QuantLib::ext::dynamic_pointer_cast<OvernightIndex>(index);
 

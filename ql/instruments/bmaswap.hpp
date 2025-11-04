@@ -69,6 +69,8 @@ namespace QuantLib {
         Type type() const;
         const Leg& bmaLeg() const;
         const Leg& indexLeg() const;
+        const ext::shared_ptr<BMAIndex>& bmaIndex() const { return bmaIndex_; }
+        const ext::shared_ptr<IborIndex>& index() const { return index_; }
         //@}
 
         //! \name Results
@@ -87,6 +89,8 @@ namespace QuantLib {
         Real nominal_;
         Rate indexFraction_;
         Rate indexSpread_;
+        QuantLib::ext::shared_ptr<BMAIndex> bmaIndex_;
+        QuantLib::ext::shared_ptr<IborIndex> index_;
         Calendar indexPaymentCalendar_;
         BusinessDayConvention indexPaymentConvention_;
         Natural indexPaymentLag_;

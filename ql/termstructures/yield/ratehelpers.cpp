@@ -86,6 +86,8 @@ namespace QuantLib {
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
 
+        dayCounter_ = dayCounter;
+
         registerWith(convAdj_);
     }
 
@@ -134,6 +136,8 @@ namespace QuantLib {
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
 
+        dayCounter_ = dayCounter;
+
         registerWith(convAdj_);
     }
 
@@ -151,6 +155,8 @@ namespace QuantLib {
             cal.advance(iborStartDate, index->tenor(), index->businessDayConvention());
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, index->dayCounter());
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+
+        dayCounter_ = index->dayCounter();
 
         registerWith(convAdj_);
     }
@@ -468,6 +474,15 @@ namespace QuantLib {
             RateHelper::accept(v);
     }
 
+    ext::shared_ptr<IborCoupon> FraRateHelper::iborCoupon() const {
+        auto coupon = ext::make_shared<IborCoupon>(maturityDate_, 1.0, earliestDate_, maturityDate_,
+                                                   iborIndex_->fixingDays(), iborIndex_);
+        coupon->setPricer(ext::make_shared<BlackIborCouponPricer>(
+            Handle<OptionletVolatilityStructure>(),
+            BlackIborCouponPricer::TimingAdjustment::Black76,
+            Handle<Quote>(ext::make_shared<SimpleQuote>(1.0)), useIndexedCoupon_));
+        return coupon;
+    }
 
     SwapRateHelper::SwapRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
                                    const ext::shared_ptr<SwapIndex>& swapIndex,
@@ -765,9 +780,8 @@ namespace QuantLib {
                                      .backwards();
 
         swap_ = ext::make_shared<BMASwap>(
-            Swap::Payer, 100.0, indexSchedule,
-            0.75, // arbitrary
-            0.0, index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
+            Swap::Payer, 100.0, indexSchedule, quote().empty() ? 0.75 : quote()->value(), 0.0,
+            index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
             indexPaymentCalendar_, indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_,
             bmaPaymentConvention_, bmaPaymentLag_, overnightLockoutDays_, true);
 

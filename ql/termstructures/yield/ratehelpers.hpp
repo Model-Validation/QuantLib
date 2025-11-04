@@ -83,9 +83,12 @@ namespace QuantLib {
         //@{
         void accept(AcyclicVisitor&) override;
         //@}
+        const DayCounter& dayCounter() const { return dayCounter_; }
+
       private:
         Time yearFraction_;
         Handle<Quote> convAdj_;
+        DayCounter dayCounter_;
     };
 
 
@@ -183,6 +186,8 @@ namespace QuantLib {
         //@{
         void accept(AcyclicVisitor&) override;
         //@}
+        ext::shared_ptr<IborCoupon> iborCoupon() const;
+
       private:
         void initializeDates() override;
         Date fixingDate_;
