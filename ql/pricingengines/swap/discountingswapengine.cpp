@@ -11,7 +11,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -30,11 +30,13 @@ namespace QuantLib {
         Handle<YieldTermStructure> discountCurve,
         const ext::optional<bool>& includeSettlementDateFlows,
         Date settlementDate,
-        Date npvDate)
+        Date npvDate,
+        const Handle<Quote>& npvFxConversion)
     : discountCurve_(std::move(discountCurve)),
       includeSettlementDateFlows_(includeSettlementDateFlows), settlementDate_(settlementDate),
-      npvDate_(npvDate) {
+      npvDate_(npvDate), npvFxConversion_(npvFxConversion) {
         registerWith(discountCurve_);
+        registerWith(npvFxConversion_);
     }
 
     void DiscountingSwapEngine::calculate() const {
@@ -109,6 +111,12 @@ namespace QuantLib {
             }
             results_.value += results_.legNPV[i];
         }
+        if (!npvFxConversion_.empty()) {
+            results_.value *= npvFxConversion_->value();
+            for (Size i = 0; i < n; ++i) {
+                results_.legNPV[i] *= npvFxConversion_->value();
+                results_.legBPS[i] *= npvFxConversion_->value();
+            }
+        }
     }
-
 }

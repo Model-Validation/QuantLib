@@ -10,7 +10,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -27,6 +27,7 @@
 #include <ql/math/array.hpp>
 #include <ql/methods/finitedifferences/tridiagonaloperator.hpp>
 #include <ql/math/transformedgrid.hpp>
+#include <utility>
 
 namespace QuantLib {
 
@@ -92,7 +93,7 @@ namespace QuantLib {
     public:
         template <class T>
         GenericTimeSetter(const Array &grid, T process) :
-            grid_(grid), pde_(process) {}
+            grid_(grid), pde_(std::move(process)) {}
         void setTime(Time t, TridiagonalOperator& L) const override {
             pde_.generateOperator(t, grid_, L);
         }
@@ -117,7 +118,7 @@ namespace QuantLib {
             QL_DEPRECATED_DISABLE_WARNING
             timeSetter_ =
                 ext::shared_ptr<GenericTimeSetter<PdeClass> >(
-                     new GenericTimeSetter<PdeClass>(grid, process));
+                     new GenericTimeSetter<PdeClass>(grid, std::move(process)));
             QL_DEPRECATED_ENABLE_WARNING
             setTime(residualTime);
         }

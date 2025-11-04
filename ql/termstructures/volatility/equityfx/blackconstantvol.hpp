@@ -3,7 +3,8 @@
 /*
  Copyright (C) 2002, 2003, 2004 Ferdinando Ametrano
  Copyright (C) 2003, 2004, 2005, 2006, 2007 StatPro Italia srl
-
+ Copyright (C) 2025 AcadiaSoft, Inc.
+ 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
 
@@ -11,7 +12,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -42,19 +43,27 @@ namespace QuantLib {
         BlackConstantVol(const Date& referenceDate,
                          const Calendar&,
                          Volatility volatility,
-                         const DayCounter& dayCounter);
+                         const DayCounter& dayCounter,
+                         const VolatilityType type = ShiftedLognormal,
+                         const Real shift = 0.0);
         BlackConstantVol(const Date& referenceDate,
                          const Calendar&,
                          Handle<Quote> volatility,
-                         const DayCounter& dayCounter);
+                         const DayCounter& dayCounter,
+                         const VolatilityType type = ShiftedLognormal,
+                         const Real shift = 0.0);
         BlackConstantVol(Natural settlementDays,
                          const Calendar&,
                          Volatility volatility,
-                         const DayCounter& dayCounter);
+                         const DayCounter& dayCounter,
+                         const VolatilityType type = ShiftedLognormal,
+                         const Real shift = 0.0);
         BlackConstantVol(Natural settlementDays,
                          const Calendar&,
                          Handle<Quote> volatility,
-                         const DayCounter& dayCounter);
+                         const DayCounter& dayCounter,
+                         const VolatilityType type = ShiftedLognormal,
+                         const Real shift = 0.0);
         //! \name TermStructure interface
         //@{
         Date maxDate() const override;
@@ -81,15 +90,19 @@ namespace QuantLib {
     inline BlackConstantVol::BlackConstantVol(const Date& referenceDate,
                                               const Calendar& cal,
                                               Volatility volatility,
-                                              const DayCounter& dc)
-    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc),
+                                              const DayCounter& dc,
+                                              const VolatilityType type,
+                                              const Real shift)
+    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc, type, shift),
       volatility_(ext::shared_ptr<Quote>(new SimpleQuote(volatility))) {}
 
     inline BlackConstantVol::BlackConstantVol(const Date& referenceDate,
                                               const Calendar& cal,
                                               Handle<Quote> volatility,
-                                              const DayCounter& dc)
-    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc),
+                                              const DayCounter& dc,
+                                              const VolatilityType type,
+                                              const Real shift)
+    : BlackVolatilityTermStructure(referenceDate, cal, Following, dc, type, shift),
       volatility_(std::move(volatility)) {
         registerWith(volatility_);
     }
@@ -97,15 +110,19 @@ namespace QuantLib {
     inline BlackConstantVol::BlackConstantVol(Natural settlementDays,
                                               const Calendar& cal,
                                               Volatility volatility,
-                                              const DayCounter& dc)
-    : BlackVolatilityTermStructure(settlementDays, cal, Following, dc),
+                                              const DayCounter& dc,
+                                              const VolatilityType type,
+                                              const Real shift)
+    : BlackVolatilityTermStructure(settlementDays, cal, Following, dc, type, shift),
       volatility_(ext::shared_ptr<Quote>(new SimpleQuote(volatility))) {}
 
     inline BlackConstantVol::BlackConstantVol(Natural settlementDays,
                                               const Calendar& cal,
                                               Handle<Quote> volatility,
-                                              const DayCounter& dc)
-    : BlackVolatilityTermStructure(settlementDays, cal, Following, dc),
+                                              const DayCounter& dc,
+                                              const VolatilityType type,
+                                              const Real shift)
+    : BlackVolatilityTermStructure(settlementDays, cal, Following, dc, type, shift),
       volatility_(std::move(volatility)) {
         registerWith(volatility_);
     }
@@ -133,8 +150,6 @@ namespace QuantLib {
     inline Volatility BlackConstantVol::blackVolImpl(Time, Real) const {
         return volatility_->value();
     }
-
 }
-
 
 #endif

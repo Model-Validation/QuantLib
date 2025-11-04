@@ -150,8 +150,7 @@ set(QL_SOURCES
     experimental/finitedifferences/glued1dmesher.cpp
     experimental/finitedifferences/vanillavppoption.cpp
     experimental/forward/analytichestonforwardeuropeanengine.cpp
-    experimental/fx/blackdeltacalculator.cpp
-    experimental/fx/deltavolquote.cpp
+    experimental/fx/bachelierdeltacalculator.cpp
     experimental/inflation/cpicapfloorengines.cpp
     experimental/inflation/cpicapfloortermpricesurface.cpp
     experimental/inflation/yoycapfloortermpricesurface.cpp
@@ -217,7 +216,9 @@ set(QL_SOURCES
     indexes/bmaindex.cpp
     indexes/equityindex.cpp
     indexes/ibor/bibor.cpp
+    indexes/ibor/cdi.cpp
     indexes/ibor/corra.cpp
+    indexes/ibor/custom.cpp
     indexes/ibor/eonia.cpp
     indexes/ibor/estr.cpp
     indexes/ibor/euribor.cpp
@@ -225,6 +226,7 @@ set(QL_SOURCES
     indexes/ibor/fedfunds.cpp
     indexes/ibor/kofr.cpp
     indexes/ibor/libor.cpp
+    indexes/ibor/saron.cpp
     indexes/ibor/shibor.cpp
     indexes/ibor/sofr.cpp
     indexes/ibor/sonia.cpp
@@ -300,11 +302,13 @@ set(QL_SOURCES
     instruments/overnightindexfuture.cpp
     instruments/partialtimebarrieroption.cpp
     instruments/payoffs.cpp
+    instruments/perpetualfutures.cpp
     instruments/quantobarrieroption.cpp
     instruments/quantoforwardvanillaoption.cpp
     instruments/quantovanillaoption.cpp
     instruments/simplechooseroption.cpp
     instruments/simplifynotificationgraph.cpp
+    instruments/softbarrieroption.cpp
     instruments/stickyratchet.cpp
     instruments/stock.cpp
     instruments/swap.cpp
@@ -663,6 +667,7 @@ set(QL_SOURCES
     pricingengines/barrier/analyticdoublebarrierbinaryengine.cpp
     pricingengines/barrier/analyticdoublebarrierengine.cpp
     pricingengines/barrier/analyticpartialtimebarrieroptionengine.cpp
+    pricingengines/barrier/analyticsoftbarrierengine.cpp
     pricingengines/barrier/analytictwoassetbarrierengine.cpp
     pricingengines/barrier/discretizedbarrieroption.cpp
     pricingengines/barrier/fdblackscholesbarrierengine.cpp
@@ -684,7 +689,11 @@ set(QL_SOURCES
     pricingengines/basket/singlefactorbsmbasketengine.cpp
     pricingengines/basket/spreadblackscholesvanillaengine.cpp
     pricingengines/basket/stulzengine.cpp
+    pricingengines/bacheliercalculator.cpp
     pricingengines/blackcalculator.cpp
+    pricingengines/blackdeltacalculator.cpp
+    pricingengines/diffusioncalculator.cpp
+    pricingengines/bacheliercalculator.cpp
     pricingengines/blackformula.cpp
     pricingengines/blackscholescalculator.cpp
     pricingengines/bond/bondfunctions.cpp
@@ -714,6 +723,7 @@ set(QL_SOURCES
     pricingengines/exotic/analyticwriterextensibleoptionengine.cpp
     pricingengines/forward/mcforwardeuropeanbsengine.cpp
     pricingengines/forward/mcforwardeuropeanhestonengine.cpp
+    pricingengines/futures/discountingperpetualfuturesengine.cpp
     pricingengines/greeks.cpp
     pricingengines/inflation/inflationcapfloorengines.cpp
     pricingengines/lookback/analyticcontinuousfixedlookback.cpp
@@ -793,6 +803,8 @@ set(QL_SOURCES
     processes/coxingersollrossprocess.cpp
     processes/squarerootprocess.cpp
     processes/stochasticprocessarray.cpp
+    quote.cpp
+    quotes/deltavolquote.cpp
     quotes/eurodollarfuturesquote.cpp
     quotes/forwardswapquote.cpp
     quotes/forwardvaluequote.cpp
@@ -814,6 +826,7 @@ set(QL_SOURCES
     termstructures/inflation/inflationhelpers.cpp
     termstructures/inflation/seasonality.cpp
     termstructures/inflationtermstructure.cpp
+    termstructures/multicurve.cpp
     termstructures/volatility/abcd.cpp
     termstructures/volatility/abcdcalibration.cpp
     termstructures/volatility/atmadjustedsmilesection.cpp
@@ -1150,6 +1163,7 @@ set(QL_HEADERS
     experimental/finitedifferences/vanillavppoption.hpp
     experimental/forward/analytichestonforwardeuropeanengine.hpp
     experimental/fx/blackdeltacalculator.hpp
+    experimental/fx/bachelierdeltacalculator.hpp
     experimental/fx/deltavolquote.hpp
     experimental/inflation/cpicapfloorengines.hpp
     experimental/inflation/cpicapfloortermpricesurface.hpp
@@ -1251,9 +1265,11 @@ set(QL_HEADERS
     indexes/ibor/bibor.hpp
     indexes/ibor/bkbm.hpp
     indexes/ibor/cadlibor.hpp
+    indexes/ibor/cdi.hpp
     indexes/ibor/cdor.hpp
     indexes/ibor/chflibor.hpp
     indexes/ibor/corra.hpp
+    indexes/ibor/custom.hpp
     indexes/ibor/destr.hpp
     indexes/ibor/dkklibor.hpp
     indexes/ibor/eonia.hpp
@@ -1271,6 +1287,7 @@ set(QL_HEADERS
     indexes/ibor/nzocr.hpp
     indexes/ibor/pribor.hpp
     indexes/ibor/robor.hpp
+    indexes/ibor/saron.hpp
     indexes/ibor/seklibor.hpp
     indexes/ibor/shibor.hpp
     indexes/ibor/sofr.hpp
@@ -1279,6 +1296,7 @@ set(QL_HEADERS
     indexes/ibor/thbfix.hpp
     indexes/ibor/tibor.hpp
     indexes/ibor/tona.hpp
+    indexes/ibor/tonar.hpp
     indexes/ibor/trlibor.hpp
     indexes/ibor/usdlibor.hpp
     indexes/ibor/wibor.hpp
@@ -1332,9 +1350,7 @@ set(QL_HEADERS
     instruments/cpicapfloor.hpp
     instruments/cpiswap.hpp
     instruments/creditdefaultswap.hpp
-    instruments/dividendbarrieroption.hpp
     instruments/dividendschedule.hpp
-    instruments/dividendvanillaoption.hpp
     instruments/doublebarrieroption.hpp
     instruments/doublebarriertype.hpp
     instruments/equitytotalreturnswap.hpp
@@ -1367,11 +1383,13 @@ set(QL_HEADERS
     instruments/overnightindexfuture.hpp
     instruments/partialtimebarrieroption.hpp
     instruments/payoffs.hpp
+    instruments/perpetualfutures.hpp
     instruments/quantobarrieroption.hpp
     instruments/quantoforwardvanillaoption.hpp
     instruments/quantovanillaoption.hpp
     instruments/simplechooseroption.hpp
     instruments/simplifynotificationgraph.hpp
+    instruments/softbarrieroption.hpp
     instruments/stickyratchet.hpp
     instruments/stock.hpp
     instruments/swap.hpp
@@ -1882,6 +1900,7 @@ set(QL_HEADERS
     pricingengines/barrier/analyticdoublebarrierbinaryengine.hpp
     pricingengines/barrier/analyticdoublebarrierengine.hpp
     pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp
+    pricingengines/barrier/analyticsoftbarrierengine.hpp
     pricingengines/barrier/analytictwoassetbarrierengine.hpp
     pricingengines/barrier/binomialbarrierengine.hpp
     pricingengines/barrier/discretizedbarrieroption.hpp
@@ -1904,7 +1923,11 @@ set(QL_HEADERS
     pricingengines/basket/singlefactorbsmbasketengine.hpp
     pricingengines/basket/spreadblackscholesvanillaengine.hpp
     pricingengines/basket/stulzengine.hpp
+    pricingengines/bacheliercalculator.hpp
     pricingengines/blackcalculator.hpp
+    pricingengines/diffusioncalculator.hpp
+    pricingengines/bacheliercalculator.hpp
+    pricingengines/blackdeltacalculator.hpp
     pricingengines/blackformula.hpp
     pricingengines/blackscholescalculator.hpp
     pricingengines/bond/binomialconvertibleengine.hpp
@@ -1940,6 +1963,7 @@ set(QL_HEADERS
     pricingengines/forward/mcforwardvanillaengine.hpp
     pricingengines/forward/mcvarianceswapengine.hpp
     pricingengines/forward/replicatingvarianceswapengine.hpp
+    pricingengines/futures/discountingperpetualfuturesengine.hpp
     pricingengines/genericmodelengine.hpp
     pricingengines/greeks.hpp
     pricingengines/inflation/inflationcapfloorengines.hpp
@@ -2034,6 +2058,7 @@ set(QL_HEADERS
     processes/stochasticprocessarray.hpp
     quote.hpp
     quotes/compositequote.hpp
+    quotes/deltavolquote.hpp
     quotes/derivedquote.hpp
     quotes/eurodollarfuturesquote.hpp
     quotes/forwardswapquote.hpp
@@ -2073,6 +2098,7 @@ set(QL_HEADERS
     termstructures/interpolatedcurve.hpp
     termstructures/iterativebootstrap.hpp
     termstructures/localbootstrap.hpp
+    termstructures/multicurve.hpp
     termstructures/volatility/abcd.hpp
     termstructures/volatility/abcdcalibration.hpp
     termstructures/volatility/atmadjustedsmilesection.hpp
@@ -2148,10 +2174,13 @@ set(QL_HEADERS
     termstructures/yield/nonlinearfittingmethods.hpp
     termstructures/yield/oisratehelper.hpp
     termstructures/yield/overnightindexfutureratehelper.hpp
+    termstructures/yield/piecewisespreadyieldcurve.hpp
     termstructures/yield/piecewiseyieldcurve.hpp
     termstructures/yield/piecewisezerospreadedtermstructure.hpp
     termstructures/yield/quantotermstructure.hpp
     termstructures/yield/ratehelpers.hpp
+    termstructures/yield/spreadbootstraptraits.hpp
+    termstructures/yield/spreaddiscountcurve.hpp
     termstructures/yield/ultimateforwardtermstructure.hpp
     termstructures/yield/zerocurve.hpp
     termstructures/yield/zerospreadedtermstructure.hpp
@@ -2241,6 +2270,7 @@ set(QL_HEADERS
     utilities/observablevalue.hpp
     utilities/steppingiterator.hpp
     utilities/tracing.hpp
+    utilities/variants.hpp
     utilities/vectors.hpp
     version.hpp
     volatilitymodel.hpp
@@ -2342,6 +2372,7 @@ set(QL_GENERATED_HEADERS
     ${PROJECT_BINARY_DIR}/ql/pricingengines/credit/all.hpp
     ${PROJECT_BINARY_DIR}/ql/pricingengines/exotic/all.hpp
     ${PROJECT_BINARY_DIR}/ql/pricingengines/forward/all.hpp
+    ${PROJECT_BINARY_DIR}/ql/pricingengines/futures/all.hpp
     ${PROJECT_BINARY_DIR}/ql/pricingengines/inflation/all.hpp
     ${PROJECT_BINARY_DIR}/ql/pricingengines/lookback/all.hpp
     ${PROJECT_BINARY_DIR}/ql/pricingengines/quanto/all.hpp

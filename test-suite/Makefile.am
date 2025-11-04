@@ -14,6 +14,8 @@ QL_TEST_SRCS = \
 	basketoption.cpp \
 	batesmodel.cpp \
 	bermudanswaption.cpp \
+	bacheliercalculator.cpp \
+	blackcalculator.cpp \
 	blackdeltacalculator.cpp \
 	blackformula.cpp \
 	bondforward.cpp \
@@ -126,6 +128,7 @@ QL_TEST_SRCS = \
 	partialtimebarrieroption.cpp \
 	pathgenerator.cpp \
 	period.cpp \
+	perpetualfutures.cpp \
 	piecewiseyieldcurve.cpp \
 	piecewisezerospreadedtermstructure.cpp \
 	preconditions.cpp \
@@ -142,6 +145,7 @@ QL_TEST_SRCS = \
 	settings.cpp \
 	shortratemodels.cpp \
 	sofrfutures.cpp \
+	softbarrieroption.cpp \
 	solvers.cpp \
 	spreadoption.cpp \
 	squarerootclvmodel.cpp \

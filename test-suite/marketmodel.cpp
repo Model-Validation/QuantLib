@@ -15,7 +15,7 @@ QuantLib is free software: you can redistribute it and/or modify it
 under the terms of the QuantLib license.  You should have received a
 copy of the license along with this program; if not, please email
 <quantlib-dev@lists.sf.net>. The license is also available online at
-<http://quantlib.org/license.shtml>.
+<https://www.quantlib.org/license.shtml>.
 
 This program is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -2413,6 +2413,7 @@ BOOST_AUTO_TEST_CASE(testPathwiseVegas, *precondition(if_speed(Fast))) {
                 endIndex);
 
             std::vector<Matrix> pseudoRoots;
+            pseudoRoots.reserve(marketModel->numberOfSteps());
             for (Size k=0; k < marketModel->numberOfSteps(); ++k)
                 pseudoRoots.push_back( marketModel->pseudoRoot(k));
 
@@ -2513,6 +2514,7 @@ BOOST_AUTO_TEST_CASE(testPathwiseVegas, *precondition(if_speed(Fast))) {
                         endIndex, initialNumeraireValue);
 
                     std::vector<Matrix> pseudoRoots;
+                    pseudoRoots.reserve(marketModel->numberOfSteps());
                     for (Size k=0; k < marketModel->numberOfSteps(); ++k)
                         pseudoRoots.push_back( marketModel->pseudoRoot(k));
 
@@ -2659,6 +2661,7 @@ BOOST_AUTO_TEST_CASE(testPathwiseVegas, *precondition(if_speed(Fast))) {
                         endIndex,initialNumeraireValue);
 
                     std::vector<Matrix> pseudoRoots;
+                    pseudoRoots.reserve(marketModel->numberOfSteps());
                     for (Size k=0; k < marketModel->numberOfSteps(); ++k)
                         pseudoRoots.push_back( marketModel->pseudoRoot(k));
 
@@ -4491,7 +4494,7 @@ BOOST_AUTO_TEST_CASE(testDriftCalculator) {
     const std::vector<Real>& rateTaus = evolution.rateTaus();
     std::vector<Size> numeraires = moneyMarketPlusMeasure(evolution,
         measureOffset_);
-    std::vector<Size> alive = evolution.firstAliveRate();
+    const std::vector<Size>& alive = evolution.firstAliveRate();
     Size numberOfSteps = evolutionTimes.size();
     std::vector<Real> drifts(numberOfSteps), driftsReduced(numberOfSteps);
     MarketModelType marketModels[] = {ExponentialCorrelationFlatVolatility,

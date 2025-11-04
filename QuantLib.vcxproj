@@ -834,9 +834,11 @@
     <ClInclude Include="ql\indexes\ibor\bibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\bkbm.hpp" />
     <ClInclude Include="ql\indexes\ibor\cadlibor.hpp" />
+    <ClInclude Include="ql\indexes\ibor\cdi.hpp" />
     <ClInclude Include="ql\indexes\ibor\cdor.hpp" />
     <ClInclude Include="ql\indexes\ibor\chflibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\corra.hpp" />
+    <ClInclude Include="ql\indexes\ibor\custom.hpp" />
     <ClInclude Include="ql\indexes\ibor\destr.hpp" />
     <ClInclude Include="ql\indexes\ibor\dkklibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\eonia.hpp" />
@@ -854,6 +856,7 @@
     <ClInclude Include="ql\indexes\ibor\nzocr.hpp" />
     <ClInclude Include="ql\indexes\ibor\pribor.hpp" />
     <ClInclude Include="ql\indexes\ibor\robor.hpp" />
+    <ClInclude Include="ql\indexes\ibor\saron.hpp" />
     <ClInclude Include="ql\indexes\ibor\seklibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\shibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\sofr.hpp" />
@@ -862,6 +865,7 @@
     <ClInclude Include="ql\indexes\ibor\thbfix.hpp" />
     <ClInclude Include="ql\indexes\ibor\tibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\tona.hpp" />
+    <ClInclude Include="ql\indexes\ibor\tonar.hpp" />
     <ClInclude Include="ql\indexes\ibor\trlibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\usdlibor.hpp" />
     <ClInclude Include="ql\indexes\ibor\wibor.hpp" />
@@ -918,9 +922,7 @@
     <ClInclude Include="ql\instruments\cpicapfloor.hpp" />
     <ClInclude Include="ql\instruments\cpiswap.hpp" />
     <ClInclude Include="ql\instruments\creditdefaultswap.hpp" />
-    <ClInclude Include="ql\instruments\dividendbarrieroption.hpp" />
     <ClInclude Include="ql\instruments\dividendschedule.hpp" />
-    <ClInclude Include="ql\instruments\dividendvanillaoption.hpp" />
     <ClInclude Include="ql\instruments\doublebarrieroption.hpp" />
     <ClInclude Include="ql\instruments\doublebarriertype.hpp" />
     <ClInclude Include="ql\instruments\equitytotalreturnswap.hpp" />
@@ -953,11 +955,13 @@
     <ClInclude Include="ql\instruments\overnightindexfuture.hpp" />
     <ClInclude Include="ql\instruments\partialtimebarrieroption.hpp" />
     <ClInclude Include="ql\instruments\payoffs.hpp" />
+    <ClInclude Include="ql\instruments\perpetualfutures.hpp" />
     <ClInclude Include="ql\instruments\quantobarrieroption.hpp" />
     <ClInclude Include="ql\instruments\quantoforwardvanillaoption.hpp" />
     <ClInclude Include="ql\instruments\quantovanillaoption.hpp" />
     <ClInclude Include="ql\instruments\simplechooseroption.hpp" />
     <ClInclude Include="ql\instruments\simplifynotificationgraph.hpp" />
+    <ClInclude Include="ql\instruments\softbarrieroption.hpp" />
     <ClInclude Include="ql\instruments\stickyratchet.hpp" />
     <ClInclude Include="ql\instruments\stock.hpp" />
     <ClInclude Include="ql\instruments\swap.hpp" />
@@ -1499,12 +1503,14 @@
     <ClInclude Include="ql\pricingengines\asian\mc_discr_geom_av_price_heston.hpp" />
     <ClInclude Include="ql\pricingengines\asian\mcdiscreteasianenginebase.hpp" />
     <ClInclude Include="ql\pricingengines\asian\turnbullwakemanasianengine.hpp" />
+    <ClInclude Include="ql\pricingengines\bacheliercalculator.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\all.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analyticbarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analyticbinarybarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analyticdoublebarrierbinaryengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analyticdoublebarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analyticpartialtimebarrieroptionengine.hpp" />
+    <ClInclude Include="ql\pricingengines\barrier\analyticsoftbarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\analytictwoassetbarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\binomialbarrierengine.hpp" />
     <ClInclude Include="ql\pricingengines\barrier\discretizedbarrieroption.hpp" />
@@ -1529,6 +1535,7 @@
     <ClInclude Include="ql\pricingengines\basket\stulzengine.hpp" />
     <ClInclude Include="ql\pricingengines\basket\vectorbsmprocessextractor.hpp" />
     <ClInclude Include="ql\pricingengines\blackcalculator.hpp" />
+    <ClInclude Include="ql\pricingengines\blackdeltacalculator.hpp" />
     <ClInclude Include="ql\pricingengines\blackformula.hpp" />
     <ClInclude Include="ql\pricingengines\blackscholescalculator.hpp" />
     <ClInclude Include="ql\pricingengines\bond\all.hpp" />
@@ -1570,6 +1577,8 @@
     <ClInclude Include="ql\pricingengines\forward\mcforwardvanillaengine.hpp" />
     <ClInclude Include="ql\pricingengines\forward\mcvarianceswapengine.hpp" />
     <ClInclude Include="ql\pricingengines\forward\replicatingvarianceswapengine.hpp" />
+    <ClInclude Include="ql\pricingengines\futures\all.hpp" />
+    <ClInclude Include="ql\pricingengines\futures\discountingperpetualfuturesengine.hpp" />
     <ClInclude Include="ql\pricingengines\genericmodelengine.hpp" />
     <ClInclude Include="ql\pricingengines\greeks.hpp" />
     <ClInclude Include="ql\pricingengines\inflation\all.hpp" />
@@ -1671,6 +1680,7 @@
     <ClInclude Include="ql\processes\stochasticprocessarray.hpp" />
     <ClInclude Include="ql\quotes\all.hpp" />
     <ClInclude Include="ql\quotes\compositequote.hpp" />
+    <ClInclude Include="ql\quotes\deltavolquote.hpp" />
     <ClInclude Include="ql\quotes\derivedquote.hpp" />
     <ClInclude Include="ql\quotes\eurodollarfuturesquote.hpp" />
     <ClInclude Include="ql\quotes\forwardswapquote.hpp" />
@@ -1789,10 +1799,13 @@
     <ClInclude Include="ql\termstructures\yield\nonlinearfittingmethods.hpp" />
     <ClInclude Include="ql\termstructures\yield\oisratehelper.hpp" />
     <ClInclude Include="ql\termstructures\yield\overnightindexfutureratehelper.hpp" />
+    <ClInclude Include="ql\termstructures\yield\piecewisespreadyieldcurve.hpp" />
     <ClInclude Include="ql\termstructures\yield\piecewiseyieldcurve.hpp" />
     <ClInclude Include="ql\termstructures\yield\piecewisezerospreadedtermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\quantotermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\ratehelpers.hpp" />
+    <ClInclude Include="ql\termstructures\yield\spreadbootstraptraits.hpp" />
+    <ClInclude Include="ql\termstructures\yield\spreaddiscountcurve.hpp" />
     <ClInclude Include="ql\termstructures\yield\ultimateforwardtermstructure.hpp" />
     <ClInclude Include="ql\termstructures\yield\zerocurve.hpp" />
     <ClInclude Include="ql\termstructures\yield\zerospreadedtermstructure.hpp" />
@@ -1881,6 +1894,7 @@
     <ClInclude Include="ql\utilities\observablevalue.hpp" />
     <ClInclude Include="ql\utilities\steppingiterator.hpp" />
     <ClInclude Include="ql\utilities\tracing.hpp" />
+    <ClInclude Include="ql\utilities\variants.hpp" />
     <ClInclude Include="ql\utilities\vectors.hpp" />
     <ClInclude Include="ql\any.hpp" />
     <ClInclude Include="ql\auto_link.hpp" />
@@ -2073,8 +2087,6 @@
     <ClCompile Include="ql\experimental\finitedifferences\glued1dmesher.cpp" />
     <ClCompile Include="ql\experimental\finitedifferences\vanillavppoption.cpp" />
     <ClCompile Include="ql\experimental\forward\analytichestonforwardeuropeanengine.cpp" />
-    <ClCompile Include="ql\experimental\fx\blackdeltacalculator.cpp" />
-    <ClCompile Include="ql\experimental\fx\deltavolquote.cpp" />
     <ClCompile Include="ql\experimental\inflation\cpicapfloorengines.cpp" />
     <ClCompile Include="ql\experimental\inflation\cpicapfloortermpricesurface.cpp" />
     <ClCompile Include="ql\experimental\inflation\yoycapfloortermpricesurface.cpp" />
@@ -2139,7 +2151,9 @@
     <ClCompile Include="ql\indexes\bmaindex.cpp" />
     <ClCompile Include="ql\indexes\equityindex.cpp" />
     <ClCompile Include="ql\indexes\ibor\bibor.cpp" />
+    <ClCompile Include="ql\indexes\ibor\cdi.cpp" />
     <ClCompile Include="ql\indexes\ibor\corra.cpp" />
+    <ClCompile Include="ql\indexes\ibor\custom.cpp" />
     <ClCompile Include="ql\indexes\ibor\eonia.cpp" />
     <ClCompile Include="ql\indexes\ibor\estr.cpp" />
     <ClCompile Include="ql\indexes\ibor\euribor.cpp" />
@@ -2147,6 +2161,7 @@
     <ClCompile Include="ql\indexes\ibor\fedfunds.cpp" />
     <ClCompile Include="ql\indexes\ibor\kofr.cpp" />
     <ClCompile Include="ql\indexes\ibor\libor.cpp" />
+    <ClCompile Include="ql\indexes\ibor\saron.cpp" />
     <ClCompile Include="ql\indexes\ibor\shibor.cpp" />
     <ClCompile Include="ql\indexes\ibor\sofr.cpp" />
     <ClCompile Include="ql\indexes\ibor\sonia.cpp" />
@@ -2221,11 +2236,13 @@
     <ClCompile Include="ql\instruments\overnightindexfuture.cpp" />
     <ClCompile Include="ql\instruments\partialtimebarrieroption.cpp" />
     <ClCompile Include="ql\instruments\payoffs.cpp" />
+    <ClCompile Include="ql\instruments\perpetualfutures.cpp" />
     <ClCompile Include="ql\instruments\quantobarrieroption.cpp" />
     <ClCompile Include="ql\instruments\quantoforwardvanillaoption.cpp" />
     <ClCompile Include="ql\instruments\quantovanillaoption.cpp" />
     <ClCompile Include="ql\instruments\simplechooseroption.cpp" />
     <ClCompile Include="ql\instruments\simplifynotificationgraph.cpp" />
+    <ClCompile Include="ql\instruments\softbarrieroption.cpp" />
     <ClCompile Include="ql\instruments\stickyratchet.cpp" />
     <ClCompile Include="ql\instruments\stock.cpp" />
     <ClCompile Include="ql\instruments\swap.cpp" />
@@ -2575,11 +2592,13 @@
     <ClCompile Include="ql\pricingengines\asian\mc_discr_geom_av_price.cpp" />
     <ClCompile Include="ql\pricingengines\asian\mc_discr_geom_av_price_heston.cpp" />
     <ClCompile Include="ql\pricingengines\asian\turnbullwakemanasianengine.cpp" />
+    <ClCompile Include="ql\pricingengines\bacheliercalculator.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analyticbarrierengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analyticbinarybarrierengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analyticdoublebarrierbinaryengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analyticdoublebarrierengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analyticpartialtimebarrieroptionengine.cpp" />
+    <ClCompile Include="ql\pricingengines\barrier\analyticsoftbarrierengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\analytictwoassetbarrierengine.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\discretizedbarrieroption.cpp" />
     <ClCompile Include="ql\pricingengines\barrier\fdblackscholesbarrierengine.cpp" />
@@ -2602,6 +2621,7 @@
     <ClCompile Include="ql\pricingengines\basket\stulzengine.cpp" />
     <ClCompile Include="ql\pricingengines\basket\vectorbsmprocessextractor.cpp" />
     <ClCompile Include="ql\pricingengines\blackcalculator.cpp" />
+    <ClCompile Include="ql\pricingengines\blackdeltacalculator.cpp" />
     <ClCompile Include="ql\pricingengines\blackformula.cpp" />
     <ClCompile Include="ql\pricingengines\blackscholescalculator.cpp" />
     <ClCompile Include="ql\pricingengines\bond\bondfunctions.cpp" />
@@ -2631,6 +2651,7 @@
     <ClCompile Include="ql\pricingengines\exotic\analyticwriterextensibleoptionengine.cpp" />
     <ClCompile Include="ql\pricingengines\forward\mcforwardeuropeanbsengine.cpp" />
     <ClCompile Include="ql\pricingengines\forward\mcforwardeuropeanhestonengine.cpp" />
+    <ClCompile Include="ql\pricingengines\futures\discountingperpetualfuturesengine.cpp" />
     <ClCompile Include="ql\pricingengines\greeks.cpp" />
     <ClCompile Include="ql\pricingengines\inflation\inflationcapfloorengines.cpp" />
     <ClCompile Include="ql\pricingengines\lookback\analyticcontinuousfixedlookback.cpp" />
@@ -2710,6 +2731,7 @@
     <ClCompile Include="ql\processes\ornsteinuhlenbeckprocess.cpp" />
     <ClCompile Include="ql\processes\squarerootprocess.cpp" />
     <ClCompile Include="ql\processes\stochasticprocessarray.cpp" />
+    <ClCompile Include="ql\quotes\deltavolquote.cpp" />
     <ClCompile Include="ql\quotes\eurodollarfuturesquote.cpp" />
     <ClCompile Include="ql\quotes\forwardswapquote.cpp" />
     <ClCompile Include="ql\quotes\forwardvaluequote.cpp" />
@@ -2865,6 +2887,7 @@
     <ClCompile Include="ql\money.cpp" />
     <ClCompile Include="ql\position.cpp" />
     <ClCompile Include="ql\prices.cpp" />
+    <ClCompile Include="ql\quote.cpp" />
     <ClCompile Include="ql\rebatedexercise.cpp" />
     <ClCompile Include="ql\settings.cpp" />
     <ClCompile Include="ql\stochasticprocess.cpp" />

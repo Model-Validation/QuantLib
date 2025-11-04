@@ -3,7 +3,8 @@
 /*
  Copyright (C) 2003 Ferdinando Ametrano
  Copyright (C) 2007 StatPro Italia srl
-
+ Copyright (C) 2025 AcadiaSoft, Inc.
+ 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
 
@@ -11,31 +12,38 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 #include <ql/exercise.hpp>
-#include <ql/pricingengines/blackcalculator.hpp>
+#include <ql/pricingengines/diffusioncalculator.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
+#include <ql/pricingengines/blackformula.hpp>
 #include <utility>
 
 namespace QuantLib {
 
+
+
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(
-        ext::shared_ptr<GeneralizedBlackScholesProcess> process)
-    : process_(std::move(process)) {
+        ext::shared_ptr<GeneralizedBlackScholesProcess> process, 
+        DiffusionModelType model, Real displacement)
+    : process_(std::move(process)), modelType_(model), displacement_(displacement) {
         registerWith(process_);
     }
 
     AnalyticEuropeanEngine::AnalyticEuropeanEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
                                                    Handle<YieldTermStructure> discountCurve,
                                                    ext::optional<unsigned int> spotDays,
-                                                   ext::optional<Calendar> spotCalendar)
-        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar) {
+                                                   ext::optional<Calendar> spotCalendar,
+                                                   DiffusionModelType model, 
+                                                   Real displacement)
+        : process_(std::move(process)), discountCurve_(std::move(discountCurve)), spotDays_(spotDays), spotCalendar_(spotCalendar),
+          modelType_(model), displacement_(displacement) {
         registerWith(process_);
         registerWith(discountCurve_);
     }
@@ -55,13 +63,9 @@ namespace QuantLib {
         ext::shared_ptr<StrikedTypePayoff> payoff =
             ext::dynamic_pointer_cast<StrikedTypePayoff>(arguments_.payoff);
         QL_REQUIRE(payoff, "non-striked payoff given");
-
-        Real variance =
-            process_->blackVolatility()->blackVariance(
-                                              arguments_.exercise->lastDate(),
-                                              payoff->strike());
-        const unsigned int spotDays = spotDays_.get_value_or(0);
-        const Calendar spotCalendar = spotCalendar_.get_value_or(NullCalendar());
+ 
+        const unsigned int spotDays = spotDays_.value_or(0);
+        const Calendar spotCalendar = spotCalendar_.value_or(NullCalendar());
         Date expirySpotDate = spotDays > 0 ? spotCalendar.advance(arguments_.exercise->lastDate(), spotDays * Days)
                                            : arguments_.exercise->lastDate();
 
@@ -84,7 +88,11 @@ namespace QuantLib {
         QL_REQUIRE(spot > 0.0, "negative or null underlying given");
         Real forwardPrice = s0 * dividendDiscount / riskFreeDiscountForFwdEstimation;
 
-        BlackCalculator black(payoff, forwardPrice, std::sqrt(variance), df);
+        auto [variance, volType, displacement] = convertInputVariance(
+            modelType_, displacement_, *process_->blackVolatility(), forwardPrice, payoff->strike(),
+            process_->blackVolatility()->timeFromReference(arguments_.exercise->lastDate()));
+        
+        DiffusionCalculator black(payoff, forwardPrice, std::sqrt(variance), df, volType, displacement);
 
         results_.value = black.value();
         results_.delta = black.delta(spot);

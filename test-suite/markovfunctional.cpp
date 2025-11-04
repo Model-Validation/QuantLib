@@ -10,7 +10,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -508,6 +508,7 @@ std::vector<Real> impliedStdDevs(const Real atm, const std::vector<Real> &strike
 
     std::vector<Real> result;
 
+    result.reserve(prices.size());
     for (Size i = 0; i < prices.size(); i++) {
         result.push_back(blackFormulaImpliedStdDev(Option::Call, strikes[i],
                                                    atm, prices[i], 1.0, 0.0,
