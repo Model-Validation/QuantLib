@@ -11,7 +11,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -703,7 +703,7 @@ ext::shared_ptr<LocalVolTermStructure> getFixedLocalVolFromHeston(
                                                  ext::make_shared<Matrix>(nStrikes, timeGrid->size()-1));
     for (Size i=1; i < timeGrid->size(); ++i) {
         const Time t = timeGrid->at(i);
-        const ext::shared_ptr<std::vector<Real> > strikeSlice = strikes[i-1];
+        const ext::shared_ptr<std::vector<Real> >& strikeSlice = strikes[i-1];
 
         for (Size j=0; j < nStrikes; ++j) {
             const Real s = (*strikeSlice)[j];

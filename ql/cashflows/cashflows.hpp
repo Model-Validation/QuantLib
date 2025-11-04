@@ -13,7 +13,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -425,26 +425,6 @@ namespace QuantLib {
                               Real accuracy = 1.0e-10,
                               Size maxIterations = 100,
                               Rate guess = 0.0);
-        /*! \deprecated Use the other overload.
-                        Deprecated in version 1.35.
-        */
-        [[deprecated("Use the other overload")]]
-        static Spread zSpread(const Leg& leg,
-                              const ext::shared_ptr<YieldTermStructure>& d,
-                              Real npv,
-                              const DayCounter& dayCounter,
-                              Compounding compounding,
-                              Frequency frequency,
-                              bool includeSettlementDateFlows,
-                              Date settlementDate = Date(),
-                              Date npvDate = Date(),
-                              Real accuracy = 1.0e-10,
-                              Size maxIterations = 100,
-                              Rate guess = 0.0) {
-            return zSpread(leg, npv, d, dayCounter, compounding, frequency,
-                           includeSettlementDateFlows, settlementDate, npvDate,
-                           accuracy, maxIterations, guess);
-        }
         //@}
 
     };

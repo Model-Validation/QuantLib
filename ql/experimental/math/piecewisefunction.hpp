@@ -10,7 +10,7 @@
  under the terms of the QuantLib license.  You should have received a
  copy of the license along with this program; if not, please email
  <quantlib-dev@lists.sf.net>. The license is also available online at
- <http://quantlib.org/license.shtml>.
+ <https://www.quantlib.org/license.shtml>.
 
  This program is distributed in the hope that it will be useful, but WITHOUT
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -43,5 +43,23 @@
 #define QL_PIECEWISE_FUNCTION(X, Y, x)                                         \
     Y[std::min<std::size_t>(                                                   \
         std::upper_bound(X.begin(), X.end(), x) - X.begin(), Y.size() - 1)]
+
+/*! This defines a piecewise constant function which is LCRL and takes
+    the values Y[0], Y[1], ... Y[n] on the intervals
+    (-\infty, X[0] ], ( X[0], X[1] ], ... , ( X[n-1], \infty)
+    Normally Y.size() should be X.size(). If more values for Y are
+    given, they are ignored. If less values are given the last given
+    value is kept the same for the remaining intervals.
+    If X.size() is 0 a constant function taking the value Y[0] is
+    evaluated.
+
+    \warning If X.size() or Y.size() is 0, or if they are not equal,
+             undefined behavior occurs. These conditions are not checked
+             for performance reasons.
+*/
+
+#define QL_PIECEWISE_FUNCTION2(X, Y, x)                                         \
+    Y[std::min<std::size_t>(                                                    \
+        std::lower_bound(X.begin(), X.end(), x) - X.begin(), Y.size() - 1)]
 
 #endif
