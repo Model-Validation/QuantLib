@@ -77,7 +77,7 @@ namespace QuantLib {
 
             pastFixings = 0;
             for (auto fixingDate : fixingDates_) {
-                if (fixingDate < today) {
+                if (fixingDate <= today) {
                     pastFixings += 1;
                 } else {
                     futureFixingDates.push_back(fixingDate);
