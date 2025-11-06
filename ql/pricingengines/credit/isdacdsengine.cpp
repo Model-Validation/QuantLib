@@ -379,8 +379,6 @@ IsdaCdsEngine::IsdaCdsEngine(const Handle<DefaultProbabilityTermStructure>& prob
     registerWith(discountCurve_);
 }
 
-Real IsdaCdsEngine::survivalProbability(const Date& d) const { return probability_->survivalProbability(d); }
-
 Real IsdaCdsEngine::defaultProbability(const Date& d1, const Date& d2) const { return probability_->defaultProbability(d1, d2); }
 
 Real IsdaCdsEngine::expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2,
@@ -473,7 +471,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
     Date d0 = effectiveProtectionStart-1;
     Real P0 = discountCurve_->discount(d0);
-    Real Q0 = survivalProbability(d0);
+    Real Q0 = probability_->survivalProbability(d0);
     Date d1;
     auto it = std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
 
@@ -485,7 +483,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
             d1 = *it;
         }
         Real P1 = discountCurve_->discount(d1);
-        Real Q1 = survivalProbability(d1);
+        Real Q1 = probability_->survivalProbability(d1);
 
         Real fhat = std::log(P0) - std::log(P1);
         Real hhat = std::log(Q0) - std::log(Q1);
@@ -521,7 +519,7 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
 
         // premium coupons
         if (!i->hasOccurred(effectiveProtectionStart, includeSettlementDateFlows_)) {
-            premiumNpv += coupon->amount() * discountCurve_->discount(coupon->date()) * survivalProbability(coupon->date()-1);
+            premiumNpv += coupon->amount() * discountCurve_->discount(coupon->date()) * probability_->survivalProbability(coupon->date()-1);
         }
 
         // default accruals
@@ -550,12 +548,12 @@ void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::
             auto node = localNodes.begin();
             Real t0 = discountCurve_->timeFromReference(*node);
             Real P0 = discountCurve_->discount(*node);
-            Real Q0 = survivalProbability(*node);
+            Real Q0 = probability_->survivalProbability(*node);
 
             for (++node; node != localNodes.end(); ++node) {
                 Real t1 = discountCurve_->timeFromReference(*node);
                 Real P1 = discountCurve_->discount(*node);
-                Real Q1 = survivalProbability(*node);
+                Real Q1 = probability_->survivalProbability(*node);
                 Real fhat = std::log(P0) - std::log(P1);
                 Real hhat = std::log(Q0) - std::log(Q1);
                 Real fhphh = fhat + hhat;

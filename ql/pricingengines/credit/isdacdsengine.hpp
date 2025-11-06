@@ -74,7 +74,7 @@ namespace QuantLib {
         virtual ~IsdaCdsEngineBase() {}
 
     protected:
-        virtual Real survivalProbability(const Date& d) const = 0;
+        // virtual Real survivalProbability(const Date& d) const = 0;
         virtual Real defaultProbability(const Date& d1, const Date& d2) const = 0;
         virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const = 0;
         virtual Real claimLoss(const Date& defaultDate, const Real notional) const = 0;
@@ -129,18 +129,13 @@ namespace QuantLib {
                       const AccrualBias accrualBias = HalfDayBias,
                       const ForwardsInCouponPeriod forwardsInCouponPeriod = Piecewise);
 
-        // Handle<YieldTermStructure> isdaRateCurve() const { return discountCurve_; }
-        // Handle<DefaultProbabilityTermStructure> isdaCreditCurve() const { return probability_; }
-
         void calculate() const override;
 
       protected:
-        virtual Real survivalProbability(const Date& d) const override;
         virtual Real defaultProbability(const Date& d1, const Date& d2) const override;
         virtual Real expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2, const Real notional) const override;
         virtual Real claimLoss(const Date& defaultDate, const Real notional) const override;
         
-        // mutable Handle<DefaultProbabilityTermStructure> probability_;
         mutable Real recoveryRate_;
 
     };
