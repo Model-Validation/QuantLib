@@ -574,20 +574,21 @@ namespace QuantLib {
         //    i.e. it can dynamically change
         // 2. input discount curve Handle might be empty now but it could
         //    be assigned a curve later; use a RelinkableHandle here
-        auto tmp = MakeVanillaSwap(tenor_, iborIndex_, 0.0, fwdStart_)
-            .withSettlementDays(settlementDays_)  // resets effectiveDate
-            .withEffectiveDate(startDate_)
-            .withTerminationDate(endDate_)
-            .withDiscountingTermStructure(discountRelinkableHandle_)
-            .withFixedLegDayCount(fixedDayCount_)
-            .withFixedLegTenor(fixedFrequency_ == Once ? tenor_ : Period(fixedFrequency_))
-            .withFixedLegConvention(fixedConvention_)
-            .withFixedLegTerminationDateConvention(fixedConvention_)
-            .withFixedLegCalendar(calendar_)
-            .withFixedLegEndOfMonth(endOfMonth_)
-            .withFloatingLegCalendar(calendar_)
-            .withFloatingLegEndOfMonth(endOfMonth_)
-            .withIndexedCoupons(useIndexedCoupons_);
+        auto tmp =
+            MakeVanillaSwap(tenor_, iborIndex_, quote().empty() ? 0.0 : quote()->value(), fwdStart_)
+                .withSettlementDays(settlementDays_) // resets effectiveDate
+                .withEffectiveDate(startDate_)
+                .withTerminationDate(endDate_)
+                .withDiscountingTermStructure(discountRelinkableHandle_)
+                .withFixedLegDayCount(fixedDayCount_)
+                .withFixedLegTenor(fixedFrequency_ == Once ? tenor_ : Period(fixedFrequency_))
+                .withFixedLegConvention(fixedConvention_)
+                .withFixedLegTerminationDateConvention(fixedConvention_)
+                .withFixedLegCalendar(calendar_)
+                .withFixedLegEndOfMonth(endOfMonth_)
+                .withFloatingLegCalendar(calendar_)
+                .withFloatingLegEndOfMonth(endOfMonth_)
+                .withIndexedCoupons(useIndexedCoupons_);
         if (floatConvention_) {
             tmp.withFloatingLegConvention(*floatConvention_)
                .withFloatingLegTerminationDateConvention(*floatConvention_);
