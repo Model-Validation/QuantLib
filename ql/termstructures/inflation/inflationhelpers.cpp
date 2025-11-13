@@ -141,9 +141,8 @@ namespace QuantLib {
         Date start = startDate_ == Date() ? evaluationDate_ : startDate_;
         Real nominal = 1000000.0; // has to be something but doesn't matter what
         zciis_ = ext::make_shared<ZeroCouponInflationSwap>(
-            Swap::Payer, nominal, start, maturity_, calendar_,
-            paymentConvention_, dayCounter_, 0.0, zii_, swapObsLag_,
-            observationInterpolation_);
+            Swap::Payer, nominal, start, maturity_, calendar_, paymentConvention_, dayCounter_,
+            quote().empty() ? 0.0 : quote()->value(), zii_, swapObsLag_, observationInterpolation_);
 
         // Because very simple instrument only takes
         // standard discounting swap engine.
@@ -245,9 +244,9 @@ namespace QuantLib {
         const Schedule& yoySchedule = fixedSchedule;
 
         yyiis_ = ext::make_shared<YearOnYearInflationSwap>(
-            Swap::Payer, 1.0, fixedSchedule, 0.0, dayCounter_,
-            yoySchedule, yii_, swapObsLag_, interpolation_,
-            0.0, dayCounter_, calendar_, paymentConvention_);
+            Swap::Payer, 1.0, fixedSchedule, quote().empty() ? 0.0 : quote()->value(), dayCounter_,
+            yoySchedule, yii_, swapObsLag_, interpolation_, 0.0, dayCounter_, calendar_,
+            paymentConvention_);
 
         // The instrument takes a standard discounting swap engine.
         // The inflation-related work is done by the coupons.
