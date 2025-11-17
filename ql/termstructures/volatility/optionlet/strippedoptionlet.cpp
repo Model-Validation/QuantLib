@@ -161,12 +161,10 @@ namespace QuantLib {
     }
 
     const vector<Date>& StrippedOptionlet::optionletFixingDates() const {
-        calculate();
         return optionletDates_;
     }
 
     const vector<Time>& StrippedOptionlet::optionletFixingTimes() const {
-        calculate();
         return optionletTimes_;
     }
 
