@@ -23,8 +23,9 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/cashflows/iborcoupon.hpp>
 #include <ql/cashflows/cashflows.hpp>
+#include <ql/cashflows/couponpricer.hpp>
+#include <ql/cashflows/iborcoupon.hpp>
 #include <ql/currency.hpp>
 #include <ql/indexes/swapindex.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
@@ -85,6 +86,8 @@ namespace QuantLib {
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
 
+        dayCounter_ = dayCounter;
+
         registerWith(convAdj_);
     }
 
@@ -133,6 +136,8 @@ namespace QuantLib {
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
 
+        dayCounter_ = dayCounter;
+
         registerWith(convAdj_);
     }
 
@@ -150,6 +155,8 @@ namespace QuantLib {
             cal.advance(iborStartDate, index->tenor(), index->businessDayConvention());
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, index->dayCounter());
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+
+        dayCounter_ = index->dayCounter();
 
         registerWith(convAdj_);
     }
@@ -229,8 +236,7 @@ namespace QuantLib {
         if (updateDates_) {
             // if the evaluation date is not a business day
             // then move to the next business day
-            Date referenceDate =
-                iborIndex_->fixingCalendar().adjust(evaluationDate_);
+            Date referenceDate = iborIndex_->fixingCalendar().adjust(evaluationDate_);
             earliestDate_ = iborIndex_->valueDate(referenceDate);
             fixingDate_ = iborIndex_->fixingDate(earliestDate_);
         } else {
@@ -238,6 +244,16 @@ namespace QuantLib {
         }
         maturityDate_ = iborIndex_->maturityDate(earliestDate_);
         pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+    }
+
+    ext::shared_ptr<IborCoupon> DepositRateHelper::iborCoupon() const {
+        auto coupon = ext::make_shared<IborCoupon>(maturityDate_, 1.0, earliestDate_, maturityDate_,
+                                                   iborIndex_->fixingDays(), iborIndex_);
+        coupon->setPricer(ext::make_shared<BlackIborCouponPricer>(
+            Handle<OptionletVolatilityStructure>(),
+            BlackIborCouponPricer::TimingAdjustment::Black76,
+            Handle<Quote>(ext::make_shared<SimpleQuote>(1.0)), true));
+        return coupon;
     }
 
     void DepositRateHelper::accept(AcyclicVisitor& v) {
@@ -458,6 +474,15 @@ namespace QuantLib {
             RateHelper::accept(v);
     }
 
+    ext::shared_ptr<IborCoupon> FraRateHelper::iborCoupon() const {
+        auto coupon = ext::make_shared<IborCoupon>(maturityDate_, 1.0, earliestDate_, maturityDate_,
+                                                   iborIndex_->fixingDays(), iborIndex_);
+        coupon->setPricer(ext::make_shared<BlackIborCouponPricer>(
+            Handle<OptionletVolatilityStructure>(),
+            BlackIborCouponPricer::TimingAdjustment::Black76,
+            Handle<Quote>(ext::make_shared<SimpleQuote>(1.0)), useIndexedCoupon_));
+        return coupon;
+    }
 
     SwapRateHelper::SwapRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
                                    const ext::shared_ptr<SwapIndex>& swapIndex,
@@ -549,20 +574,21 @@ namespace QuantLib {
         //    i.e. it can dynamically change
         // 2. input discount curve Handle might be empty now but it could
         //    be assigned a curve later; use a RelinkableHandle here
-        auto tmp = MakeVanillaSwap(tenor_, iborIndex_, 0.0, fwdStart_)
-            .withSettlementDays(settlementDays_)  // resets effectiveDate
-            .withEffectiveDate(startDate_)
-            .withTerminationDate(endDate_)
-            .withDiscountingTermStructure(discountRelinkableHandle_)
-            .withFixedLegDayCount(fixedDayCount_)
-            .withFixedLegTenor(fixedFrequency_ == Once ? tenor_ : Period(fixedFrequency_))
-            .withFixedLegConvention(fixedConvention_)
-            .withFixedLegTerminationDateConvention(fixedConvention_)
-            .withFixedLegCalendar(calendar_)
-            .withFixedLegEndOfMonth(endOfMonth_)
-            .withFloatingLegCalendar(calendar_)
-            .withFloatingLegEndOfMonth(endOfMonth_)
-            .withIndexedCoupons(useIndexedCoupons_);
+        auto tmp =
+            MakeVanillaSwap(tenor_, iborIndex_, quote().empty() ? 0.0 : quote()->value(), fwdStart_)
+                .withSettlementDays(settlementDays_) // resets effectiveDate
+                .withEffectiveDate(startDate_)
+                .withTerminationDate(endDate_)
+                .withDiscountingTermStructure(discountRelinkableHandle_)
+                .withFixedLegDayCount(fixedDayCount_)
+                .withFixedLegTenor(fixedFrequency_ == Once ? tenor_ : Period(fixedFrequency_))
+                .withFixedLegConvention(fixedConvention_)
+                .withFixedLegTerminationDateConvention(fixedConvention_)
+                .withFixedLegCalendar(calendar_)
+                .withFixedLegEndOfMonth(endOfMonth_)
+                .withFloatingLegCalendar(calendar_)
+                .withFloatingLegEndOfMonth(endOfMonth_)
+                .withIndexedCoupons(useIndexedCoupons_);
         if (floatConvention_) {
             tmp.withFloatingLegConvention(*floatConvention_)
                .withFloatingLegTerminationDateConvention(*floatConvention_);
@@ -755,9 +781,8 @@ namespace QuantLib {
                                      .backwards();
 
         swap_ = ext::make_shared<BMASwap>(
-            Swap::Payer, 100.0, indexSchedule,
-            0.75, // arbitrary
-            0.0, index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
+            Swap::Payer, 100.0, indexSchedule, quote().empty() ? 0.75 : quote()->value(), 0.0,
+            index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
             indexPaymentCalendar_, indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_,
             bmaPaymentConvention_, bmaPaymentLag_, overnightLockoutDays_, true);
 

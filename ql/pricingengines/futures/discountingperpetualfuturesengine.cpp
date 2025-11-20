@@ -160,7 +160,7 @@ namespace QuantLib {
                 fundingRateGrid[i] *= ratio;
                 interestRateDiffGrid[i] *= ratio;
             }
-            auto productIRDiff = [timeGrid, fundingRateGrid](Size i) {
+            auto productIRDiff = [fundingRateGrid](Size i) {
                 Real ret = 1.;
                 for (Size j = 0; j <= i; ++j) {
                     ret /= 1. + fundingRateGrid[j];
@@ -210,7 +210,7 @@ namespace QuantLib {
                 }
             };
 
-            auto timeIntegrand = [fundingRateInterp, interestRateDiffInterp, integrator, expIRDiff,
+            auto timeIntegrand = [fundingRateInterp, interestRateDiffInterp, expIRDiff,
                                   effDomCurve, effForCurve](Real s) -> Real {
                 return (fundingRateInterp(s) - interestRateDiffInterp(s)) * expIRDiff(s)
                        * effForCurve->discount(s) / effDomCurve->discount(s);
