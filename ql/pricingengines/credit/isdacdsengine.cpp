@@ -32,7 +32,7 @@
 #include <utility>
 
 namespace QuantLib {
-
+    /*
     IsdaCdsEngine::IsdaCdsEngine(Handle<DefaultProbabilityTermStructure> probability,
                                  Real recoveryRate,
                                  Handle<YieldTermStructure> discountCurve,
@@ -364,5 +364,326 @@ namespace QuantLib {
         } else {
             results_.upfrontBPS = Null<Rate>();
         }
+    }x*/
+IsdaCdsEngine::IsdaCdsEngine(const Handle<DefaultProbabilityTermStructure>& probability,
+                            Real recoveryRate,
+                            const Handle<YieldTermStructure>& discountCurve,
+                            ext::optional<bool> includeSettlementDateFlows,
+                            NumericalFix numericalFix,
+                            AccrualBias accrualBias,
+                            ForwardsInCouponPeriod forwardsInCouponPeriod)
+    : IsdaCdsEngineBase(discountCurve, probability, includeSettlementDateFlows, numericalFix,
+      accrualBias, forwardsInCouponPeriod), recoveryRate_(recoveryRate) {
+
+    registerWith(probability_);
+    registerWith(discountCurve_);
+}
+
+Real IsdaCdsEngine::defaultProbability(const Date& d1, const Date& d2) const { return probability_->defaultProbability(d1, d2); }
+
+Real IsdaCdsEngine::expectedLoss(const Date& defaultDate, const Date& d1, const Date& d2,
+                                     const Real notional) const {
+    return arguments_.claim->amount(defaultDate, notional, recoveryRate_) * probability_->defaultProbability(d1, d2);
+}
+
+Real IsdaCdsEngine::claimLoss(const Date& defaultDate, const Real notional) const {
+    return arguments_.claim->amount(defaultDate, notional, recoveryRate_);
+}
+
+void IsdaCdsEngine::calculate() const {
+    QL_REQUIRE(!discountCurve_.empty(), "no discount term structure set");
+    QL_REQUIRE(!probability_.empty(), "no probability term structure set");
+    IsdaCdsEngineBase::calculate(probability_->referenceDate(), arguments_, results_);
+}
+
+void IsdaCdsEngineBase::calculate(const Date& refDate, const CreditDefaultSwap::arguments& arguments,
+                              CreditDefaultSwap::results& results) const {
+        
+    QL_REQUIRE(numericalFix_ == None || numericalFix_ == Taylor,
+                "numerical fix must be None or Taylor");
+    QL_REQUIRE(accrualBias_ == HalfDayBias || accrualBias_ == NoBias,
+                "accrual bias must be HalfDayBias or NoBias");
+    QL_REQUIRE(forwardsInCouponPeriod_ == Flat ||
+                    forwardsInCouponPeriod_ == Piecewise,
+                "forwards in coupon period must be Flat or Piecewise");
+
+    // it would be possible to handle the cases which are excluded below,
+    // but the ISDA engine is not explicitly specified to handle them,
+    // so we just forbid them too
+
+    Actual365Fixed dc;
+    Actual360 dc1;
+    Actual360 dc2(true);
+
+    Date today = Settings::instance().evaluationDate();
+
+    Date maturity = arguments.maturity;
+    Date effectiveProtectionStart = std::max<Date>(arguments.protectionStart, today + 1);
+
+    // collect nodes from both curves and sort them
+    std::vector<Date> yDates, cDates;
+
+    // the calls to dates() below might not trigger bootstrap (because
+    // they will call the InterpolatedCurve methods, not the ones from
+    // PiecewiseYieldCurve or PiecewiseDefaultCurve) so we force it here
+    if(ext::shared_ptr<InterpolatedDiscountCurve<LogLinear> > castY1 =
+        ext::dynamic_pointer_cast<
+            InterpolatedDiscountCurve<LogLinear> >(*discountCurve_)) {
+        yDates = castY1->dates();
+    } else if(ext::shared_ptr<InterpolatedForwardCurve<BackwardFlat> >
+        castY2 = ext::dynamic_pointer_cast<
+        InterpolatedForwardCurve<BackwardFlat> >(*discountCurve_)) {
+        yDates = castY2->dates();
+    } else if(ext::shared_ptr<InterpolatedForwardCurve<ForwardFlat> >
+        castY3 = ext::dynamic_pointer_cast<
+        InterpolatedForwardCurve<ForwardFlat> >(*discountCurve_)) {
+        yDates = castY3->dates();
+    } else if(ext::shared_ptr<FlatForward> castY4 =
+        ext::dynamic_pointer_cast<FlatForward>(*discountCurve_)) {
+        // no dates to extract
+    } else {
+        QL_FAIL("Yield curve must be flat forward interpolated");
     }
+
+    if(ext::shared_ptr<InterpolatedSurvivalProbabilityCurve<LogLinear>>
+        castC1 = ext::dynamic_pointer_cast<InterpolatedSurvivalProbabilityCurve<LogLinear>>(*probability_)) {
+        cDates = castC1->dates();
+    } else if(ext::shared_ptr<InterpolatedHazardRateCurve<BackwardFlat>> 
+        castC2 = ext::dynamic_pointer_cast<InterpolatedHazardRateCurve<BackwardFlat> >(*probability_)) {
+        cDates = castC2->dates();
+    } else if(ext::shared_ptr<FlatHazardRate> castC3 = ext::dynamic_pointer_cast<FlatHazardRate>(*probability_)) {
+        // no dates to extract
+    } else{
+        QL_FAIL("Credit curve must be flat forward interpolated");
+    }
+
+    std::vector<Date> nodes;
+    std::set_union(yDates.begin(), yDates.end(), cDates.begin(), cDates.end(), std::back_inserter(nodes));
+
+
+    if(nodes.empty()){
+        nodes.push_back(maturity);
+    }
+    const Real nFix = (numericalFix_ == None ? 1E-50 : 0.0);
+
+    // protection leg pricing (npv is always negative at this stage)
+    Real protectionNpv = 0.0;
+
+    Date d0 = effectiveProtectionStart-1;
+    Real P0 = discountCurve_->discount(d0);
+    Real Q0 = probability_->survivalProbability(d0);
+    Date d1;
+    auto it = std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
+
+    for(;it != nodes.end(); ++it) {
+        if(*it > maturity) {
+            d1 = maturity;
+            it = nodes.end() - 1; //early exit
+        } else {
+            d1 = *it;
+        }
+        Real P1 = discountCurve_->discount(d1);
+        Real Q1 = probability_->survivalProbability(d1);
+
+        Real fhat = std::log(P0) - std::log(P1);
+        Real hhat = std::log(Q0) - std::log(Q1);
+        Real fhphh = fhat + hhat;
+
+        if (fhphh < 1E-4 && numericalFix_ == Taylor) {
+            Real fhphhq = fhphh * fhphh;
+            protectionNpv +=
+                P0 * Q0 * hhat * (1.0 - 0.5 * fhphh + 1.0 / 6.0 * fhphhq -
+                                    1.0 / 24.0 * fhphhq * fhphh +
+                                    1.0 / 120 * fhphhq * fhphhq);
+        } else {
+            protectionNpv += hhat / (fhphh + nFix) * (P0 * Q0 - P1 * Q1);
+        }
+        d0 = d1;
+        P0 = P1;
+        Q0 = Q1;
+    }
+    protectionNpv *= claimLoss(Date(), arguments.notional);
+
+    results.defaultLegNPV = protectionNpv;
+
+    // premium leg pricing (npv is always positive at this stage)
+
+    Real premiumNpv = 0.0, defaultAccrualNpv = 0.0;
+    for (auto& i : arguments.leg) {
+        ext::shared_ptr<Coupon> coupon = ext::dynamic_pointer_cast<Coupon>(i);
+        QL_REQUIRE(coupon, "IsdaCdsEngine: expected coupon, simple cashflows are not allowed");
+
+        QL_REQUIRE(coupon->dayCounter() == dc || coupon->dayCounter() == dc1 || coupon->dayCounter() == dc2,
+                    "ISDA engine requires a coupon day counter Act/365Fixed "
+                        << "or Act/360 (" << coupon->dayCounter() << ")");
+
+        // premium coupons
+        if (!i->hasOccurred(effectiveProtectionStart, includeSettlementDateFlows_)) {
+            premiumNpv += coupon->amount() * discountCurve_->discount(coupon->date()) * probability_->survivalProbability(coupon->date()-1);
+        }
+
+        // default accruals
+
+        if (!detail::simple_event(coupon->accrualEndDate())
+                    .hasOccurred(effectiveProtectionStart, false)) {
+            Date start = std::max<Date>(coupon->accrualStartDate(),
+                                        effectiveProtectionStart)-1;
+            Date end = coupon->date()-1;
+            Real tstart =
+                discountCurve_->timeFromReference(coupon->accrualStartDate()-1) -
+                (accrualBias_ == HalfDayBias ? 1.0 / 730.0 : 0.0);
+            std::vector<Date> localNodes;
+            localNodes.push_back(start);
+            //add intermediary nodes, if any
+            if (forwardsInCouponPeriod_ == Piecewise) {
+                auto it0 =
+                    std::upper_bound(nodes.begin(), nodes.end(), start);
+                auto it1 =
+                    std::lower_bound(nodes.begin(), nodes.end(), end);
+                localNodes.insert(localNodes.end(), it0, it1);
+            }
+            localNodes.push_back(end);
+
+            Real defaultAccrThisNode = 0.;
+            auto node = localNodes.begin();
+            Real t0 = discountCurve_->timeFromReference(*node);
+            Real P0 = discountCurve_->discount(*node);
+            Real Q0 = probability_->survivalProbability(*node);
+
+            for (++node; node != localNodes.end(); ++node) {
+                Real t1 = discountCurve_->timeFromReference(*node);
+                Real P1 = discountCurve_->discount(*node);
+                Real Q1 = probability_->survivalProbability(*node);
+                Real fhat = std::log(P0) - std::log(P1);
+                Real hhat = std::log(Q0) - std::log(Q1);
+                Real fhphh = fhat + hhat;
+                if (fhphh < 1E-4 && numericalFix_ == Taylor) {
+                    // see above, terms up to (f+h)^3 seem more than enough,
+                    // what exactly is implemented in the standard isda C
+                    // code ?
+                    Real fhphhq = fhphh * fhphh;
+                    defaultAccrThisNode +=
+                        hhat * P0 * Q0 *
+                        ((t0 - tstart) *
+                                (1.0 - 0.5 * fhphh + 1.0 / 6.0 * fhphhq -
+                                1.0 / 24.0 * fhphhq * fhphh) +
+                            (t1 - t0) *
+                                (0.5 - 1.0 / 3.0 * fhphh + 1.0 / 8.0 * fhphhq -
+                                1.0 / 30.0 * fhphhq * fhphh));
+                } else {
+                    defaultAccrThisNode +=
+                        (hhat / (fhphh + nFix)) *
+                        ((t1 - t0) * ((P0 * Q0 - P1 * Q1) / (fhphh + nFix) -
+                                        P1 * Q1) +
+                            (t0 - tstart) * (P0 * Q0 - P1 * Q1));
+                }
+
+                t0 = t1;
+                P0 = P1;
+                Q0 = Q1;
+            }
+            defaultAccrualNpv += defaultAccrThisNode * arguments.notional * coupon->rate() * 365. / 360.;
+        }
+    }
+
+    results.couponLegNPV = premiumNpv + defaultAccrualNpv;
+
+    // upfront flow npv
+
+    Real upfPVO1 = 0.0;
+    results.upfrontNPV = 0.0;
+    if (!arguments.upfrontPayment->hasOccurred(today, includeSettlementDateFlows_)) {
+        upfPVO1 = discountCurve_->discount(arguments.upfrontPayment->date());
+        if(arguments.upfrontPayment->amount() != 0.) {
+            results.upfrontNPV = upfPVO1 * arguments.upfrontPayment->amount();
+        }
+    }
+
+    results.accrualRebateNPV = 0.;
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+    if (arguments.accrualRebate && arguments.accrualRebate->amount() != 0. &&
+        !arguments.accrualRebate->hasOccurred(today, includeSettlementDateFlows_)) {
+        results.accrualRebateNPV =
+            discountCurve_->discount(arguments.accrualRebate->date()) * arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebateAmount"] = arguments.accrualRebate->amount();
+        results.additionalResults["accrualRebatePaymentDate"] = arguments.accrualRebate->date();
+        results.additionalResults["accrualRebateDiscountFactor"] = discountCurve_->discount(arguments.accrualRebate->date());
+    }
+
+    if (arguments.accrualRebateCurrent && arguments.accrualRebateCurrent->amount() != 0. &&
+        !arguments.accrualRebateCurrent->hasOccurred(today, includeSettlementDateFlows_)) {
+        results.accrualRebateNPVCurrent = 
+            discountCurve_->discount(arguments.accrualRebateCurrent->date()) * arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentAmount"] = arguments.accrualRebateCurrent->amount();
+        results.additionalResults["accrualRebateCurrentPaymentDate"] = arguments.accrualRebateCurrent->date();
+        results.additionalResults["accrualRebateCurrentDiscountFactor"] = discountCurve_->discount(arguments.accrualRebateCurrent->date());
+    }
+
+    Real upfrontSign = 1.0;
+    switch (arguments.side) {
+        case Protection::Seller:
+        results.defaultLegNPV *= -1.0;
+        results.accrualRebateNPV *= -1.0;
+        results.accrualRebateNPVCurrent *= -1.0;
+        break;
+        case Protection::Buyer:
+        results.couponLegNPV *= -1.0;
+        results.upfrontNPV   *= -1.0;
+        upfrontSign = -1.0;
+        break;
+        default:
+        QL_FAIL("unknown protection side");
+    }
+
+    results.value = results.defaultLegNPV + results.couponLegNPV +
+                    results.upfrontNPV + results.accrualRebateNPV;
+
+    results.errorEstimate = Null<Real>();
+
+    if (results.couponLegNPV != 0.0) {
+        results.fairSpreadDirty = 
+            -results.defaultLegNPV * arguments.spread / (results.couponLegNPV + results.accrualRebateNPV);
+        results.fairSpreadClean =
+            -results.defaultLegNPV * arguments.spread / (results.couponLegNPV + results.accrualRebateNPVCurrent);
+    } else {
+        results.fairSpreadDirty = Null<Rate>();
+        results.fairSpreadClean = Null<Rate>();
+    }
+
+    Real upfrontSensitivity = upfPVO1 * arguments.notional;
+    if (upfrontSensitivity != 0.0) {
+        results.fairUpfront = -upfrontSign * (results.defaultLegNPV + results.couponLegNPV +
+                              results.accrualRebateNPV) / upfrontSensitivity;
+    } else {
+        results.fairUpfront = Null<Rate>();
+    }
+
+    static const Rate basisPoint = 1.0e-4;
+
+    if (arguments.spread != 0.0) {
+        results.couponLegBPS = results.couponLegNPV * basisPoint / arguments.spread;
+    } else {
+        results.couponLegBPS = Null<Rate>();
+    }
+
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+    if (arguments.upfront && *arguments.upfront != 0.0) {
+        results.upfrontBPS = results.upfrontNPV * basisPoint / (*arguments.upfront);
+    } else {
+        results.upfrontBPS = Null<Rate>();
+    }
+
+    results.additionalResults["upfrontPremium"] = arguments.upfrontPayment->amount() * upfrontSign;
+    results.additionalResults["upfrontPremiumNPV"] = results.upfrontNPV;
+    results.additionalResults["premiumLegNPVDirty"] = results.couponLegNPV;
+    results.additionalResults["premiumLegNPVClean"] = results.couponLegNPV + results.accrualRebateNPVCurrent;
+    results.additionalResults["accrualRebateNPV"] = results.accrualRebateNPV;
+    results.additionalResults["accrualRebateNPVCurrent"] = results.accrualRebateNPVCurrent;
+    results.additionalResults["protectionLegNPV"] = results.defaultLegNPV;
+    results.additionalResults["fairSpreadDirty"] = results.fairSpreadDirty;
+    results.additionalResults["fairSpreadClean"] = results.fairSpreadClean;
+    results.additionalResults["fairUpfront"] = results.fairUpfront;
+    results.additionalResults["couponLegBPS"] = results.couponLegBPS;
+    results.additionalResults["upfrontBPS"] = results.upfrontBPS;
+}
 }
