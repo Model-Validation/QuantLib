@@ -183,6 +183,9 @@ namespace QuantLib {
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
             break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
           case Pillar::CustomDate:
             // pillarDate_ already assigned at construction time
             QL_REQUIRE(pillarDate_ >= earliestDate_,
