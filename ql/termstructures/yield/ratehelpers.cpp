@@ -985,7 +985,7 @@ namespace QuantLib {
         registerWith(spot_);
         registerWith(collHandle_);
         earliestDate_ = startDate;
-        latestDate_ = endDate;
+        latestRelevantDate_ = maturityDate_ = endDate;
         pillarDate_ = customPillarDate;
         setPillarDate();
     }
