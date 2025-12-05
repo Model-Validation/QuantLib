@@ -79,7 +79,7 @@ namespace QuantLib {
                                          Futures::Type type,
                                          Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         earliestDate_ = iborStartDate;
@@ -103,7 +103,7 @@ namespace QuantLib {
                                          Futures::Type type,
                                          Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         const auto determineMaturityDate =
@@ -233,7 +233,7 @@ namespace QuantLib {
                                          const DayCounter& dayCounter,
                                          Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RelativeDateRateHelper(rate) {
+    : RelativeDateRateHelper(rate), pillarChoice_(pillarChoice) {
         iborIndex_ = ext::make_shared<IborIndex>("no-fix", // never take fixing into account
                       tenor, fixingDays,
                       Currency(), calendar, convention,
@@ -246,7 +246,7 @@ namespace QuantLib {
                                          const ext::shared_ptr<IborIndex>& i,
                                          Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RelativeDateRateHelper(rate) {
+    : RelativeDateRateHelper(rate), pillarChoice_(pillarChoice) {
         iborIndex_ = i->clone(termStructureHandle_);
         pillarDate_ = customPillarDate;
         DepositRateHelper::initializeDates();
@@ -257,7 +257,7 @@ namespace QuantLib {
                                          const ext::shared_ptr<IborIndex>& i,
                                          Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RelativeDateRateHelper(rate, false), fixingDate_(fixingDate) {
+    : RelativeDateRateHelper(rate, false), fixingDate_(fixingDate), pillarChoice_(pillarChoice) {
         iborIndex_ = i->clone(termStructureHandle_);
         pillarDate_ = customPillarDate;
         DepositRateHelper::initializeDates();
