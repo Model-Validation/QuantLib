@@ -154,9 +154,9 @@ namespace QuantLib {
                                          const ext::shared_ptr<IborIndex>& index,
                                          const std::variant<Real, Handle<Quote>>& convAdj,
                                          Futures::Type type,
-                                         Pillar::Choice pillar,
+                                         Pillar::Choice pillarChoice,
                                          const Date& customPillarDate)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         earliestDate_ = iborStartDate;
