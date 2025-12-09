@@ -73,7 +73,7 @@ namespace QuantLib {
         */
         //@{
         //! zero-yield calculation
-        virtual Rate zeroYieldImpl(Time) const = 0;
+        Rate zeroYieldImpl(Time) const override = 0;
         //@}
 
         //! \name YieldTermStructure implementation
