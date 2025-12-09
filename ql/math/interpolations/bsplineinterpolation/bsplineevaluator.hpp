@@ -23,6 +23,7 @@
 #include <ql/types.hpp>
 #include <vector>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 namespace QuantLib {
 
@@ -36,7 +37,7 @@ namespace QuantLib {
     class BSplineEvaluator {
     public:
         /*! Default constructor */
-        BSplineEvaluator() = default;
+        BSplineEvaluator();
         
         /*!
          * \brief Constructor with knots and degree
@@ -63,6 +64,15 @@ namespace QuantLib {
     private:
         std::vector<Real> knots_;
         Integer degree_;
+        Size numBasisFunctions_;
+        mutable std::vector<Eigen::SparseMatrix<Real>> Rk_matrices_;
+        mutable Eigen::VectorXd tempB1_;
+        mutable Eigen::VectorXd tempB2_;
+        
+        Size findKnotSpan(Real x) const;
+        void evaluate(Eigen::Ref<Eigen::VectorXd> B, Real x, Size mu) const;
+        void precomputeRkMatrices() const;
+        void initializeTempVectors() const;
     };
 
 }

@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2025
+ Copyright (C) 2024-2025 SEB AB Sverrir Thorvaldsson
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -14,46 +14,94 @@
 */
 
 #include "bsplineevaluator.hpp"
+#include <vector>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <ql/errors.hpp>
+#include <ql/types.hpp>
 
 namespace QuantLib {
+    
+    BSplineEvaluator::BSplineEvaluator() : knots_({0.0, 1.0}), degree_(0), numBasisFunctions_(1) {}
 
     BSplineEvaluator::BSplineEvaluator(const std::vector<Real>& knots, Integer degree)
-        : knots_(knots), degree_(degree) {
+    : knots_(knots), degree_(degree), numBasisFunctions_(knots.size() - degree - 1) {
         QL_REQUIRE(!knots_.empty(), "Knots vector cannot be empty");
         QL_REQUIRE(degree_ >= 0, "Degree must be non-negative");
+        precomputeRkMatrices();
+        initializeTempVectors();
+    }
+
+    void BSplineEvaluator::precomputeRkMatrices() const {
+        Rk_matrices_.resize(degree_ + 1);
+        for (Size k = 1; k <= degree_; ++k) {
+            Rk_matrices_[k] = Eigen::SparseMatrix<Real>(k + 1, k);
+            Rk_matrices_[k].reserve(Eigen::VectorXi::Constant(k, 2)); // Each column will have at most 2 non-zero entries
+        }
+    }
+
+    void BSplineEvaluator::initializeTempVectors() const {
+        tempB1_.resize(degree_ + 1);
+        tempB2_.resize(degree_ + 1);
+    }
+
+    Size BSplineEvaluator::findKnotSpan(Real x) const {
+        // This returns the index of the first knot that is greater than x
+        auto it = std::upper_bound(knots_.begin(), knots_.end(), x);
+        if (it != knots_.end()) {
+            return std::distance(knots_.begin(), it);
+        } else if (x >= knots_.back()) {
+            return knots_.size() - degree_ - 1;
+        } else {
+            QL_FAIL("x = " << x << " is outside the range of the knots [" << knots_.front() << ", "
+                           << knots_.back() << "]");
+        }
     }
 
     Eigen::VectorXd BSplineEvaluator::evaluateAll(Real x) const {
-        // This is a placeholder implementation
-        // In practice, this should implement the Cox-de Boor recursion formula
-        // or use another method to evaluate B-spline basis functions
-        
-        Size n = knots_.size() - degree_ - 1;
-        if (n <= 0) {
-            return Eigen::VectorXd::Zero(1);
-        }
-        
-        Eigen::VectorXd result = Eigen::VectorXd::Zero(n);
-        
-        // Simple placeholder: find the interval and set one basis function to 1
-        // This is NOT a correct B-spline evaluation, just enough to compile
-        for (Size i = 0; i < knots_.size() - 1; ++i) {
-            if (x >= knots_[i] && x < knots_[i + 1] && i < n) {
-                result[i] = 1.0;
-                break;
+        Size mu = findKnotSpan(x);
+        Eigen::VectorXd B = Eigen::VectorXd::Zero(numBasisFunctions_);
+        evaluate(B.segment(mu - degree_ - 1, degree_ + 1), x, mu);
+        return B;
+    }
+
+    /*
+     * This implementation is inspired from Lyche-Morken "Spline Methods" book, chapter 2.4
+     * This is the efficient Cox-de Boor recursion using pre-allocated matrices
+     */
+    void BSplineEvaluator::evaluate(Eigen::Ref<Eigen::VectorXd> B, Real x, Size mu) const {
+        Size d = degree_;
+
+        // Initialize B_0
+        tempB1_.head(1).coeffRef(0) = 1.0;
+
+        // Compute B_k for k = 1, ..., d
+        for (Size k = 1; k <= d; ++k) {
+            auto& Rk = Rk_matrices_[k];
+            for (Size i = 0; i < k; ++i) {
+                if (knots_[i + mu - k] != knots_[i + mu]) {
+                    Rk.coeffRef(i, i) =
+                        (knots_[i + mu] - x) / (knots_[i + mu] - knots_[i + mu - k]);
+                    Rk.coeffRef(i + 1, i) =
+                        (x - knots_[i + mu - k]) / (knots_[i + mu] - knots_[i + mu - k]);
+                }
             }
+            // The noalias is needed to avoid aliasing issues
+            tempB2_.head(k + 1).noalias() = Rk * tempB1_.head(k);
+            tempB1_.swap(tempB2_);
         }
-        
-        return result;
+        B.head(d + 1) = tempB1_.head(d + 1);
     }
 
     Real BSplineEvaluator::value(const Eigen::VectorXd& coefficients, Real x) const {
-        Eigen::VectorXd basis = evaluateAll(x);
-        if (basis.size() != coefficients.size()) {
-            return 0.0;
-        }
-        return basis.dot(coefficients);
+        QL_REQUIRE(static_cast<Size>(coefficients.size()) == this->numBasisFunctions_,
+                   "The size of coefficients vector must match the number of basis functions.");
+
+        const Size mu = findKnotSpan(x);
+        evaluate(tempB1_, x, mu);
+
+        // Compute the inner product with only the relevant coefficients
+        return tempB1_.dot(coefficients.segment(mu - this->degree_ - 1, this->degree_ + 1));
     }
 
 }

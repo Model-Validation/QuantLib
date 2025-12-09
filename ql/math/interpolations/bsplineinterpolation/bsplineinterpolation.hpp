@@ -71,23 +71,14 @@ namespace QuantLib {
             }
 
             /*!
-             * \brief Extrapolate the value at a given point.
-             * \param x The point at which to extrapolate.
-             * \return The extrapolated value.
-             */
-            // ReSharper disable once CppMemberFunctionMayBeStatic
-            Real extrapolate(Real x) const { return 0.0; }
-
-            /*!
              * \brief Get the interpolated value at a given point.
              * \param x The point at which to get the value.
              * \return The interpolated value.
              */
             Real value(Real x) const override {
-                if (x < this->xMin() || x > this->xMax()) {
-                    return this->extrapolate(x);
-                }
-
+                // For B-splines, we allow natural polynomial extrapolation
+                // The splineStructure_->value() method naturally extends the polynomial
+                // beyond the domain bounds, providing continuous extrapolation
                 return splineStructure_->value(coefficients_, x);
             }
 
@@ -97,9 +88,7 @@ namespace QuantLib {
              * \return The primitive value.
              */
             Real primitive(Real x) const override {
-                if (x < this->xMin() || x > this->xMax()) {
-                    return this->extrapolate(x);
-                }
+                // Natural polynomial extrapolation for primitives
                 return splineStructure_->value(coefficients_, x, -1);
             }
 
@@ -109,9 +98,7 @@ namespace QuantLib {
              * \return The first derivative value.
              */
             Real derivative(Real x) const override {
-                if (x < this->xMin() || x > this->xMax()) {
-                    return this->extrapolate(x);
-                }
+                // Natural polynomial extrapolation for derivatives
                 return splineStructure_->value(coefficients_, x, 1);
             }
 
@@ -121,9 +108,7 @@ namespace QuantLib {
              * \return The second derivative value.
              */
             Real secondDerivative(Real x) const override {
-                if (x < this->xMin() || x > this->xMax()) {
-                    return this->extrapolate(x);
-                }
+                // Natural polynomial extrapolation for second derivatives
                 return splineStructure_->value(coefficients_, x, 2);
             }
 
@@ -178,12 +163,18 @@ namespace QuantLib {
         BSplineInterpolation(const I1& xBegin,
                              const I1& xEnd,
                              const I2& yBegin,
-                             const ext::shared_ptr<BSplineStructure>& splineStructure) {
+                             const ext::shared_ptr<BSplineStructure>& splineStructure,
+                             bool enableExtrapolation = true) {
             splineStructure_ = splineStructure;
 
             impl_ = ext::make_shared<detail::BSplineInterpolationImpl<I1, I2>>(xBegin, xEnd, yBegin,
                                                                                splineStructure);
             impl_->update();
+            
+            // Enable extrapolation by default for B-splines to allow natural polynomial continuation
+            if (enableExtrapolation) {
+                this->enableExtrapolation();
+            }
         }
 
         /*!
@@ -194,7 +185,8 @@ namespace QuantLib {
          */
         BSplineInterpolation(const std::vector<double>& x,
                              const std::vector<double>& y,
-                             const ext::shared_ptr<BSplineStructure>& splineStructure) {
+                             const ext::shared_ptr<BSplineStructure>& splineStructure,
+                             bool enableExtrapolation = true) {
             using ConstIterator = std::vector<double>::const_iterator;
 
             splineStructure_ = splineStructure;
@@ -202,6 +194,11 @@ namespace QuantLib {
                 ext::make_shared<detail::BSplineInterpolationImpl<ConstIterator, ConstIterator>>(
                     x.begin(), x.end(), y.begin(), splineStructure);
             impl_->update();
+            
+            // Enable extrapolation by default for B-splines
+            if (enableExtrapolation) {
+                this->enableExtrapolation();
+            }
         }
 
         // ReSharper disable once CppInconsistentNaming
@@ -240,12 +237,18 @@ namespace QuantLib {
          * \return Interpolation object.
          */
         template <class I1, class I2>
-        [[nodiscard]] BSplineInterpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin) const {
-            return {xBegin, xEnd, yBegin, splineStructure_};
+        [[nodiscard]] BSplineInterpolation interpolate(const I1& xBegin, const I1& xEnd, const I2& yBegin, bool enableExtrapolation = true) const {
+            return {xBegin, xEnd, yBegin, splineStructure_, enableExtrapolation};
         }
 
-        [[nodiscard]] ext::shared_ptr<BSplineInterpolation> interpolate(const std::vector<Real>& x, const std::vector<Real>& y) const {
-            return ext::make_shared<BSplineInterpolation>(x.begin(), x.end(), y.begin(), splineStructure_);
+        [[nodiscard]] ext::shared_ptr<BSplineInterpolation> interpolate(const std::vector<Real>& x, const std::vector<Real>& y, bool enableExtrapolation = true) const {
+            auto interp = ext::make_shared<BSplineInterpolation>(x.begin(), x.end(), y.begin(), splineStructure_);
+            // Enable extrapolation by default for B-splines
+            // This allows natural polynomial continuation beyond segment bounds
+            if (enableExtrapolation) {
+                interp->enableExtrapolation();
+            }
+            return interp;
         }
 
         // ReSharper disable once CppVariableCanBeMadeConstexpr
