@@ -18,6 +18,7 @@
 #include <ql/errors.hpp>
 #include <algorithm>
 #include <numeric>
+#include <iostream>
 
 namespace QuantLib {
 
@@ -111,7 +112,10 @@ namespace QuantLib {
         combinedConstraints_->update_c(parameters);  // Updates objective: c := c_base + C*parameters
         
         // Solve using updated parameters - this enables warm-start
-        combinedConstraints_->solve();
+        std::cerr << "DEBUG StagedProblem::solveStaged calling solve()\n";
+        int status = combinedConstraints_->solve();
+        std::cerr << "DEBUG StagedProblem::solveStaged solve returned: " << status << "\n";
+        QL_REQUIRE(status == 1, "Solver failed with status " << status);
         Eigen::VectorXd solution = combinedConstraints_->getSolution();
         return solution;
     }
@@ -190,13 +194,38 @@ namespace QuantLib {
                 Real x = interpolationNodes[pointIdx];
                 
                 // Evaluate basis functions at this point using MultiSegmentBSplineEvaluator
-                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
+                // CRITICAL: Use correct sidedness based on position in domain
+                // At right boundary, MUST use LEFT-sided evaluation per CLAUDE.md
+                BSplineSide side = SideRight;
                 
-                // Add to triplets
+                // Check if we're at the right boundary of any segment
+                for (const auto& segment : segments) {
+                    Real rightBound = segment->knots().back();
+                    if (std::abs(x - rightBound) < 1e-10) {
+                        side = SideLeft;  // MUST use LEFT at right boundary
+                        break;
+                    }
+                }
+                
+                // Debug: Show what's happening
+                std::cerr << "DEBUG: Evaluating basis at x=" << x << " with side=" 
+                          << (side == SideLeft ? "LEFT" : "RIGHT") << "\n";
+                
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, side);
+                
+                // Debug: Check how many non-zero basis functions we get
+                int nonZeroCount = 0;
                 for (Size col = 0; col < basis.size(); ++col) {
                     if (std::abs(basis[col]) > 1e-14) {
+                        nonZeroCount++;
                         triplets.emplace_back(row, col, basis[col]);
                     }
+                }
+                
+                if (nonZeroCount == 0) {
+                    std::cerr << "WARNING: No non-zero basis functions at x=" << x << " (point " << row << ")\n";
+                } else if (nonZeroCount < 3) {
+                    std::cerr << "WARNING: Only " << nonZeroCount << " non-zero basis functions at x=" << x << "\n";
                 }
             }
             
@@ -215,7 +244,18 @@ namespace QuantLib {
             
             for (Size i : softIndices_) {
                 Real x = interpolationNodes[i];
-                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
+                
+                // Use correct sidedness for boundary points
+                BSplineSide side = SideRight;
+                for (const auto& segment : segments) {
+                    Real rightBound = segment->knots().back();
+                    if (std::abs(x - rightBound) < 1e-10) {
+                        side = SideLeft;
+                        break;
+                    }
+                }
+                
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, side);
                 
                 // Get weight for this point (square it for quadratic form)
                 Real weight = weights_[i];
@@ -301,8 +341,43 @@ namespace QuantLib {
         }
         
         // Create combined constraints with parameter support
+        // Need to provide c_linearForm (empty) and constraintTypes (all Equal)
+        std::vector<Real> c_combined(numVariables, 0.0);
+        std::vector<SplineConstraints::ConstraintType> types_combined(
+            A_combined.size(), SplineConstraints::ConstraintType::Equal);
+        
+        std::cerr << "DEBUG: Creating combined constraints with:\n";
+        std::cerr << "  P_combined size: " << P_combined.size() << "x" << (P_combined.empty() ? 0 : P_combined[0].size()) << "\n";
+        std::cerr << "  A_combined size: " << A_combined.size() << "x" << (A_combined.empty() ? 0 : A_combined[0].size()) << "\n";
+        
+        // Check if P is essentially zero
+        double maxP = 0.0;
+        for (const auto& row : P_combined) {
+            for (double val : row) {
+                maxP = std::max(maxP, std::abs(val));
+            }
+        }
+        std::cerr << "  Max P value: " << maxP << "\n";
+        
+        // If P is essentially zero or empty, add identity regularization for SCS
+        // This is needed for pure HARD interpolation where we have Ax = b with no objective
+        // Note: P_combined might have tiny non-zero values (1e-6) that are still too small for SCS
+        if (maxP < 0.01) {  // Use a more conservative threshold
+            std::cerr << "DEBUG: Adding identity regularization to P_combined for pure linear system\n";
+            // Ensure P_combined is properly sized
+            if (P_combined.size() < numVariables) {
+                P_combined.resize(numVariables);
+            }
+            for (Size i = 0; i < numVariables; ++i) {
+                if (P_combined[i].size() < numVariables) {
+                    P_combined[i].resize(numVariables, 0.0);
+                }
+                P_combined[i][i] += 1.0;  // Add identity for min ||x||^2 objective
+            }
+        }
+        
         combinedConstraints_ = ext::make_shared<SplineConstraints>(
-            numVariables, P_combined, A_combined, b_combined
+            numVariables, P_combined, A_combined, b_combined, c_combined, types_combined
         );
         
         // Add parameter mapping for warm-start capability
@@ -326,7 +401,18 @@ namespace QuantLib {
             for (Size i = 0; i < softIndices_.size(); ++i) {
                 Size softIdx = softIndices_[i];
                 Real x = lastX_[softIdx];
-                Eigen::VectorXd basis = evaluator_->evaluateAll(x, SideRight);
+                
+                // Use correct sidedness
+                BSplineSide side = SideRight;
+                for (const auto& segment : segments_) {
+                    Real rightBound = segment->knots().back();
+                    if (std::abs(x - rightBound) < 1e-10) {
+                        side = SideLeft;
+                        break;
+                    }
+                }
+                
+                Eigen::VectorXd basis = evaluator_->evaluateAll(x, side);
                 
                 for (Size j = 0; j < basis.size(); ++j) {
                     if (std::abs(basis[j]) > 1e-14) {

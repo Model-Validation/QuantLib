@@ -185,7 +185,8 @@ namespace QuantLib {
 
     // Copy constructor
     BSplineSegment::BSplineSegment(const BSplineSegment& other)
-        : degree_(other.degree_),
+        : simpleKnots_(other.simpleKnots_),
+          degree_(other.degree_),
           knotIndices_(other.knotIndices_),
           interpolationSmoothness_(other.interpolationSmoothness_),
           interpolationTransform_(other.interpolationTransform_),
@@ -245,12 +246,12 @@ namespace QuantLib {
     BSplineSegment::evaluateAll(Real t, Size degree, SideEnum side) const {
         const Size p = (degree != static_cast<Size>(-1)) ? degree : static_cast<Size>(degree_);
         BSplineEvaluator spline;
-        Real x;
 
         // Excess degree
         const Size e = (p > static_cast<Size>(degree_)) ? p - static_cast<Size>(degree_) : 0;
 
-        std::vector knotsVector(knots_.begin(), knots_.end());
+        std::vector<Real> knotsVector(knots_.begin(), knots_.end());
+        
 
         // Adjust knot sequence for different degree
         if (p > static_cast<Size>(degree_)) {
@@ -276,26 +277,70 @@ namespace QuantLib {
         // TODO: we could also do the padding of 0 is then answer and not burden the evaluation
         // Size n = knotsVector.size() - p - 1 + e * 2;
 
-        // TODO: the sidedness could be taken care of in the evaluation function, it just affects the
-        // mu
+        // Implement the reverse/negate transformation for Left side
         QL_ASSERT(side == SideRight || side == SideLeft,
                   "Side must be either 'Left' or 'Right'");
-        if (side == SideRight) {
-            x = t;
-            spline = BSplineEvaluator(knotsVector, p);
-        } else {
+        
+        Real x = t;
+        if (side == SideLeft) {
+            // TEMPORARY DEBUG: Print what we're transforming
+            std::ostringstream debugMsg;
+            debugMsg << "DEBUG Left transformation for t=" << t << ":\n";
+            debugMsg << "  Original knots: ";
+            for (auto k : knotsVector) debugMsg << k << " ";
+            debugMsg << "\n";
+            
+            // Transform knot vector for left-sided evaluation
             std::reverse(knotsVector.begin(), knotsVector.end());
+            
+            debugMsg << "  After reverse: ";
+            for (auto k : knotsVector) debugMsg << k << " ";
+            debugMsg << "\n";
+            
             for (auto& knot : knotsVector) {
                 knot = -knot;
             }
             x = -t;
-            spline = BSplineEvaluator(knotsVector, p);
+            
+            debugMsg << "  After negate: ";
+            for (auto k : knotsVector) debugMsg << k << " ";
+            debugMsg << "\n  x = " << x;
+            
+            // Output debug info
+            std::cout << debugMsg.str() << std::endl;
         }
-
+        
+        // Create evaluator with (possibly transformed) knot vector
+        spline = BSplineEvaluator(knotsVector, p);
+        
+        // DEBUG: Verify the evaluator was created with correct dimensions
+        Size expectedNumBasis = knotsVector.size() - p - 1;
+        // The evaluator should have this many basis functions
+        
         Eigen::VectorXd basisValues = spline.evaluateAll(x);
-
+        
+        // DEBUG: Report actual sizes
         if (side == SideLeft) {
-            std::reverse(basisValues.begin(), basisValues.end());
+            std::ostringstream oss;
+            oss << "Left-side evaluation debug:\n"
+                << "  knotsVector.size() = " << knotsVector.size() << "\n"
+                << "  degree (p) = " << p << "\n"  
+                << "  expectedNumBasis = " << expectedNumBasis << "\n"
+                << "  basisValues.size() = " << basisValues.size() << "\n"
+                << "  First element = " << (basisValues.size() > 0 ? basisValues[0] : -999) << "\n"
+                << "  Last element = " << (basisValues.size() > 0 ? basisValues[basisValues.size()-1] : -999);
+            throw std::runtime_error(oss.str());
+        }
+        
+        if (side == SideLeft) {
+            // Reverse the basis values to account for the transformation
+            // Wait - what if reverseInPlace() is somehow truncating?
+            // Let's try manual reverse
+            Eigen::VectorXd reversed(basisValues.size());
+            for (Eigen::Index i = 0; i < basisValues.size(); ++i) {
+                reversed[i] = basisValues[basisValues.size() - 1 - i];
+            }
+            basisValues = reversed;
         }
 
         // return std::vector<double>(basisValues.begin(), basisValues.end());

@@ -313,7 +313,26 @@ namespace QuantLib {
         std::vector<Real>
         evaluateAllSwig(Real x, Integer degree = -1, SideEnum side = SideRight) const {
             Eigen::VectorXd eigenVector = evaluateAll(x, static_cast<Size>(degree), side);
-            return {eigenVector.data(), eigenVector.data() + eigenVector.size()};
+            
+            // DEBUG: Check sizes at each step
+            Size eigenSize = static_cast<Size>(eigenVector.size());
+            std::vector<Real> result;
+            result.reserve(eigenSize);
+            
+            // Copy element by element to debug
+            for (Eigen::Index i = 0; i < eigenVector.size(); ++i) {
+                result.push_back(eigenVector[i]);
+            }
+            
+            // Final check
+            if (result.size() != eigenSize) {
+                std::ostringstream oss;
+                oss << "evaluateAllSwig: Size mismatch during conversion! "
+                    << "Eigen size=" << eigenSize << ", vector size=" << result.size();
+                throw std::runtime_error(oss.str());
+            }
+            
+            return result;
         }
 
         /*!

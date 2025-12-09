@@ -665,13 +665,68 @@ namespace QuantLib {
     }
 
     int SplineConstraints::solve() {
+        std::cerr << "DEBUG SplineConstraints::solve() called\n";
+        std::cerr << "  numConstraints_: " << numConstraints_ << "\n";
+        std::cerr << "  numEqualities_: " << numEqualities_ << "\n";
+        std::cerr << "  numInequalities_: " << numInequalities_ << "\n";
+        std::cerr << "  P_.nonZeros(): " << P_.nonZeros() << "\n";
+        
+        // Check diagonal values of P
+        double minDiag = 1e10, maxDiag = 0.0;
+        for (Size i = 0; i < numVariables_; ++i) {
+            double val = P_.coeff(i, i);
+            minDiag = std::min(minDiag, val);
+            maxDiag = std::max(maxDiag, val);
+        }
+        std::cerr << "  P diagonal range: [" << minDiag << ", " << maxDiag << "]\n";
+        std::cerr << "  A matrix: " << A_.rows() << "x" << A_.cols() << " with " << A_.nonZeros() << " nonzeros\n";
+        
+        // Check if A matrix might be rank deficient
+        if (A_.nonZeros() > 0 && A_.rows() > 0) {
+            double avgNonzerosPerRow = static_cast<double>(A_.nonZeros()) / A_.rows();
+            std::cerr << "  Average nonzeros per row in A: " << avgNonzerosPerRow << "\n";
+            if (avgNonzerosPerRow < 2.0) {
+                std::cerr << "  WARNING: A matrix appears to be severely sparse, might be rank deficient!\n";
+            }
+        }
+        
+        // Check if this is an unconstrained quadratic problem BEFORE updating SCS data
+        // This happens when all interpolation points are LS mode in the new architecture
+        bool isUnconstrainedQuadratic = (numConstraints_ == 0 && P_.nonZeros() > 0);
+        
+        // Check if this is essentially a linear system (Ax = b) with no real objective
+        // This happens in HARD mode with only interpolation constraints
+        bool isPureLinearSystem = false;
+        if (numConstraints_ > 0 && numInequalities_ == 0) {
+            // Only equality constraints - check if P is essentially zero
+            double maxPValue = 0.0;
+            for (int k = 0; k < P_.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<double>::InnerIterator it(P_, k); it; ++it) {
+                    maxPValue = std::max(maxPValue, std::abs(it.value()));
+                }
+            }
+            // If P matrix has only tiny values, this is really just solving Ax = b
+            // NOTE: StagedProblem may have already added regularization, so check for that
+            isPureLinearSystem = (maxPValue < 0.5);  // If diagonal < 0.5, it wasn't regularized yet
+        }
+        
+        // For pure linear systems (HARD interpolation), we need to add a proper objective
+        // Add identity matrix to P to make it a well-posed optimization problem BEFORE creating SCS
+        if (isPureLinearSystem) {
+            std::cerr << "DEBUG: Detected pure linear system in SplineConstraints, adding more regularization\n";
+            std::cerr << "  numConstraints_: " << numConstraints_ << "\n";
+            std::cerr << "  numVariables_: " << numVariables_ << "\n";
+            // Add identity to P to give SCS a real objective: min ||x||^2 s.t. Ax = b
+            for (Size i = 0; i < numVariables_; ++i) {
+                P_.coeffRef(i, i) += 1.0;  // Add proper regularization (minimize norm)
+            }
+            scsDataIsUpToDate_ = false;  // P has changed, need to update
+        }
+        
+        // Now update SCS data if needed (will use the modified P if we added regularization)
         if (!scsDataIsUpToDate_) {
             updateScsData();
         }
-
-        // Check if this is an unconstrained quadratic problem
-        // This happens when all interpolation points are LS mode in the new architecture
-        bool isUnconstrainedQuadratic = (numConstraints_ == 0 && P_.nonZeros() > 0);
                   
         // For unconstrained quadratic problems, ALWAYS use QR
         // because SCS requires m > 0
