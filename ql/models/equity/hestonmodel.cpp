@@ -50,6 +50,5 @@ namespace QuantLib {
                                          sigma(), rho(),
                                          process_->discretization());
     }
-
 }
 
