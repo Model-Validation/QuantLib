@@ -576,7 +576,7 @@ namespace QuantLib {
         //    be assigned a curve later; use a RelinkableHandle here
         auto tmp =
             MakeVanillaSwap(tenor_, iborIndex_,
-                            quote().empty() || !quote().isValid() ? 0.0 : quote()->value(),
+                            quote().empty() || !quote()->isValid() ? 0.0 : quote()->value(),
                             fwdStart_)
                 .withSettlementDays(settlementDays_) // resets effectiveDate
                 .withEffectiveDate(startDate_)
@@ -784,7 +784,7 @@ namespace QuantLib {
 
         swap_ = ext::make_shared<BMASwap>(
             Swap::Payer, 100.0, indexSchedule,
-            quote().empty() || !quote().isValid() ? 0.75 : quote()->value(), 0.0, index_,
+            quote().empty() || !quote()->isValid() ? 0.75 : quote()->value(), 0.0, index_,
             index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_, indexPaymentCalendar_,
             indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_, bmaPaymentConvention_,
             bmaPaymentLag_, overnightLockoutDays_, true);
