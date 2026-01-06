@@ -86,7 +86,7 @@ namespace QuantLib {
 
         Time time(const Date&) const override;
 
-        HestonProcess::Discretization discretization() { return discretization_; }
+        Discretization discretization() { return discretization_; }
 
         // probability densitiy function,
         // semi-analytical solution of the Fokker-Planck equation in x=ln(s)
