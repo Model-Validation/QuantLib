@@ -652,7 +652,9 @@ namespace QuantLib {
         // 2. input discount curve Handle might be empty now but it could
         //    be assigned a curve later; use a RelinkableHandle here
         auto tmp =
-            MakeVanillaSwap(tenor_, iborIndex_, quote().empty() ? 0.0 : quote()->value(), fwdStart_)
+            MakeVanillaSwap(tenor_, iborIndex_,
+                            quote().empty() || !quote()->isValid() ? 0.0 : quote()->value(),
+                            fwdStart_)
                 .withSettlementDays(settlementDays_) // resets effectiveDate
                 .withEffectiveDate(startDate_)
                 .withTerminationDate(endDate_)
@@ -861,10 +863,11 @@ namespace QuantLib {
                                      .backwards();
 
         swap_ = ext::make_shared<BMASwap>(
-            Swap::Payer, 100.0, indexSchedule, quote().empty() ? 0.75 : quote()->value(), 0.0,
-            index_, index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_,
-            indexPaymentCalendar_, indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_,
-            bmaPaymentConvention_, bmaPaymentLag_, overnightLockoutDays_, true);
+            Swap::Payer, 100.0, indexSchedule,
+            quote().empty() || !quote()->isValid() ? 0.75 : quote()->value(), 0.0, index_,
+            index_->dayCounter(), bmaSchedule, clonedIndex, bmaDayCount_, indexPaymentCalendar_,
+            indexPaymentConvention_, indexPaymentLag_, bmaPaymentCalendar_, bmaPaymentConvention_,
+            bmaPaymentLag_, overnightLockoutDays_, true);
 
         swap_->setPricingEngine(QuantLib::ext::make_shared<DiscountingSwapEngine>(
             !discountingCurve_.empty() ? discountingCurve_ : index_->forwardingTermStructure()));
