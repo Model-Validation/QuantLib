@@ -61,7 +61,33 @@ namespace QuantLib {
             index, valueDate, maturityDate, convexityAdjustment, averagingMethod);
         registerWithObservables(future_);
         earliestDate_ = valueDate;
-        latestDate_ = maturityDate;
+        latestRelevantDate_ = latestDate_ = maturityDate;
+        pillarDate_ = customPillarDate;
+        switch (pillarChoice) {
+          case Pillar::MaturityDate:
+            pillarDate_ = maturityDate_;
+            break;
+          case Pillar::LastRelevantDate:
+            pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
+          case Pillar::CustomDate:
+            // pillarDate_ already assigned at construction time
+            QL_REQUIRE(pillarDate_ >= earliestDate_,
+                       "pillar date (" << pillarDate_ << ") must be later "
+                       "than or equal to the instrument's earliest date (" <<
+                       earliestDate_ << ")");
+            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                       "pillar date (" << pillarDate_ << ") must be before "
+                       "or equal to the instrument's latest relevant date (" <<
+                       latestRelevantDate_ << ")");
+            break;
+          default:
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice) << ")");
+        }
+        latestDate_ = pillarDate_; // backward compatibility
     }
 
     Real OvernightIndexFutureRateHelper::impliedQuote() const {
