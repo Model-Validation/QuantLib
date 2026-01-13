@@ -43,6 +43,8 @@ namespace QuantLib {
     */
     class YieldTermStructure : public TermStructure {
       public:
+        enum class Extrapolation { ContinuousForward, DiscreteForward };
+
         /*! \name Constructors
             See the TermStructure documentation for issues regarding
             constructors.
