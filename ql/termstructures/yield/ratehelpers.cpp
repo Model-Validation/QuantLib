@@ -76,19 +76,23 @@ namespace QuantLib {
                                          bool endOfMonth,
                                          const DayCounter& dayCounter,
                                          const std::variant<Real, Handle<Quote>>& convAdj,
-                                         Futures::Type type)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+                                         Futures::Type type,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         earliestDate_ = iborStartDate;
         maturityDate_ =
             calendar.advance(iborStartDate, lengthInMonths * Months, convention, endOfMonth);
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
-        pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+        latestRelevantDate_ = maturityDate_;
+        pillarDate_ = customPillarDate;
 
         dayCounter_ = dayCounter;
 
         registerWith(convAdj_);
+        setPillarDate();
     }
 
     FuturesRateHelper::FuturesRateHelper(const std::variant<Real, Handle<Quote>>& price,
@@ -96,8 +100,10 @@ namespace QuantLib {
                                          const Date& iborEndDate,
                                          const DayCounter& dayCounter,
                                          const std::variant<Real, Handle<Quote>>& convAdj,
-                                         Futures::Type type)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+                                         Futures::Type type,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         const auto determineMaturityDate =
@@ -134,19 +140,23 @@ namespace QuantLib {
         }
         earliestDate_ = iborStartDate;
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, dayCounter);
-        pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+        latestRelevantDate_ = maturityDate_;
+        pillarDate_ = customPillarDate;
 
         dayCounter_ = dayCounter;
 
         registerWith(convAdj_);
+        setPillarDate();
     }
 
     FuturesRateHelper::FuturesRateHelper(const std::variant<Real, Handle<Quote>>& price,
                                          const Date& iborStartDate,
                                          const ext::shared_ptr<IborIndex>& index,
                                          const std::variant<Real, Handle<Quote>>& convAdj,
-                                         Futures::Type type)
-    : RateHelper(price), convAdj_(handleFromVariant(convAdj)) {
+                                         Futures::Type type,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RateHelper(price), convAdj_(handleFromVariant(convAdj)), pillarChoice_(pillarChoice) {
         CheckDate(iborStartDate, type);
 
         earliestDate_ = iborStartDate;
@@ -154,11 +164,41 @@ namespace QuantLib {
         maturityDate_ =
             cal.advance(iborStartDate, index->tenor(), index->businessDayConvention());
         yearFraction_ = DetermineYearFraction(earliestDate_, maturityDate_, index->dayCounter());
-        pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+        latestRelevantDate_ = maturityDate_;
+        pillarDate_ = customPillarDate;
 
         dayCounter_ = index->dayCounter();
 
         registerWith(convAdj_);
+        setPillarDate();
+    }
+
+    void FuturesRateHelper::setPillarDate() {
+        switch (pillarChoice_) {
+          case Pillar::MaturityDate:
+            pillarDate_ = maturityDate_;
+            break;
+          case Pillar::LastRelevantDate:
+            pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
+          case Pillar::CustomDate:
+            // pillarDate_ already assigned at construction time
+            QL_REQUIRE(pillarDate_ >= earliestDate_,
+                "pillar date (" << pillarDate_ << ") must be later "
+                "than or equal to the instrument's earliest date (" <<
+                earliestDate_ << ")");
+            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                "pillar date (" << pillarDate_ << ") must be before "
+                "or equal to the instrument's latest relevant date (" <<
+                latestRelevantDate_ << ")");
+            break;
+          default:
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
+        }
+        latestDate_ = pillarDate_; // backward compatibility
     }
 
     Real FuturesRateHelper::impliedQuote() const {
@@ -190,27 +230,36 @@ namespace QuantLib {
                                          const Calendar& calendar,
                                          BusinessDayConvention convention,
                                          bool endOfMonth,
-                                         const DayCounter& dayCounter)
-    : RelativeDateRateHelper(rate) {
+                                         const DayCounter& dayCounter,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RelativeDateRateHelper(rate), pillarChoice_(pillarChoice) {
         iborIndex_ = ext::make_shared<IborIndex>("no-fix", // never take fixing into account
                       tenor, fixingDays,
                       Currency(), calendar, convention,
                       endOfMonth, dayCounter, termStructureHandle_);
+        pillarDate_ = customPillarDate;
         DepositRateHelper::initializeDates();
     }
 
     DepositRateHelper::DepositRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
-                                         const ext::shared_ptr<IborIndex>& i)
-    : RelativeDateRateHelper(rate) {
+                                         const ext::shared_ptr<IborIndex>& i,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RelativeDateRateHelper(rate), pillarChoice_(pillarChoice) {
         iborIndex_ = i->clone(termStructureHandle_);
+        pillarDate_ = customPillarDate;
         DepositRateHelper::initializeDates();
     }
 
     DepositRateHelper::DepositRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
                                          Date fixingDate,
-                                         const ext::shared_ptr<IborIndex>& i)
-    : RelativeDateRateHelper(rate, false), fixingDate_(fixingDate) {
+                                         const ext::shared_ptr<IborIndex>& i,
+                                         Pillar::Choice pillarChoice,
+                                         const Date& customPillarDate)
+    : RelativeDateRateHelper(rate, false), fixingDate_(fixingDate), pillarChoice_(pillarChoice) {
         iborIndex_ = i->clone(termStructureHandle_);
+        pillarDate_ = customPillarDate;
         DepositRateHelper::initializeDates();
     }
 
@@ -242,8 +291,33 @@ namespace QuantLib {
         } else {
             earliestDate_ = iborIndex_->valueDate(fixingDate_);
         }
-        maturityDate_ = iborIndex_->maturityDate(earliestDate_);
-        pillarDate_ = latestDate_ = latestRelevantDate_ = maturityDate_;
+        latestRelevantDate_ = maturityDate_ = iborIndex_->maturityDate(earliestDate_);
+        switch (pillarChoice_) {
+          case Pillar::MaturityDate:
+            pillarDate_ = maturityDate_;
+            break;
+          case Pillar::LastRelevantDate:
+            pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
+          case Pillar::CustomDate:
+            // pillarDate_ already assigned at construction time
+            QL_REQUIRE(pillarDate_ >= earliestDate_,
+                       "pillar date (" << pillarDate_ << ") must be later "
+                       "than or equal to the instrument's earliest date (" <<
+                       earliestDate_ << ")");
+            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                       "pillar date (" << pillarDate_ << ") must be before "
+                       "or equal to the instrument's latest relevant date (" <<
+                       latestRelevantDate_ << ")");
+            break;
+          default:
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
+        }
+
+        latestDate_ = pillarDate_; // backward compatibility
     }
 
     ext::shared_ptr<IborCoupon> DepositRateHelper::iborCoupon() const {
@@ -446,6 +520,9 @@ namespace QuantLib {
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
             break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
           case Pillar::CustomDate:
             // pillarDate_ already assigned at construction time
             QL_REQUIRE(pillarDate_ >= earliestDate_,
@@ -612,6 +689,9 @@ namespace QuantLib {
             break;
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
             break;
           case Pillar::CustomDate:
             // pillarDate_ already assigned at construction time
@@ -813,6 +893,9 @@ namespace QuantLib {
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
             break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
           case Pillar::CustomDate:
             pillarDate_ = customPillarDate_;
             QL_REQUIRE(pillarDate_ >= earliestDate_,
@@ -871,11 +954,14 @@ namespace QuantLib {
                                        bool endOfMonth,
                                        bool isFxBaseCurrencyCollateralCurrency,
                                        Handle<YieldTermStructure> coll,
-                                       Calendar tradingCalendar)
+                                       Calendar tradingCalendar,
+                                       Pillar::Choice pillarChoice,
+                                       const Date& customPillarDate)
     : RelativeDateRateHelper(fwdPoint), spot_(std::move(spotFx)), tenor_(tenor),
       fixingDays_(fixingDays), cal_(std::move(calendar)), conv_(convention), eom_(endOfMonth),
       isFxBaseCurrencyCollateralCurrency_(isFxBaseCurrencyCollateralCurrency),
-      collHandle_(std::move(coll)), tradingCalendar_(std::move(tradingCalendar)) {
+      collHandle_(std::move(coll)), tradingCalendar_(std::move(tradingCalendar)),
+      pillarChoice_(pillarChoice) {
         registerWith(spot_);
         registerWith(collHandle_);
 
@@ -884,6 +970,7 @@ namespace QuantLib {
         else
             jointCalendar_ = JointCalendar(tradingCalendar_, cal_,
                                            JoinHolidays);
+        pillarDate_ = customPillarDate;
         FxSwapRateHelper::initializeDates();
     }
 
@@ -892,14 +979,18 @@ namespace QuantLib {
                                        const Date& startDate,
                                        const Date& endDate,
                                        bool isFxBaseCurrencyCollateralCurrency,
-                                       Handle<YieldTermStructure> coll)
+                                       Handle<YieldTermStructure> coll,
+                                       Pillar::Choice pillarChoice,
+                                       const Date& customPillarDate)
     : RelativeDateRateHelper(fwdPoint, false), spot_(std::move(spotFx)),
       isFxBaseCurrencyCollateralCurrency_(isFxBaseCurrencyCollateralCurrency),
-      collHandle_(std::move(coll)) {
+      collHandle_(std::move(coll)), pillarChoice_(pillarChoice) {
         registerWith(spot_);
         registerWith(collHandle_);
         earliestDate_ = startDate;
-        latestDate_ = endDate;
+        latestRelevantDate_ = maturityDate_ = endDate;
+        pillarDate_ = customPillarDate;
+        setPillarDate();
     }
 
     void FxSwapRateHelper::initializeDates() {
@@ -912,11 +1003,40 @@ namespace QuantLib {
         if (!tradingCalendar_.empty()) {
             // check if fx trade can be settled in US, if not, adjust it
             earliestDate_ = jointCalendar_.adjust(earliestDate_);
-            latestDate_ = jointCalendar_.advance(earliestDate_, tenor_,
-                                                 conv_, eom_);
+            latestRelevantDate_ = maturityDate_ =
+                jointCalendar_.advance(earliestDate_, tenor_, conv_, eom_);
         } else {
-            latestDate_ = cal_.advance(earliestDate_, tenor_, conv_, eom_);
+            latestRelevantDate_ = maturityDate_ = cal_.advance(earliestDate_, tenor_, conv_, eom_);
         }
+        setPillarDate();
+    }
+
+    void FxSwapRateHelper::setPillarDate() {
+        switch (pillarChoice_) {
+          case Pillar::MaturityDate:
+            pillarDate_ = maturityDate_;
+            break;
+          case Pillar::LastRelevantDate:
+            pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
+            break;
+          case Pillar::CustomDate:
+            // pillarDate_ already assigned at construction time
+            QL_REQUIRE(pillarDate_ >= earliestDate_,
+                "pillar date (" << pillarDate_ << ") must be later "
+                "than or equal to the instrument's earliest date (" <<
+                earliestDate_ << ")");
+            QL_REQUIRE(pillarDate_ <= latestRelevantDate_,
+                "pillar date (" << pillarDate_ << ") must be before "
+                "or equal to the instrument's latest relevant date (" <<
+                latestRelevantDate_ << ")");
+            break;
+          default:
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
+        }
+        latestDate_ = pillarDate_; // backward compatibility
     }
 
     Real FxSwapRateHelper::impliedQuote() const {
