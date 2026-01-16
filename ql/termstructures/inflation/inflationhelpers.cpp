@@ -37,7 +37,21 @@ namespace QuantLib {
         const Date& maturity,
         Calendar calendar,
         BusinessDayConvention paymentConvention,
-        const DayCounter& dayCounter,
+        DayCounter dayCounter,
+        const ext::shared_ptr<ZeroInflationIndex>& zii,
+        CPI::InterpolationType observationInterpolation)
+    : ZeroCouponInflationSwapHelper(
+        quote, swapObsLag, Date(), maturity, std::move(calendar), paymentConvention,
+        std::move(dayCounter), zii, observationInterpolation) {}
+
+    ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
+        const Handle<Quote>& quote,
+        const Period& swapObsLag,
+        const Date& startDate,
+        const Date& endDate,
+        Calendar calendar,
+        BusinessDayConvention paymentConvention,
+        DayCounter dayCounter,
         const ext::shared_ptr<ZeroInflationIndex>& zii,
         CPI::InterpolationType observationInterpolation,
         const Date& start)
@@ -77,6 +91,21 @@ namespace QuantLib {
     : ZeroCouponInflationSwapHelper(
         quote, swapObsLag, start, maturity, std::move(calendar), paymentConvention,
         dayCounter, zii, observationInterpolation, std::move(nominalTermStructure)) {}
+
+    ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
+        const Handle<Quote>& quote,
+        const Period& swapObsLag,
+        const Date& startDate,
+        const Date& endDate,
+        Calendar calendar,
+        BusinessDayConvention paymentConvention,
+        DayCounter dayCounter,
+        const ext::shared_ptr<ZeroInflationIndex>& zii,
+        CPI::InterpolationType observationInterpolation,
+        Handle<YieldTermStructure> nominalTermStructure)
+    : ZeroCouponInflationSwapHelper(
+        quote, swapObsLag, Date(), maturity, std::move(calendar), paymentConvention,
+        std::move(dayCounter), zii, observationInterpolation, std::move(nominalTermStructure)) {}
 
     ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
         const Handle<Quote>& quote,
@@ -185,9 +214,9 @@ namespace QuantLib {
         yii_->unregisterWith(termStructureHandle_);
 
         auto fixingPeriod = inflationPeriod(maturity_ - swapObsLag_, yii_->frequency());
-        auto interpolationPeriod = inflationPeriod(maturity, yii_->frequency());
+        auto interpolationPeriod = inflationPeriod(maturity_, yii_->frequency());
 
-        if (detail::CPI::isInterpolated(interpolation_, yii_) && maturity > interpolationPeriod.first) {
+        if (detail::CPI::isInterpolated(interpolation_, yii_) && maturity_ > interpolationPeriod.first) {
             // if interpolated, we need to cover the end of the interpolation period
             earliestDate_ = fixingPeriod.first;
             latestDate_ = fixingPeriod.second + 1;
@@ -252,7 +281,6 @@ namespace QuantLib {
 
         // The instrument takes a standard discounting swap engine.
         // The inflation-related work is done by the coupons.
-
         yyiis_->setPricingEngine(
             ext::make_shared<DiscountingSwapEngine>(nominalTermStructure_));
     }
