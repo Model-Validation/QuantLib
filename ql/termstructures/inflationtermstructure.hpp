@@ -171,7 +171,7 @@ namespace QuantLib {
         /*! \deprecated Use the overload without a lag instead.
                         Deprecated in version 1.41.
         */
-        [[deprecated("Use the overload without a lag instead")]]
+        //[[deprecated("Use the overload without a lag instead")]]
         Rate zeroRate(const Date& d, const Period& instObsLag,
                       bool forceLinearInterpolation = false,
                       bool extrapolate = false) const;

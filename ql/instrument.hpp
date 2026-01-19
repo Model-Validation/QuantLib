@@ -64,8 +64,6 @@ namespace QuantLib {
         //! returns whether the instrument might have value greater than zero.
         virtual bool isExpired() const = 0;
 
-        //! returns pricing engine associated to instrument
-        ext::shared_ptr<PricingEngine> pricingEngine() const { return engine_; }
         //@}
         //! \name Modifiers
         //@{

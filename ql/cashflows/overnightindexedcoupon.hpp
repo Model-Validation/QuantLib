@@ -158,7 +158,7 @@ namespace QuantLib {
         //! \name LazyObject interface
         //@{
         void performCalculations() const override;
-        void alwaysForwardNotifications();
+        void alwaysForwardNotifications() override;
         //@}
         //! \name Coupon interface
         //@{
