@@ -195,6 +195,12 @@ namespace QuantLib {
         return *this;
     }
 
+
+    DigitalCmsSpreadLeg& DigitalCmsSpreadLeg::withPaymentDates(const std::vector<QuantLib::Date>& paymentDates) {
+        paymentDates_ = paymentDates;
+        return *this;
+    }
+
     DigitalCmsSpreadLeg::operator Leg() const {
         return FloatingDigitalLeg<SwapSpreadIndex, CmsSpreadCoupon, DigitalCmsSpreadCoupon>(
             schedule_, notionals_, index_, paymentDayCounter_, paymentAdjustment_, fixingDays_,

@@ -82,10 +82,12 @@ namespace QuantLib {
         VolatilityType volatilityType() const override;
         Real displacement() const override;
 
+      protected:
+        void performCalculations() const override;
+
       private:
         void checkInputs() const;
         void registerWithMarketData();
-        void performCalculations() const override;
 
         Calendar calendar_;
         Natural settlementDays_;
@@ -103,7 +105,7 @@ namespace QuantLib {
         bool externalAtmRatesGiven_ = false;
 
         std::vector<std::vector<Handle<Quote> > > optionletVolQuotes_;
-        mutable std::vector<std::vector<Volatility> > optionletVolatilities_;
+        mutable std::vector<std::vector<Volatility> > optionletVolatilities_;        
     };
 
 }

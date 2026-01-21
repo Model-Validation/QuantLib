@@ -163,6 +163,11 @@ namespace QuantLib {
         return *this;
     }
 
+    CmsLeg& CmsLeg::withPaymentDates(const std::vector<Date> paymentDates) {
+        paymentDates_ = paymentDates;
+        return *this;
+    }
+
     CmsLeg::operator Leg() const {
         return FloatingLeg<SwapIndex, CmsCoupon, CappedFlooredCmsCoupon>(
                          schedule_, notionals_, swapIndex_, paymentDayCounter_,

@@ -112,6 +112,7 @@ namespace QuantLib {
         //@{
         virtual void accept(AcyclicVisitor&);
         //@}
+        TS* termStructure() const { return termStructure_; }
       protected:
         Handle<Quote> quote_;
         TS* termStructure_;

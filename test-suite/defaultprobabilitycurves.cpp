@@ -181,7 +181,7 @@ void testBootstrapFromSpread() {
                                         settlementDays, calendar,
                                         frequency, convention, rule,
                                         dayCounter, recoveryRate,
-                                        discountCurve, true,
+                                        discountCurve, CreditDefaultSwap::PricingModel::Midpoint, true,
                                         CreditDefaultSwap::ProtectionPaymentTime::atDefault)));
 
     RelinkableHandle<DefaultProbabilityTermStructure> piecewiseCurve;
@@ -273,7 +273,7 @@ void testBootstrapFromUpfront() {
                                          settlementDays, calendar,
                                          frequency, convention, rule,
                                          dayCounter, recoveryRate,
-                                         discountCurve,
+                                         discountCurve, CreditDefaultSwap::PricingModel::Midpoint,
                                          upfrontSettlementDays, 
                                          true, CreditDefaultSwap::ProtectionPaymentTime::atDefault,
                                          Date(), Actual360(true))));
@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE(testSingleInstrumentBootstrap) {
                                             settlementDays, calendar,
                                             frequency, convention, rule,
                                             dayCounter, recoveryRate,
-                                            discountCurve,
+                                            discountCurve, CreditDefaultSwap::PricingModel::Midpoint,
                                             true, CreditDefaultSwap::ProtectionPaymentTime::atDefault));
 
     PiecewiseDefaultCurve<HazardRate,BackwardFlat> defaultCurve(today, helpers,
@@ -524,10 +524,11 @@ BOOST_AUTO_TEST_CASE(testIterativeBootstrapRetries) {
     instruments.reserve(cdsSpreads.size());
     for (auto & cdsSpread : cdsSpreads) {
         instruments.push_back(ext::make_shared<SpreadCdsHelper>(
-            cdsSpread.second, cdsSpread.first, settlementDays, calendar,
-                                frequency, paymentConvention, rule, dayCounter, recoveryRate, usdYts,
-                                true, CreditDefaultSwap::ProtectionPaymentTime::atDefault, Date(),
-                                lastPeriodDayCounter));
+                            cdsSpread.second, cdsSpread.first, settlementDays, calendar,
+                            frequency, paymentConvention, rule, dayCounter, recoveryRate, usdYts, 
+                            CreditDefaultSwap::PricingModel::Midpoint,
+                            true, CreditDefaultSwap::ProtectionPaymentTime::atDefault, Date(),
+                            lastPeriodDayCounter));
     }
 
     // Create the default curve with the default IterativeBootstrap.
