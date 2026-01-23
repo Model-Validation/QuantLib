@@ -190,6 +190,11 @@ namespace QuantLib {
         return *this;
     }
 
+    DigitalCmsLeg& DigitalCmsLeg::withPaymentDates(const std::vector<Date>& paymentDates) {
+        paymentDates_ = paymentDates;
+        return *this;
+    }
+
     DigitalCmsLeg::operator Leg() const {
         return FloatingDigitalLeg<SwapIndex, CmsCoupon, DigitalCmsCoupon>(
                             schedule_, notionals_, index_, paymentDayCounter_,
