@@ -177,8 +177,18 @@ namespace QuantLib {
             integral = this->interpolation_.primitive(t, true);
         } else {
             // flat fwd extrapolation
-            integral = this->interpolation_.primitive(this->times_.back(), true)
-                     + this->data_.back()*(t - this->times_.back());
+            if (extrapolation_ == YieldTermStructure::Extrapolation::ContinuousForward) {
+                integral = this->interpolation_.primitive(this->times_.back(), true) +
+                           this->data_.back() * (t - this->times_.back());
+            } else if (extrapolation_ == YieldTermStructure::Extrapolation::DiscreteForward) {
+                Time tMax = this->times_.back();
+                Time tMax_m = this->timeFromReference(dates_.back() - 1);
+                Real iMax =this->interpolation_.primitive(tMax, true);
+                Real iMax_m =this->interpolation_.primitive(tMax_m, true);
+                integral = iMax + (iMax - iMax_m) * (t - tMax) / (tMax - tMax_m);
+            } else {
+                QL_FAIL("extrapolation method not handled.");
+            }
         }
         return integral/t;
     }
