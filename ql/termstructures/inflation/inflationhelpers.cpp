@@ -37,12 +37,11 @@ namespace QuantLib {
         const Date& maturity,
         Calendar calendar,
         BusinessDayConvention paymentConvention,
-        const DayCounter& dayCounter,
+        DayCounter dayCounter,
         const ext::shared_ptr<ZeroInflationIndex>& zii,
-        CPI::InterpolationType observationInterpolation,
-        const Date& start)
+        CPI::InterpolationType observationInterpolation)
     : ZeroCouponInflationSwapHelper(
-        quote, swapObsLag, start, maturity, std::move(calendar), paymentConvention,
+        quote, swapObsLag, Date(), maturity, std::move(calendar), paymentConvention,
         std::move(dayCounter), zii, observationInterpolation) {}
 
     ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
@@ -72,11 +71,10 @@ namespace QuantLib {
         DayCounter dayCounter,
         const ext::shared_ptr<ZeroInflationIndex>& zii,
         CPI::InterpolationType observationInterpolation,
-        Handle<YieldTermStructure> nominalTermStructure,
-        const Date& start)
+        Handle<YieldTermStructure> nominalTermStructure)
     : ZeroCouponInflationSwapHelper(
-        quote, swapObsLag, start, maturity, std::move(calendar), paymentConvention,
-        dayCounter, zii, observationInterpolation, std::move(nominalTermStructure)) {}
+        quote, swapObsLag, Date(), maturity, std::move(calendar), paymentConvention,
+        std::move(dayCounter), zii, observationInterpolation, std::move(nominalTermStructure)) {}
 
     ZeroCouponInflationSwapHelper::ZeroCouponInflationSwapHelper(
         const Handle<Quote>& quote,
@@ -138,15 +136,13 @@ namespace QuantLib {
     }
 
     void ZeroCouponInflationSwapHelper::initializeDates() {
-        Date start = startDate_ == Date() ? evaluationDate_ : startDate_;
         Real nominal = 1000000.0; // has to be something but doesn't matter what
         zciis_ = ext::make_shared<ZeroCouponInflationSwap>(
-            Swap::Payer, nominal, start, maturity_, calendar_, paymentConvention_, dayCounter_,
+            Swap::Payer, nominal, updateDates_ ? evaluationDate_ : startDate_, maturity_, calendar_, paymentConvention_, dayCounter_,
             quote().empty() || !quote()->isValid() ? 0.0 : quote()->value(), zii_, swapObsLag_,
             observationInterpolation_);
-
-        // Because very simple instrument only takes
-        // standard discounting swap engine.
+        // The instrument takes a standard discounting swap engine.
+        // The inflation-related work is done by the coupons.
         zciis_->setPricingEngine(
             ext::make_shared<DiscountingSwapEngine>(nominalTermStructure_));
     }
@@ -172,12 +168,27 @@ namespace QuantLib {
         DayCounter dayCounter,
         const ext::shared_ptr<YoYInflationIndex>& yii,
         CPI::InterpolationType interpolation,
-        Handle<YieldTermStructure> nominalTermStructure,
-        const Date& start)
-    : RelativeDateBootstrapHelper<YoYInflationTermStructure>(quote), swapObsLag_(swapObsLag),
-      maturity_(maturity), calendar_(std::move(calendar)), paymentConvention_(paymentConvention),
+        Handle<YieldTermStructure> nominalTermStructure)
+    : YearOnYearInflationSwapHelper(
+        quote, swapObsLag, Date(), maturity, std::move(calendar), paymentConvention,
+        std::move(dayCounter), yii, interpolation, std::move(nominalTermStructure)) {}
+
+    YearOnYearInflationSwapHelper::YearOnYearInflationSwapHelper(
+        const Handle<Quote>& quote,
+        const Period& swapObsLag,
+        const Date& startDate,
+        const Date& endDate,
+        Calendar calendar,
+        BusinessDayConvention paymentConvention,
+        DayCounter dayCounter,
+        const ext::shared_ptr<YoYInflationIndex>& yii,
+        CPI::InterpolationType interpolation,
+        Handle<YieldTermStructure> nominalTermStructure)
+    : RelativeDateBootstrapHelper<YoYInflationTermStructure>(quote, startDate == Date()),
+      swapObsLag_(swapObsLag), startDate_(startDate), maturity_(endDate),
+      calendar_(std::move(calendar)), paymentConvention_(paymentConvention),
       dayCounter_(std::move(dayCounter)), interpolation_(interpolation),
-      nominalTermStructure_(std::move(nominalTermStructure)), start_(start) {
+      nominalTermStructure_(std::move(nominalTermStructure)) {
         yii_ = yii->clone(termStructureHandle_);
         // We want to be notified of changes of fixings, but we don't
         // want notifications from termStructureHandle_ (they would
@@ -185,9 +196,9 @@ namespace QuantLib {
         yii_->unregisterWith(termStructureHandle_);
 
         auto fixingPeriod = inflationPeriod(maturity_ - swapObsLag_, yii_->frequency());
-        auto interpolationPeriod = inflationPeriod(maturity, yii_->frequency());
+        auto interpolationPeriod = inflationPeriod(maturity_, yii_->frequency());
 
-        if (detail::CPI::isInterpolated(interpolation_, yii_) && maturity > interpolationPeriod.first) {
+        if (detail::CPI::isInterpolated(interpolation_, yii_) && maturity_ > interpolationPeriod.first) {
             // if interpolated, we need to cover the end of the interpolation period
             earliestDate_ = fixingPeriod.first;
             latestDate_ = fixingPeriod.second + 1;
@@ -213,19 +224,6 @@ namespace QuantLib {
         YearOnYearInflationSwapHelper::initializeDates();
     }
 
-    YearOnYearInflationSwapHelper::YearOnYearInflationSwapHelper(
-        const Handle<Quote>& quote,
-        const Period& swapObsLag,
-        const Date& maturity,
-        Calendar calendar,
-        BusinessDayConvention paymentConvention,
-        DayCounter dayCounter,
-        const ext::shared_ptr<YoYInflationIndex>& yii,
-        Handle<YieldTermStructure> nominalTermStructure,
-        const Date& start)
-    : YearOnYearInflationSwapHelper(quote, swapObsLag, maturity, std::move(calendar), paymentConvention,
-                                    std::move(dayCounter), yii, CPI::AsIndex, std::move(nominalTermStructure), start) {}
-
     Real YearOnYearInflationSwapHelper::impliedQuote() const {
         yyiis_->deepUpdate();
         return yyiis_->fairRate();
@@ -234,9 +232,8 @@ namespace QuantLib {
     void YearOnYearInflationSwapHelper::initializeDates() {
         // always works because tenor is always 1 year so
         // no problem with different days-in-month
-        Date from = start_ == Date() ? evaluationDate_ : start_;
         Schedule fixedSchedule = MakeSchedule()
-                                     .from(from)
+                                     .from(updateDates_ ? evaluationDate_ : startDate_)
                                      .to(maturity_)
                                      .withTenor(1 * Years)
                                      .withConvention(Unadjusted)
@@ -252,7 +249,6 @@ namespace QuantLib {
 
         // The instrument takes a standard discounting swap engine.
         // The inflation-related work is done by the coupons.
-
         yyiis_->setPricingEngine(
             ext::make_shared<DiscountingSwapEngine>(nominalTermStructure_));
     }

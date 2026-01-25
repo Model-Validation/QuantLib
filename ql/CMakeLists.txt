@@ -1,6 +1,7 @@
 set(QL_SOURCES
     cashflow.cpp
     cashflows/averagebmacoupon.cpp
+    cashflows/blackovernightindexedcouponpricer.cpp
     cashflows/capflooredcoupon.cpp
     cashflows/capflooredinflationcoupon.cpp
     cashflows/cashflows.cpp
@@ -48,9 +49,6 @@ set(QL_SOURCES
     exercise.cpp
     experimental/asian/analytic_cont_geom_av_price_heston.cpp
     experimental/asian/analytic_discr_geom_av_price_heston.cpp
-    experimental/averageois/arithmeticaverageois.cpp
-    experimental/averageois/arithmeticoisratehelper.cpp
-    experimental/averageois/makearithmeticaverageois.cpp
     experimental/barrieroption/mcdoublebarrierengine.cpp
     experimental/barrieroption/discretizeddoublebarrieroption.cpp
     experimental/barrieroption/perturbativebarrieroptionengine.cpp
@@ -179,8 +177,6 @@ set(QL_SOURCES
     experimental/processes/gemanroncoroniprocess.cpp
     experimental/processes/klugeextouprocess.cpp
     experimental/processes/vegastressedblackscholesprocess.cpp
-    experimental/risk/creditriskplus.cpp
-    experimental/risk/sensitivityanalysis.cpp
     experimental/shortrate/generalizedhullwhite.cpp
     experimental/shortrate/generalizedornsteinuhlenbeckprocess.cpp
     experimental/swaptions/haganirregularswaptionengine.cpp
@@ -762,6 +758,7 @@ set(QL_SOURCES
     pricingengines/vanilla/batesengine.cpp
     pricingengines/vanilla/bjerksundstenslandengine.cpp
     pricingengines/vanilla/coshestonengine.cpp
+    pricingengines/vanilla/cashdividendeuropeanengine.cpp
     pricingengines/vanilla/discretizedvanillaoption.cpp
     pricingengines/vanilla/exponentialfittinghestonengine.cpp
     pricingengines/vanilla/fdbatesvanillaengine.cpp
@@ -823,6 +820,7 @@ set(QL_SOURCES
     termstructures/defaulttermstructure.cpp
     termstructures/globalbootstrap.cpp
     termstructures/globalbootstrapvars.cpp
+    termstructures/multicurve.cpp
     termstructures/inflation/inflationhelpers.cpp
     termstructures/inflation/seasonality.cpp
     termstructures/inflationtermstructure.cpp
@@ -962,6 +960,7 @@ set(QL_HEADERS
     auto_link.hpp
     cashflow.hpp
     cashflows/averagebmacoupon.hpp
+    cashflows/blackovernightindexedcouponpricer.hpp
     cashflows/capflooredcoupon.hpp
     cashflows/capflooredinflationcoupon.hpp
     cashflows/cashflows.hpp
@@ -1019,7 +1018,6 @@ set(QL_HEADERS
     experimental/asian/analytic_discr_geom_av_price_heston.hpp
     experimental/averageois/arithmeticaverageois.hpp
     experimental/averageois/arithmeticoisratehelper.hpp
-    experimental/averageois/averageoiscouponpricer.hpp
     experimental/averageois/makearithmeticaverageois.hpp
     experimental/barrieroption/mcdoublebarrierengine.hpp
     experimental/barrieroption/binomialdoublebarrierengine.hpp
@@ -2008,6 +2006,7 @@ set(QL_HEADERS
     pricingengines/vanilla/batesengine.hpp
     pricingengines/vanilla/binomialengine.hpp
     pricingengines/vanilla/bjerksundstenslandengine.hpp
+    pricingengines/vanilla/cashdividendeuropeanengine.hpp
     pricingengines/vanilla/coshestonengine.hpp
     pricingengines/vanilla/discretizedvanillaoption.hpp
     pricingengines/vanilla/exponentialfittinghestonengine.hpp
@@ -2087,6 +2086,7 @@ set(QL_HEADERS
     termstructures/defaulttermstructure.hpp
     termstructures/globalbootstrap.hpp
     termstructures/globalbootstrapvars.hpp
+    termstructures/multicurve.hpp
     termstructures/inflation/inflationhelpers.hpp
     termstructures/inflation/inflationtraits.hpp
     termstructures/inflation/interpolatedyoyinflationcurve.hpp
