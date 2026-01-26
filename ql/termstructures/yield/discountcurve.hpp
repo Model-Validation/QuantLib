@@ -161,17 +161,26 @@ namespace QuantLib {
     #ifndef __DOXYGEN__
 
     // template definitions
-    
+
     template <class T>
     DiscountFactor InterpolatedDiscountCurve<T>::discountImpl(Time t) const {
         if (t <= this->times_.back())
             return this->interpolation_(t, true);
 
-        // flat fwd extrapolation
         Time tMax = this->times_.back();
         DiscountFactor dMax = this->data_.back();
-        Rate instFwdMax = - this->interpolation_.derivative(tMax) / dMax;
-        return dMax * std::exp(- instFwdMax * (t-tMax));
+
+        // flat fwd extrapolation
+        if (extrapolation_ == YieldTermStructure::Extrapolation::ContinuousForward) {
+            Rate instFwdMax = -this->interpolation_.derivative(tMax) / dMax;
+            return dMax * std::exp(-instFwdMax * (t - tMax));
+        } else if (extrapolation_ == YieldTermStructure::Extrapolation::DiscreteForward) {
+            Time tMax_m = this->timeFromReference(dates_.back() - 1);
+            DiscountFactor dMax_m = this->interpolation_(tMax_m);
+            return dMax * std::pow(dMax / dMax_m, (t - tMax) / (tMax - tMax_m));
+        } else {
+            QL_FAIL("extrapolation method not handled.");
+        }
     }
 
     template <class T>

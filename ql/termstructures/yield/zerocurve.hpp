@@ -166,8 +166,16 @@ namespace QuantLib {
         // flat fwd extrapolation
         Time tMax = this->times_.back();
         Rate zMax = this->data_.back();
-        Rate instFwdMax = zMax + tMax * this->interpolation_.derivative(tMax);
-        return (zMax * tMax + instFwdMax * (t-tMax)) / t;
+        if (extrapolation_ == YieldTermStructure::Extrapolation::ContinuousForward) {
+            Rate instFwdMax = zMax + tMax * this->interpolation_.derivative(tMax);
+            return (zMax * tMax + instFwdMax * (t - tMax)) / t;
+        } else if (extrapolation_ == YieldTermStructure::Extrapolation::DiscreteForward) {
+            Time tMax_m = this->timeFromReference(dates_.back() - 1);
+            Rate dz = zMax - this->interpolation_(tMax_m);
+            return (zMax * tMax + dz * (t - tMax) / (tMax - tMax_m)) / t;
+        } else {
+            QL_FAIL("extrapolation method not handled.");
+        }
     }
 
     template <class T>
