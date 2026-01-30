@@ -63,8 +63,6 @@ namespace QuantLib {
         registerWith(index_);
     }
 
-    QL_DEPRECATED_ENABLE_WARNING
-
     Date ForwardRateAgreement::fixingDate() const {
         return index_->fixingDate(valueDate_);
     }
