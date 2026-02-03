@@ -47,7 +47,8 @@ namespace QuantLib {
                                          process_->dividendYield(),
                                          process_->s0(),
                                          v0(), kappa(), theta(),
-                                         sigma(), rho());
+                                         sigma(), rho(),
+                                         process_->discretization());
     }
 
 }

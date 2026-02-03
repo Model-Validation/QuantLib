@@ -518,6 +518,7 @@
   <ItemGroup>
     <ClInclude Include="ql\cashflows\all.hpp" />
     <ClInclude Include="ql\cashflows\averagebmacoupon.hpp" />
+    <ClInclude Include="ql\cashflows\blackovernightindexedcouponpricer.hpp" />
     <ClInclude Include="ql\cashflows\capflooredcoupon.hpp" />
     <ClInclude Include="ql\cashflows\capflooredinflationcoupon.hpp" />
     <ClInclude Include="ql\cashflows\cashflows.hpp" />
@@ -567,7 +568,6 @@
     <ClInclude Include="ql\experimental\averageois\all.hpp" />
     <ClInclude Include="ql\experimental\averageois\arithmeticaverageois.hpp" />
     <ClInclude Include="ql\experimental\averageois\arithmeticoisratehelper.hpp" />
-    <ClInclude Include="ql\experimental\averageois\averageoiscouponpricer.hpp" />
     <ClInclude Include="ql\experimental\averageois\makearithmeticaverageois.hpp" />
     <ClInclude Include="ql\experimental\barrieroption\all.hpp" />
     <ClInclude Include="ql\experimental\barrieroption\binomialdoublebarrierengine.hpp" />
@@ -1629,6 +1629,7 @@
     <ClInclude Include="ql\pricingengines\vanilla\batesengine.hpp" />
     <ClInclude Include="ql\pricingengines\vanilla\binomialengine.hpp" />
     <ClInclude Include="ql\pricingengines\vanilla\bjerksundstenslandengine.hpp" />
+    <ClInclude Include="ql\pricingengines\vanilla\cashdividendeuropeanengine.hpp" />
     <ClInclude Include="ql\pricingengines\vanilla\coshestonengine.hpp" />
     <ClInclude Include="ql\pricingengines\vanilla\discretizedvanillaoption.hpp" />
     <ClInclude Include="ql\pricingengines\vanilla\exponentialfittinghestonengine.hpp" />
@@ -1706,6 +1707,7 @@
     <ClInclude Include="ql\termstructures\defaulttermstructure.hpp" />
     <ClInclude Include="ql\termstructures\globalbootstrap.hpp" />
     <ClInclude Include="ql\termstructures\globalbootstrapvars.hpp" />
+    <ClInclude Include="ql\termstructures\multicurve.hpp" />
     <ClInclude Include="ql\termstructures\inflation\all.hpp" />
     <ClInclude Include="ql\termstructures\inflation\inflationhelpers.hpp" />
     <ClInclude Include="ql\termstructures\inflation\inflationtraits.hpp" />
@@ -1944,6 +1946,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql\cashflows\averagebmacoupon.cpp" />
+    <ClCompile Include="ql\cashflows\blackovernightindexedcouponpricer.cpp" />
     <ClCompile Include="ql\cashflows\capflooredcoupon.cpp" />
     <ClCompile Include="ql\cashflows\capflooredinflationcoupon.cpp" />
     <ClCompile Include="ql\cashflows\cashflows.cpp" />
@@ -1985,9 +1988,6 @@
     <ClCompile Include="ql\currencies\oceania.cpp" />
     <ClCompile Include="ql\experimental\asian\analytic_cont_geom_av_price_heston.cpp" />
     <ClCompile Include="ql\experimental\asian\analytic_discr_geom_av_price_heston.cpp" />
-    <ClCompile Include="ql\experimental\averageois\arithmeticaverageois.cpp" />
-    <ClCompile Include="ql\experimental\averageois\arithmeticoisratehelper.cpp" />
-    <ClCompile Include="ql\experimental\averageois\makearithmeticaverageois.cpp" />
     <ClCompile Include="ql\experimental\barrieroption\discretizeddoublebarrieroption.cpp" />
     <ClCompile Include="ql\experimental\barrieroption\mcdoublebarrierengine.cpp" />
     <ClCompile Include="ql\experimental\barrieroption\perturbativebarrieroptionengine.cpp" />
@@ -2115,8 +2115,6 @@
     <ClCompile Include="ql\experimental\processes\gemanroncoroniprocess.cpp" />
     <ClCompile Include="ql\experimental\processes\klugeextouprocess.cpp" />
     <ClCompile Include="ql\experimental\processes\vegastressedblackscholesprocess.cpp" />
-    <ClCompile Include="ql\experimental\risk\creditriskplus.cpp" />
-    <ClCompile Include="ql\experimental\risk\sensitivityanalysis.cpp" />
     <ClCompile Include="ql\experimental\shortrate\generalizedhullwhite.cpp" />
     <ClCompile Include="ql\experimental\shortrate\generalizedornsteinuhlenbeckprocess.cpp" />
     <ClCompile Include="ql\experimental\swaptions\haganirregularswaptionengine.cpp" />
@@ -2689,6 +2687,7 @@
     <ClCompile Include="ql\pricingengines\vanilla\baroneadesiwhaleyengine.cpp" />
     <ClCompile Include="ql\pricingengines\vanilla\batesengine.cpp" />
     <ClCompile Include="ql\pricingengines\vanilla\bjerksundstenslandengine.cpp" />
+    <ClCompile Include="ql\pricingengines\vanilla\cashdividendeuropeanengine.cpp" />
     <ClCompile Include="ql\pricingengines\vanilla\coshestonengine.cpp" />
     <ClCompile Include="ql\pricingengines\vanilla\discretizedvanillaoption.cpp" />
     <ClCompile Include="ql\pricingengines\vanilla\exponentialfittinghestonengine.cpp" />
@@ -2744,7 +2743,9 @@
     <ClCompile Include="ql\termstructures\credit\hazardratestructure.cpp" />
     <ClCompile Include="ql\termstructures\credit\survivalprobabilitystructure.cpp" />
     <ClCompile Include="ql\termstructures\defaulttermstructure.cpp" />
+    <ClCompile Include="ql\termstructures\globalbootstrap.cpp" />
     <ClCompile Include="ql\termstructures\globalbootstrapvars.cpp" />
+    <ClCompile Include="ql\termstructures\multicurve.cpp" />
     <ClCompile Include="ql\termstructures\inflation\inflationhelpers.cpp" />
     <ClCompile Include="ql\termstructures\inflation\seasonality.cpp" />
     <ClCompile Include="ql\termstructures\inflationtermstructure.cpp" />

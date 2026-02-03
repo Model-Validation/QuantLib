@@ -174,7 +174,7 @@ namespace QuantLib {
             ext::dynamic_pointer_cast<OvernightIndexedCoupon>(swap_->overnightLeg().back())->fixingDate();
         Date fixingEndDate =
             overnightIndex_->maturityDate(overnightIndex_->valueDate(lastFixingDate));
-        latestRelevantDate_ = latestDate_ = std::max({maturityDate_, lastPaymentDate, fixingEndDate});
+        latestRelevantDate_ = std::max({maturityDate_, lastPaymentDate, fixingEndDate});
 
         switch (pillarChoice_) {
           case Pillar::MaturityDate:
@@ -182,6 +182,9 @@ namespace QuantLib {
             break;
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
+            break;
+          case Pillar::StartDate:
+            pillarDate_ = earliestDate_;
             break;
           case Pillar::CustomDate:
             // pillarDate_ already assigned at construction time
@@ -197,6 +200,7 @@ namespace QuantLib {
           default:
             QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice_) << ")");
         }
+        latestDate_ = pillarDate_; // backward compatibility
     }
 
     void OISRateHelper::setTermStructure(YieldTermStructure* t) {
