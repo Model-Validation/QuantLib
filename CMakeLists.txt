@@ -64,7 +64,7 @@ option(QL_USE_CLANG_TIDY "Use clang-tidy when building" OFF)
 option(QL_USE_PCH "Use precompiled headers" OFF)
 # Deleted from QL 1.27
 option(QL_USE_DISPOSABLE "Use the Disposable class template. Not needed for C++11" OFF)
-option(QL_USE_INDEXED_COUPON "Use indexed coupons instead of par coupons" OFF)
+option(QL_USE_INDEXED_COUPON "Use indexed coupons instead of par coupons" ON)
 option(QL_USE_STD_ANY "Use std::any instead of boost::any" ON)
 option(QL_USE_STD_CLASSES "Enable all QL_USE_STD_ options" OFF)
 option(QL_USE_STD_OPTIONAL "Use std::optional instead of boost::optional" ON)

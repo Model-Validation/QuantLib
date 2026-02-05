@@ -49,6 +49,15 @@ void TurnbullWakemanAsianEngine::calculate() const {
     results_.additionalResults["strike"] = payoff->strike();
     results_.additionalResults["effective_strike"] = effectiveStrike;
 
+    // If there are no remaining fixings, evaluate payoff in terms of a forward until expiry
+    if (futureFixings == 0) {
+        Real sign = payoff->optionType() == Option::Type::Call ? 1.0 : -1.0;
+        results_.value = std::max(sign * (accruedAverage - payoff->strike()), 0.0) * discount;
+        results_.delta = 0;
+        results_.gamma = 0;
+        return;
+    }
+
     // If the effective strike is negative, exercise resp. permanent OTM is guaranteed and the
     // valuation is made easy
     Size m = futureFixings + pastFixings;
@@ -92,8 +101,9 @@ void TurnbullWakemanAsianEngine::calculate() const {
         times.push_back(process_->blackVolatility()->timeFromReference(fd));
 
         spotVars.push_back(
-            process_->blackVolatility()->blackVariance(times.back(), effectiveStrike));
-        spotVolsVec.push_back(std::sqrt(spotVars.back() / times.back()));
+            process_->blackVolatility()->blackVariance(times.back(), payoff->strike()));
+        spotVolsVec.push_back(
+            process_->blackVolatility()->blackVol(times.back(), payoff->strike()));
 
         EA += forwards.back();
     }
@@ -102,6 +112,16 @@ void TurnbullWakemanAsianEngine::calculate() const {
     // Expected value of A^2.
     Real EA2 = 0.0;
     Size n = forwards.size();
+
+    if (useAverageVol_) {
+        Real avgVol =
+            std::accumulate(spotVolsVec.begin(), spotVolsVec.end(), 0.0) / spotVolsVec.size();
+        results_.additionalResults["averageVol"] = avgVol;
+        spotVars.clear();
+        for (auto time : times) {
+            spotVars.push_back(avgVol * avgVol * time);
+        }
+    }
 
     for (Size i = 0; i < n; ++i) {
         EA2 += forwards[i] * forwards[i] * exp(spotVars[i]);

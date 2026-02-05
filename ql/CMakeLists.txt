@@ -206,6 +206,7 @@ set(QL_SOURCES
     experimental/volatility/sabrvolsurface.cpp
     experimental/volatility/sviinterpolatedsmilesection.cpp
     experimental/volatility/svismilesection.cpp
+    experimental/volatility/svivolsurface.cpp
     experimental/volatility/volcube.cpp
     experimental/volatility/zabr.cpp
     index.cpp
@@ -1246,6 +1247,7 @@ set(QL_HEADERS
     experimental/volatility/sviinterpolatedsmilesection.hpp
     experimental/volatility/sviinterpolation.hpp
     experimental/volatility/svismilesection.hpp
+    experimental/volatility/svivolsurface.hpp
     experimental/volatility/volcube.hpp
     experimental/volatility/zabr.hpp
     experimental/volatility/zabrinterpolatedsmilesection.hpp

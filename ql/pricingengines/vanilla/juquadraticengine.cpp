@@ -68,6 +68,12 @@ namespace QuantLib {
         BlackCalculator black(payoff, forwardPrice,
                               std::sqrt(variance), riskFreeDiscount);
 
+        results_.additionalResults["variance"] = variance;
+        results_.additionalResults["dividendDiscount"] = dividendDiscount;
+        results_.additionalResults["riskFreeDiscount"] = riskFreeDiscount;
+        results_.additionalResults["spot"] = spot;
+        results_.additionalResults["forwardPrice"] = forwardPrice;
+
         if (dividendDiscount>=1.0 && payoff->optionType()==Option::Call) {
             // early exercise never optimal
             results_.value        = black.value();
@@ -105,6 +111,7 @@ namespace QuantLib {
             Real Sk = BaroneAdesiWhaleyApproximationEngine::criticalPrice(
                 payoff, riskFreeDiscount, dividendDiscount, variance,
                 tolerance);
+            results_.additionalResults["criticalPrice"] = Sk;
 
             Real forwardSk = Sk * dividendDiscount / riskFreeDiscount;
 
@@ -178,6 +185,8 @@ namespace QuantLib {
             }
 
         } // end of "early exercise can be optimal"
+        results_.additionalResults["delta"] = results_.delta;
+        results_.additionalResults["gamma"] = results_.gamma;
     }
 
 }
