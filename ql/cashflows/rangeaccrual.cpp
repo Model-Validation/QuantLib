@@ -640,7 +640,7 @@ namespace QuantLib {
                    "too many upperTriggers (" << upperTriggers_.size() <<
                    "), only " << n << " required");
 
-        Leg leg(n);
+        Leg leg;
 
         // the following is not always correct
         Calendar calendar = schedule_.calendar();
