@@ -2410,6 +2410,10 @@ add_library(ql_library
     ${QL_CONFIGURED_HEADERS}
     ${QL_GENERATED_HEADERS})
 
+# So that we can use QuantLib::QuantLib in our mono-repo build and also in CI build where QuantLib target will be 
+# imported via find_package(QuantLib REQUIRED CONFIG)
+add_library(QuantLib::${PACKAGE_NAME} ALIAS ql_library)
+
 set_target_properties(ql_library PROPERTIES
     EXPORT_NAME ${PACKAGE_NAME}
     OUTPUT_NAME ${PACKAGE_NAME}
