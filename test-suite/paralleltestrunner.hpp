@@ -443,7 +443,7 @@ int main(int argc, char* argv[]) {
         return boost::exit_success;
     } catch (utf::framework::internal_error const& ex) {
         utf::results_reporter::get_stream()
-            << "Boost.Test utf::framework internal error: " << ex.what() << std::endl;
+            << "Boost.Test framework internal error: " << ex.what() << std::endl;
 
         return boost::exit_exception_failure;
     } catch (utf::framework::setup_error const& ex) {
@@ -452,7 +452,7 @@ int main(int argc, char* argv[]) {
         return boost::exit_exception_failure;
     } catch (...) {
         utf::results_reporter::get_stream()
-            << "Boost.Test utf::framework internal error: unknown reason" << std::endl;
+            << "Boost.Test framework internal error: unknown reason" << std::endl;
 
         return boost::exit_exception_failure;
     }
