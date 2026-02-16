@@ -1011,10 +1011,8 @@ namespace QuantLib {
                 earliestDate_ = tradingCalendar_.isHoliday(earliestDate_) ?
                                     jointCalendar_.adjust(earliestDate_) :
                                     earliestDate_;
-            // earliestDate_ = jointCalendar_.adjust(earliestDate_);
             latestRelevantDate_ = maturityDate_ = jointCalendar_.advance(earliestDate_, tenor_,
                                                  conv_, eom_);
-            // latestDate_ = jointCalendar_.adjust(latestDate_);
         } else {
             latestRelevantDate_ = maturityDate_ = cal_.advance(earliestDate_, tenor_, conv_, eom_);
         }
