@@ -1012,7 +1012,7 @@ namespace QuantLib {
                                     jointCalendar_.adjust(earliestDate_) :
                                     earliestDate_;
             // earliestDate_ = jointCalendar_.adjust(earliestDate_);
-            latestDate_ = maturityDate_ = jointCalendar_.advance(earliestDate_, tenor_,
+            latestRelevantDate_ = maturityDate_ = jointCalendar_.advance(earliestDate_, tenor_,
                                                  conv_, eom_);
             // latestDate_ = jointCalendar_.adjust(latestDate_);
         } else {
