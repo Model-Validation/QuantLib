@@ -2461,10 +2461,10 @@ target_include_directories(ql_library PUBLIC
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${QL_INSTALL_INCLUDEDIR}>
-    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(ql_library PUBLIC
+    Boost::boost
     OpenMP::OpenMP_CXX
 )
 
