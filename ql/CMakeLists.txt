@@ -2465,7 +2465,7 @@ target_include_directories(ql_library PUBLIC
 
 target_link_libraries(ql_library PUBLIC
     Boost::boost
-    OpenMP::OpenMP_CXX
+    $<$<BOOL:${QL_ENABLE_OPENMP}>:OpenMP::OpenMP_CXX>
 )
 
 install(TARGETS ql_library EXPORT QuantLibTargets
