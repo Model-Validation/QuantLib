@@ -103,6 +103,8 @@ namespace QuantLib {
         DateGeneration::Rule rule() const;
         bool hasEndOfMonth() const;
         bool endOfMonth() const;
+        Date firstDate() const;
+        Date nextToLastDate() const;
         //@}
         //! \name Iterators
         //@{
@@ -288,6 +290,14 @@ namespace QuantLib {
         QL_REQUIRE(hasEndOfMonthBusinessDayConvention(),
                    "full interface (end of month bdc) not available");
         return *endOfMonthConvention_;
+    }
+
+    inline Date Schedule::firstDate() const {
+        return firstDate_;
+    }
+
+    inline Date Schedule::nextToLastDate() const {
+        return nextToLastDate_;
     }
 }
 
