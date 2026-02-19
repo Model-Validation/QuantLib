@@ -2444,9 +2444,6 @@ endif()
 target_compile_definitions(ql_library PRIVATE
     QL_COMPILATION)
 
-target_compile_options(ql_library PRIVATE
-    ${OpenMP_CXX_FLAGS})
-
 # CMAKE_CXX_STANDARD is always set in top-level CMakeLists
 target_compile_features(ql_library PUBLIC
     cxx_std_${CMAKE_CXX_STANDARD})  
@@ -2465,10 +2462,11 @@ target_include_directories(ql_library PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${QL_INSTALL_INCLUDEDIR}>
     ${Boost_INCLUDE_DIRS}
-    ${OpenMP_CXX_INCLUDE_DIRS})
+)
 
 target_link_libraries(ql_library PUBLIC
-    ${OpenMP_CXX_LIBRARIES})
+    OpenMP::OpenMP_CXX
+)
 
 install(TARGETS ql_library EXPORT QuantLibTargets
     ARCHIVE DESTINATION ${QL_INSTALL_LIBDIR}
