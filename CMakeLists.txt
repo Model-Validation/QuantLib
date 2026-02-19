@@ -245,6 +245,11 @@ configure_file(quantlib.pc.in quantlib.pc @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/quantlib-config TYPE BIN)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/quantlib.pc DESTINATION lib/pkgconfig)
 
+# We want this to be available for tests in consuming projects.
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/test-suite/paralleltestrunner.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/test-suite
+)
+
 include(Platform)
 
 # Check for library name layout tagging
