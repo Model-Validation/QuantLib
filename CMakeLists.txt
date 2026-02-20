@@ -237,13 +237,15 @@ set(prefix ${CMAKE_INSTALL_PREFIX})
 set(exec_prefix "\${prefix}")
 set(includedir "\${prefix}/include")
 set(libdir "\${exec_prefix}/lib")
-if (QL_ENABLE_OPENMP)
-    set(OPENMP_CXXFLAGS ${OpenMP_CXX_FLAGS})
-endif()
 configure_file(quantlib-config.in quantlib-config @ONLY)
 configure_file(quantlib.pc.in quantlib.pc @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/quantlib-config TYPE BIN)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/quantlib.pc DESTINATION lib/pkgconfig)
+
+# We want this to be available for tests in consuming projects.
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/test-suite/paralleltestrunner.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/test-suite
+)
 
 include(Platform)
 
