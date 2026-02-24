@@ -2410,6 +2410,10 @@ add_library(ql_library
     ${QL_CONFIGURED_HEADERS}
     ${QL_GENERATED_HEADERS})
 
+# So that we can use QuantLib::QuantLib in our mono-repo build and also in CI build where QuantLib target will be 
+# imported via find_package(QuantLib REQUIRED CONFIG)
+add_library(QuantLib::${PACKAGE_NAME} ALIAS ql_library)
+
 set_target_properties(ql_library PROPERTIES
     EXPORT_NAME ${PACKAGE_NAME}
     OUTPUT_NAME ${PACKAGE_NAME}
@@ -2417,28 +2421,26 @@ set_target_properties(ql_library PROPERTIES
     SOVERSION ${QUANTLIB_VERSION_MAJOR})
 
 if (QL_USE_PCH)
-target_precompile_headers(ql_library
-  PUBLIC
-    <ql/any.hpp>
-    <ql/errors.hpp>
-    <ql/index.hpp>
-    <ql/indexes/indexmanager.hpp>
-    <ql/instrument.hpp>
-    <ql/indexes/interestrateindex.hpp>
-    <ql/math/array.hpp>
-    <ql/math/interpolations/cubicinterpolation.hpp>
-    <ql/math/matrix.hpp>
-    <ql/methods/finitedifferences/operators/fdmlinearop.hpp>
-    <ql/patterns/observable.hpp>
-    <ql/qldefines.hpp>
-    <ql/termstructure.hpp>)
+    target_precompile_headers(ql_library
+        PUBLIC
+            $<BUILD_INTERFACE:<ql/any.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/errors.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/index.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/indexes/indexmanager.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/instrument.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/indexes/interestrateindex.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/math/array.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/math/interpolations/cubicinterpolation.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/math/matrix.hpp$<ANGLE-R>,>
+            $<BUILD_INTERFACE:<ql/methods/finitedifferences/operators/fdmlinearop.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/patterns/observable.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/qldefines.hpp$<ANGLE-R>>
+            $<BUILD_INTERFACE:<ql/termstructure.hpp$<ANGLE-R>>
+    )
 endif()
 
 target_compile_definitions(ql_library PRIVATE
     QL_COMPILATION)
-
-target_compile_options(ql_library PRIVATE
-    ${OpenMP_CXX_FLAGS})
 
 # CMAKE_CXX_STANDARD is always set in top-level CMakeLists
 target_compile_features(ql_library PUBLIC
@@ -2457,11 +2459,12 @@ target_include_directories(ql_library PUBLIC
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${QL_INSTALL_INCLUDEDIR}>
-    ${Boost_INCLUDE_DIRS}
-    ${OpenMP_CXX_INCLUDE_DIRS})
+)
 
 target_link_libraries(ql_library PUBLIC
-    ${OpenMP_CXX_LIBRARIES})
+    Boost::boost
+    $<$<BOOL:${QL_ENABLE_OPENMP}>:OpenMP::OpenMP_CXX>
+)
 
 install(TARGETS ql_library EXPORT QuantLibTargets
     ARCHIVE DESTINATION ${QL_INSTALL_LIBDIR}
