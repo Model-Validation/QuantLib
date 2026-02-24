@@ -180,13 +180,24 @@ namespace QuantLib {
     Real RangeAccrualPricerByBgm::swapletPrice() const{
 
         Real result = 0.;
-        const Real deflator = discount_*initialValues_[0];
+        const bool isFixedRate = (fixedRate_ != Null<Real>());
+        // In fixed-rate mode the deflator is just the discount factor (we price
+        // plain digital indicators 1_{L in range}). In floating mode the deflator
+        // includes the initial forward rate L_0 (digital-floater pricing).
+        const Real deflator = isFixedRate ? discount_ : discount_ * initialValues_[0];
         for(Size i=0;i<observationsNo_;i++){
-            Real digitalFloater = digitalRangePrice(lowerTrigger_, upperTrigger_,initialValues_[i+1],
+            Real digital = digitalRangePrice(lowerTrigger_, upperTrigger_,initialValues_[i+1],
                                                      observationTimes_[i], deflator);
-            result += digitalFloater;
+            result += digital;
         }
-        return gearing_ *(result*accrualFactor_/observationsNo_)+ spreadLegValue_;
+        if (isFixedRate) {
+            // Fixed-rate range accrual: fixedRate * (n/N) * accrualFactor * discount
+            // result = sum_i  discount * Pr(L_i in [lower,upper])
+            // result * accrualFactor / N = E[n/N] * accrualFactor * discount
+            return fixedRate_ * result * accrualFactor_ / observationsNo_;
+        } else {
+            return gearing_ *(result*accrualFactor_/observationsNo_)+ spreadLegValue_;
+        }
     }
 
     std::vector<Real> RangeAccrualPricerByBgm::driftsOverPeriod(Real U,
@@ -198,7 +209,6 @@ namespace QuantLib {
         const Real p = (U-startTime_)/accrualFactor_;
         const Real q = (endTime_-U)/accrualFactor_;
         const Real L0T = initialValues_.back();
-
         const Real driftBeforeFixing =
                 p*accrualFactor_*L0T/(1.+L0T*accrualFactor_)*(p*lambdaT*lambdaT + q*lambdaS*lambdaT*correlation) +
                 q*lambdaS*lambdaS + p*lambdaS*lambdaT*correlation
@@ -330,14 +340,13 @@ namespace QuantLib {
                                                       Real initialValue,
                                                       Real expiry,
                                                       Real deflator) const{
-            const Real lowerPrice = digitalPrice(lowerTrigger, initialValue, expiry, deflator);
-            const Real upperPrice = digitalPrice(upperTrigger, initialValue, expiry, deflator);
-            const Real result =  lowerPrice - upperPrice;
-            QL_REQUIRE(result >=0.,
-                "RangeAccrualPricerByBgm::digitalRangePrice:\n digitalPrice("<<upperTrigger<<
-                "): "<<upperPrice<<" >  digitalPrice("<<lowerTrigger<<"): "<<lowerPrice);
-            return result;
-
+        const Real lowerPrice = digitalPrice(lowerTrigger, initialValue, expiry, deflator);
+        const Real upperPrice = digitalPrice(upperTrigger, initialValue, expiry, deflator);
+        const Real result =  lowerPrice - upperPrice;
+        QL_REQUIRE(result >0,
+            "RangeAccrualPricerByBgm::digitalRangePrice:\n digitalPrice("<<upperTrigger<<
+            "): "<<upperPrice<<" >  digitalPrice("<<lowerTrigger<<"): "<<lowerPrice);
+        return result;
     }
     Real RangeAccrualPricerByBgm::digitalPrice(Real strike,
                                         Real initialValue,
@@ -357,20 +366,16 @@ namespace QuantLib {
                                         Real initialValue,
                                         Real expiry,
                                         Real deflator) const {
-
         Real lambdaS = smilesOnExpiry_->volatility(strike);
         Real lambdaT = smilesOnPayment_->volatility(strike);
-
         std::vector<Real> lambdaU = lambdasOverPeriod(expiry, lambdaS, lambdaT);
         const Real variance =
             startTime_*lambdaU[0]*lambdaU[0]+(expiry-startTime_)*lambdaU[1]*lambdaU[1];
 
         Real lambdaSATM = smilesOnExpiry_->volatility(initialValue);
         Real lambdaTATM = smilesOnPayment_->volatility(initialValue);
-        //drift of Lognormal process (of Libor) "a_U()" nel paper
         std::vector<Real> muU = driftsOverPeriod(expiry, lambdaSATM, lambdaTATM, correlation_);
         const Real adjustment = (startTime_*muU[0]+(expiry-startTime_)*muU[1]);
-
 
        Real d2 = (std::log(initialValue/strike) + adjustment - 0.5*variance)/std::sqrt(variance);
 
@@ -423,7 +428,6 @@ namespace QuantLib {
             const Real nextAdjustment = std::exp(std::max(startTime_, 0.)*muU[0] +
                                          std::min(expiry-startTime_, expiry)*muU[1]);
             const Real nextForward = initialValue * nextAdjustment ;
-
             result = callSpreadPrice(previousForward,nextForward,previousStrike, nextStrike,
                                                     deflator, previousVariance, nextVariance);
 
@@ -510,7 +514,6 @@ namespace QuantLib {
             blackFormula(Option::Call, nextStrike, nextForward, std::sqrt(nextVariance), deflator);
          const Real previousCall =
             blackFormula(Option::Call, previousStrike, previousForward, std::sqrt(previousVariance), deflator);
-
          QL_ENSURE(nextCall <previousCall,"RangeAccrualPricerByBgm::callSpreadPrice: nextCall > previousCall"
             "\n nextCall: strike :" << nextStrike << "; variance: " << nextVariance <<
             " adjusted initial value " << nextForward <<
