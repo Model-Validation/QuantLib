@@ -88,13 +88,10 @@ namespace QuantLib {
 
         Date endDate = terminationDate_;
         if (endDate == Date()) {
-            if (overnightEndOfMonth)
-                endDate = overnightCalendar_.advance(startDate,
-                                                     swapTenor_,
-                                                     ModifiedFollowing,
-                                                     overnightEndOfMonth);
-            else
-                endDate = startDate + swapTenor_;
+            endDate = startDate + swapTenor_;
+            if (overnightEndOfMonth && overnightCalendar_.isEndOfMonth(startDate) &&
+                (swapTenor_.units() == Months || swapTenor_.units() == Years))
+                endDate = overnightCalendar_.endOfMonth(endDate);
         }
 
         Frequency fixedPaymentFrequency, overnightPaymentFrequency;
