@@ -384,7 +384,9 @@ namespace QuantLib {
         const Real adjustment = (startTime_*muU[0]+(expiry-startTime_)*muU[1]);
 
         Real d2 = (std::log(initialValue/strike) + adjustment - 0.5*variance)/std::sqrt(variance);
+
         CumulativeNormalDistribution phi;
+
         const Real result = deflator*phi(d2);
 
         QL_REQUIRE(result > 0.,
@@ -442,6 +444,7 @@ namespace QuantLib {
             result = digitalPriceWithoutSmile(strike, initialValue, expiry, deflator)+
                      smileCorrection(strike, initialValue, expiry, deflator);
         }
+
         QL_REQUIRE(result > -std::pow(eps_,.5),
             "RangeAccrualPricerByBgm::digitalPriceWithSmile: result< 0 Result:"<<result);
         QL_REQUIRE(result/deflator <=  1.0 + std::pow(eps_,.2),
