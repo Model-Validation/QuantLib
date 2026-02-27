@@ -33,6 +33,8 @@
 
 namespace QuantLib {
 
+    class MultiCurveBootstrapContributor;
+
     //! Interest-rate term structure
     /*! This abstract class defines the interface of concrete
         interest rate structures which will be derived from this one.
@@ -43,6 +45,8 @@ namespace QuantLib {
     */
     class YieldTermStructure : public TermStructure {
       public:
+        enum class Extrapolation { ContinuousForward, DiscreteForward };
+
         /*! \name Constructors
             See the TermStructure documentation for issues regarding
             constructors.
@@ -154,6 +158,7 @@ namespace QuantLib {
         //@{
         void update() override;
         //@}
+
       protected:
         /*! \name Calculations
 

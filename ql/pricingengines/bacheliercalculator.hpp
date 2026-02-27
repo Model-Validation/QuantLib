@@ -101,6 +101,12 @@ namespace QuantLib {
         /*! gamma w.r.t. strike. */
         Real strikeGamma() const override;
 
+        /*! Sensitivity of vega to spot (Vanna) */
+        Real vanna(Time maturity) const;
+
+        /*! Sensitivity of volga to volatility (Volga) */
+        Real volga(Time maturity) const;
+
         Real alpha() const override;
         Real beta() const override;
 

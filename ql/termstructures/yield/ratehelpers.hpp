@@ -59,18 +59,24 @@ namespace QuantLib {
                           bool endOfMonth,
                           const DayCounter& dayCounter,
                           const std::variant<Real, Handle<Quote>>& convexityAdjustment = 0.0,
-                          Futures::Type type = Futures::IMM);
+                          Futures::Type type = Futures::IMM,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         FuturesRateHelper(const std::variant<Real, Handle<Quote>>& price,
                           const Date& iborStartDate,
                           const Date& iborEndDate,
                           const DayCounter& dayCounter,
                           const std::variant<Real, Handle<Quote>>& convexityAdjustment = 0.0,
-                          Futures::Type type = Futures::IMM);
+                          Futures::Type type = Futures::IMM,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         FuturesRateHelper(const std::variant<Real, Handle<Quote>>& price,
                           const Date& iborStartDate,
                           const ext::shared_ptr<IborIndex>& iborIndex,
                           const std::variant<Real, Handle<Quote>>& convexityAdjustment = 0.0,
-                          Futures::Type type = Futures::IMM);
+                          Futures::Type type = Futures::IMM,
+                          Pillar::Choice pillarChoice= Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -86,9 +92,11 @@ namespace QuantLib {
         const DayCounter& dayCounter() const { return dayCounter_; }
 
       private:
+        void setPillarDate();
         Time yearFraction_;
         Handle<Quote> convAdj_;
         DayCounter dayCounter_;
+        Pillar::Choice pillarChoice_;
     };
 
 
@@ -101,12 +109,18 @@ namespace QuantLib {
                           const Calendar& calendar,
                           BusinessDayConvention convention,
                           bool endOfMonth,
-                          const DayCounter& dayCounter);
+                          const DayCounter& dayCounter,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         DepositRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
-                          const ext::shared_ptr<IborIndex>& iborIndex);
+                          const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         DepositRateHelper(const std::variant<Rate, Handle<Quote>>& rate,
                           Date fixingDate,
-                          const ext::shared_ptr<IborIndex>& iborIndex);
+                          const ext::shared_ptr<IborIndex>& iborIndex,
+                          Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                          const Date& customPillarDate = Date());
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -122,6 +136,7 @@ namespace QuantLib {
         void initializeDates() override;
         Date fixingDate_;
         ext::shared_ptr<IborIndex> iborIndex_;
+        Pillar::Choice pillarChoice_;
         RelinkableHandle<YieldTermStructure> termStructureHandle_;
     };
 
@@ -426,13 +441,17 @@ namespace QuantLib {
                          bool endOfMonth,
                          bool isFxBaseCurrencyCollateralCurrency,
                          Handle<YieldTermStructure> collateralCurve,
-                         Calendar tradingCalendar = Calendar());
+                         Calendar tradingCalendar = Calendar(),
+                         Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                         const Date& customPillarDate = Date());
         FxSwapRateHelper(const Handle<Quote>& fwdPoint,
                          Handle<Quote> spotFx,
                          const Date& startDate,
                          const Date& endDate,
                          bool isFxBaseCurrencyCollateralCurrency,
-                         Handle<YieldTermStructure> collateralCurve);
+                         Handle<YieldTermStructure> collateralCurve,
+                         Pillar::Choice pillarChoice = Pillar::LastRelevantDate,
+                         const Date& customPillarDate = Date());
         //! \name RateHelper interface
         //@{
         Real impliedQuote() const override;
@@ -457,6 +476,7 @@ namespace QuantLib {
         //@}
     private:
       void initializeDates() override;
+      void setPillarDate();
       Handle<Quote> spot_;
       Period tenor_;
       Natural fixingDays_;
@@ -472,6 +492,7 @@ namespace QuantLib {
 
       Calendar tradingCalendar_;
       Calendar jointCalendar_;
+      Pillar::Choice pillarChoice_;
     };
 
     // inline

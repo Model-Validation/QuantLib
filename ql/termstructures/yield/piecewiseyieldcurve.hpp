@@ -28,6 +28,8 @@
 
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/termstructures/iterativebootstrap.hpp>
+#include <ql/termstructures/globalbootstrap.hpp>
+#include <ql/termstructures/multicurve.hpp>
 #include <ql/termstructures/yield/bootstraptraits.hpp>
 #include <utility>
 
@@ -58,7 +60,8 @@ namespace QuantLib {
               template <class> class Bootstrap = IterativeBootstrap>
     class PiecewiseYieldCurve
         : public Traits::template curve<Interpolator>::type,
-          public LazyObject {
+          public LazyObject,
+          public MultiCurveBootstrapProvider {
       private:
         typedef typename Traits::template curve<Interpolator>::type base_curve;
         typedef PiecewiseYieldCurve<Traits,Interpolator,Bootstrap> this_curve;
@@ -69,63 +72,97 @@ namespace QuantLib {
 
         //! \name Constructors
         //@{
-        PiecewiseYieldCurve(
-            const Date& referenceDate,
-            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
-            const DayCounter& dayCounter,
-            const std::vector<Handle<Quote> >& jumps = {},
-            const std::vector<Date>& jumpDates = {},
-            const Interpolator& i = {},
-            bootstrap_type bootstrap = {})
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              referenceDate, dayCounter, jumps, jumpDates, i) {}
+        PiecewiseYieldCurve(const Date& referenceDate,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
+                            const DayCounter& dayCounter,
+                            const std::vector<Handle<Quote>>& jumps = {},
+                            const std::vector<Date>& jumpDates = {},
+                            const Interpolator& i = {},
+                            bootstrap_type bootstrap = {},
+                            const YieldTermStructure::Extrapolation extrapolation =
+                                YieldTermStructure::Extrapolation::ContinuousForward)
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              referenceDate,
+                              dayCounter,
+                              jumps,
+                              jumpDates,
+                              i,
+                              extrapolation) {}
 
         PiecewiseYieldCurve(const Date& referenceDate,
-                            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
                             const DayCounter& dayCounter,
                             const Interpolator& i,
-                            bootstrap_type bootstrap = {})
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              referenceDate, dayCounter,
-                              std::vector<Handle<Quote>>(), std::vector<Date>(), i) {}
+                            bootstrap_type bootstrap = {},
+                            const YieldTermStructure::Extrapolation extrapolation =
+                                YieldTermStructure::Extrapolation::ContinuousForward)
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              referenceDate,
+                              dayCounter,
+                              std::vector<Handle<Quote>>(),
+                              std::vector<Date>(),
+                              i,
+                              extrapolation) {}
 
         PiecewiseYieldCurve(const Date& referenceDate,
-                            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
                             const DayCounter& dayCounter,
                             bootstrap_type bootstrap)
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              referenceDate, dayCounter) {}
-
-        PiecewiseYieldCurve(
-            Natural settlementDays,
-            const Calendar& calendar,
-            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
-            const DayCounter& dayCounter,
-            const std::vector<Handle<Quote> >& jumps = {},
-            const std::vector<Date>& jumpDates = {},
-            const Interpolator& i = {},
-            bootstrap_type bootstrap = {})
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              settlementDays, calendar, dayCounter, jumps, jumpDates, i) {}
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              referenceDate,
+                              dayCounter) {}
 
         PiecewiseYieldCurve(Natural settlementDays,
                             const Calendar& calendar,
-                            std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
+                            const DayCounter& dayCounter,
+                            const std::vector<Handle<Quote>>& jumps = {},
+                            const std::vector<Date>& jumpDates = {},
+                            const Interpolator& i = {},
+                            bootstrap_type bootstrap = {},
+                            const YieldTermStructure::Extrapolation extrapolation =
+                                YieldTermStructure::Extrapolation::ContinuousForward)
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              settlementDays,
+                              calendar,
+                              dayCounter,
+                              jumps,
+                              jumpDates,
+                              i,
+                              extrapolation) {}
+
+        PiecewiseYieldCurve(Natural settlementDays,
+                            const Calendar& calendar,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
                             const DayCounter& dayCounter,
                             const Interpolator& i,
-                            bootstrap_type bootstrap = {})
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              settlementDays, calendar, dayCounter,
-                              std::vector<Handle<Quote>>(), std::vector<Date>(), i) {}
+                            bootstrap_type bootstrap = {},
+                            const YieldTermStructure::Extrapolation extrapolation =
+                                YieldTermStructure::Extrapolation::ContinuousForward)
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              settlementDays,
+                              calendar,
+                              dayCounter,
+                              std::vector<Handle<Quote>>(),
+                              std::vector<Date>(),
+                              i,
+                              extrapolation) {}
 
-        PiecewiseYieldCurve(
-               Natural settlementDays,
-               const Calendar& calendar,
-               std::vector<ext::shared_ptr<typename Traits::helper> > instruments,
-               const DayCounter& dayCounter,
-               bootstrap_type bootstrap)
-        : PiecewiseYieldCurve(std::move(instruments), std::move(bootstrap),
-                              settlementDays, calendar, dayCounter) {}
+        PiecewiseYieldCurve(Natural settlementDays,
+                            const Calendar& calendar,
+                            std::vector<ext::shared_ptr<typename Traits::helper>> instruments,
+                            const DayCounter& dayCounter,
+                            bootstrap_type bootstrap)
+        : PiecewiseYieldCurve(std::move(instruments),
+                              std::move(bootstrap),
+                              settlementDays,
+                              calendar,
+                              dayCounter) {}
         //@}
         //! \name TermStructure interface
         //@{
@@ -142,8 +179,13 @@ namespace QuantLib {
         //@{
         void update() override;
         //@}
-
-        const bootstrap_type& bootstrap() const { return bootstrap_; }
+        const MultiCurveBootstrapContributor* multiCurveBootstrapContributor() const override {
+            if constexpr (std::is_convertible_v<bootstrap_type*, MultiCurveBootstrapContributor*>) {
+                return &bootstrap_;
+            } else {
+                return nullptr;
+            }
+        }
 
       protected:
         template <class... Args>

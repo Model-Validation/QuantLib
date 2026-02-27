@@ -40,6 +40,7 @@ namespace QuantLib {
     struct Pillar {
         //! Alternatives ways of determining the pillar date
         enum Choice {
+            StartDate,        //! instruments start date
             MaturityDate,     //! instruments maturity date
             LastRelevantDate, //! last date relevant for instrument pricing
             CustomDate        //! custom choice
