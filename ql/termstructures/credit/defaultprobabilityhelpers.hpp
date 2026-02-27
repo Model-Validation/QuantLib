@@ -33,6 +33,7 @@
 #include <ql/termstructures/bootstraphelper.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/instruments/creditdefaultswap.hpp>
+#include <boost/variant.hpp>
 
 namespace QuantLib {
 
@@ -80,7 +81,8 @@ namespace QuantLib {
         */
         QL_DEPRECATED
         CdsHelper(const std::variant<Rate, Handle<Quote>>& quote,
-                  const Period& tenor,
+                  const boost::variant<Period, Date>& tenor,
+                  // const Period& tenor,
                   Integer settlementDays,
                   Calendar calendar,
                   Frequency frequency,
@@ -121,7 +123,8 @@ namespace QuantLib {
         @param lastPeriodDayCounter  The day counter for the last fee leg coupon. See comment on \p dayCounter.
         */
         CdsHelper(const std::variant<Rate, Handle<Quote>>& quote,
-                  const Period& tenor,
+                  const boost::variant<Period, Date>& tenor,
+                  // const Period& tenor,
                   Integer settlementDays,
                   const Calendar& calendar,
                   Frequency frequency,
@@ -149,7 +152,8 @@ namespace QuantLib {
         void initializeDates() override;
         virtual void resetEngine() = 0;
         Date firstAccrualPeriodStartDate() const;
-        Period tenor_;
+        const boost::variant<Period, Date>& tenor_;
+            // Period tenor_;
         Integer settlementDays_;
         Calendar calendar_;
         Frequency frequency_;
@@ -177,7 +181,8 @@ namespace QuantLib {
       public:
         QL_DEPRECATED
         SpreadCdsHelper(const std::variant<Rate, Handle<Quote>>& runningSpread,
-                        const Period& tenor,
+                        const boost::variant<Period, Date>& tenor, 
+                        // const Period& tenor,
                         Integer settlementDays,
                         const Calendar& calendar,
                         Frequency frequency,
@@ -194,7 +199,8 @@ namespace QuantLib {
                         CreditDefaultSwap::PricingModel model = CreditDefaultSwap::Midpoint);
 
         SpreadCdsHelper(const std::variant<Rate, Handle<Quote>>& runningSpread,
-                        const Period& tenor,
+                        const boost::variant<Period, Date>& tenor,
+                        // const Period& tenor,
                         Integer settlementDays,
                         const Calendar& calendar,
                         Frequency frequency,
@@ -223,7 +229,8 @@ namespace QuantLib {
         QL_DEPRECATED
         UpfrontCdsHelper(const std::variant<Rate, Handle<Quote>>& upfront,
                          Rate runningSpread,
-                         const Period& tenor,
+                         const boost::variant<Period, Date>& tenor,
+                         // const Period& tenor,
                          Integer settlementDays,
                          const Calendar& calendar,
                          Frequency frequency,
@@ -243,7 +250,8 @@ namespace QuantLib {
         /*! \note the upfront must be quoted in fractional units. */
         UpfrontCdsHelper(const std::variant<Rate, Handle<Quote>>& upfront,
                          Rate runningSpread,
-                         const Period& tenor,
+                         const boost::variant<Period, Date>& tenor,
+                         // const Period& tenor,
                          Integer settlementDays,
                          const Calendar& calendar,
                          Frequency frequency,

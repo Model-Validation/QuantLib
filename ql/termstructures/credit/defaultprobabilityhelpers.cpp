@@ -29,10 +29,12 @@
 #include <utility>
 #include <iostream>
 
+
 namespace QuantLib {
 
     CdsHelper::CdsHelper(const std::variant<Rate, Handle<Quote>>& quote,
-                         const Period& tenor,
+                         const boost::variant<Period, Date>& tenor,
+                         // const Period& tenor,
                          Integer settlementDays,
                          Calendar calendar,
                          Frequency frequency,
@@ -64,7 +66,8 @@ namespace QuantLib {
     }
 
     CdsHelper::CdsHelper(const std::variant<Rate, Handle<Quote>>& quote,
-                         const Period& tenor,
+                         const boost::variant<Period, Date>& tenor,
+                         // const Period& tenor,
                          Integer settlementDays,
                          const Calendar& calendar,
                          Frequency frequency,
@@ -116,15 +119,23 @@ namespace QuantLib {
         }
 
         Date endDate;
-        if (rule_ == DateGeneration::CDS2015 || rule_ == DateGeneration::CDS || rule_ == DateGeneration::OldCDS) {
-            Date refDate = startDate_ == Date() ? evaluationDate_ : startDate_;
-            endDate = cdsMaturity(refDate, tenor_, rule_);
+        if (boost::get<Date>(tenor_) != Date()) {
+        
+            endDate = boost::get<Date>(tenor_);
+           
         } else {
-            // Keep the old logic here
-            Date refDate = startDate_ == Date() ? protectionStart_ : startDate_ + settlementDays_;
-            endDate = refDate + tenor_;
+        
+            if (rule_ == DateGeneration::CDS2015 || rule_ == DateGeneration::CDS || rule_ == DateGeneration::OldCDS) {
+                Date refDate = startDate_ == Date() ? evaluationDate_ : startDate_;
+            
+                endDate = cdsMaturity(refDate, boost::get<Period>(tenor_), rule_);
+            } else {
+                // Keep the old logic here
+                Date refDate = startDate_ == Date() ? protectionStart_ : startDate_ + settlementDays_;
+                endDate = refDate + boost::get<Period>(tenor_);
+        
+            }
         }
-
         schedule_ =
             MakeSchedule().from(startDate)
                           .to(endDate)
@@ -146,7 +157,8 @@ namespace QuantLib {
     // deprecated 
     SpreadCdsHelper::SpreadCdsHelper(
                               const std::variant<Rate, Handle<Quote>>& runningSpread,
-                              const Period& tenor,
+                              const boost::variant<Period, Date>& tenor,
+                                     // const Period& tenor,
                               Integer settlementDays,
                               const Calendar& calendar,
                               Frequency frequency,
@@ -168,7 +180,8 @@ namespace QuantLib {
 
     SpreadCdsHelper::SpreadCdsHelper(
                               const std::variant<Rate, Handle<Quote>>& runningSpread,
-                              const Period& tenor,
+                              const boost::variant<Period, Date>& tenor,
+                                     // const Period& tenor,
                               Integer settlementDays,
                               const Calendar& calendar,
                               Frequency frequency,
@@ -219,7 +232,8 @@ namespace QuantLib {
     UpfrontCdsHelper::UpfrontCdsHelper(
                               const std::variant<Rate, Handle<Quote>>& upfront,
                               Rate runningSpread,
-                              const Period& tenor,
+                              //const Period& tenor,
+                              const boost::variant<Period, Date>& tenor,
                               Integer settlementDays,
                               const Calendar& calendar,
                               Frequency frequency,
@@ -244,9 +258,10 @@ namespace QuantLib {
       runningSpread_(runningSpread) {}
 
     UpfrontCdsHelper::UpfrontCdsHelper(
+    
                               const std::variant<Rate, Handle<Quote>>& upfront,
                               Rate runningSpread,
-                              const Period& tenor,
+        const boost::variant<Period, Date>& tenor,
                               Integer settlementDays,
                               const Calendar& calendar,
                               Frequency frequency,
