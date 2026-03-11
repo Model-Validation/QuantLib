@@ -58,6 +58,8 @@ namespace QuantLib {
               return out << "LastWednesday";
           case DateGeneration::NthBusinessDay:
               return out << "NthBusinessDay";
+          case DateGeneration::EighthBusinessDay:
+              return out << "EighthBusinessDay";
           default:
             QL_FAIL("unknown DateGeneration::Rule (" << Integer(r) << ")");
         }

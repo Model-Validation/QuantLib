@@ -85,6 +85,8 @@ namespace QuantLib {
                                          of their month. */
             NthBusinessDay,         /*!< Dates are once per month on the specified 
                                         business day of each month. */
+            EighthBusinessDay,         /*!< Dates are once per month on the eighth
+                                        business day of each month. */
         };
     };
 
