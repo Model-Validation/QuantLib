@@ -1773,6 +1773,179 @@ BOOST_AUTO_TEST_CASE(testNotifications) {
         BOOST_FAIL("cash flow did not notify observer of curve change");
 }
 
+BOOST_AUTO_TEST_CASE(testRebaseFactors) {
+    BOOST_TEST_MESSAGE("Testing rebase factor adjustments on zero inflation index fixings...");
+
+    // We construct ZeroInflationIndex directly with a unique family name so the
+    // IndexManager does not interfere with other tests that store UKRPI fixings.
+    const std::string familyName = "RebaseTest";
+    auto makeIndex = [&](const std::map<Date, Real>& rebaseFactors = {}) {
+        return ext::make_shared<ZeroInflationIndex>(
+            familyName, UKRegion(), /*revised=*/false,
+            Monthly, Period(1, Months), GBPCurrency(),
+            Handle<ZeroInflationTermStructure>{}, rebaseFactors);
+    };
+
+    // Clear any stale fixings left from a previous run of this test case
+    // (the IndexManager is global and survives across test-suite restarts).
+    makeIndex()->clearFixings();
+
+    // Raw stored fixing values (as published at the time of each series):
+    //   F1 – January 2020 : before any rebase
+    //   F2 – July    2021 : after rebase1 (June 2021), before rebase2 (June 2022)
+    //   F3 – July    2022 : after rebase2
+    const Date F1(1, January, 2020);
+    const Date F2(1, July,    2021);
+    const Date F3(1, July,    2022);
+    const Real raw1 = 100.0, raw2 = 105.0, raw3 = 102.0;
+
+    const Date rebase1Date(1, June, 2021);  const Real rebase1Factor = 0.95;
+    const Date rebase2Date(1, June, 2022);  const Real rebase2Factor = 0.98;
+
+    const std::map<Date, Real> noRebases  = {};
+    const std::map<Date, Real> oneRebase  = {{rebase1Date, rebase1Factor}};
+    const std::map<Date, Real> twoRebases = {{rebase1Date, rebase1Factor},
+                                             {rebase2Date, rebase2Factor}};
+
+    // Evaluation dates.  Each is chosen so that needsForecast() returns false
+    // for the fixing dates we intend to query (no term structure is attached).
+    //   evalBefore  – before rebase1      → can access F1
+    //   evalBetween – after rebase1,
+    //                 before rebase2      → can access F1, F2
+    //   evalAfter   – after rebase2       → can access F1, F2, F3
+    const Date evalBefore (1, December, 2020);
+    const Date evalBetween(1, May,      2022);
+    const Date evalAfter  (1, December, 2023);
+
+    const Real eps = 1.0e-12;
+
+    // Add all fixings once; they are shared across sub-tests via the
+    // global IndexManager (keyed on "UK RebaseTest").
+    {
+        auto seed = makeIndex();
+        seed->addFixing(F1, raw1);
+        seed->addFixing(F2, raw2);
+        seed->addFixing(F3, raw3);
+    }
+
+    // -----------------------------------------------------------------------
+    // 1. No rebase events – raw fixings returned unchanged for any eval date
+    // -----------------------------------------------------------------------
+    {
+        SavedSettings backup;
+        Settings::instance().evaluationDate() = evalAfter;
+        auto idx = makeIndex(noRebases);
+        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
+                            "no-rebase: wrong F1 fixing");
+        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
+                            "no-rebase: wrong F2 fixing");
+        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
+                            "no-rebase: wrong F3 fixing");
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. Single rebase
+    // -----------------------------------------------------------------------
+    {
+        // 2a. eval < rebase1 → no adjustment
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = evalBefore;
+            auto idx = makeIndex(oneRebase);
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
+                                "1-rebase, eval<rebase1: F1 should be unadjusted");
+        }
+
+        // 2b. eval == rebase1 (boundary) → factor applied
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = rebase1Date;
+            auto idx = makeIndex(oneRebase);
+            const Real expected = raw1 * rebase1Factor;
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - expected) < eps,
+                                "1-rebase, eval==rebase1: F1 should be adjusted"
+                                << "\n  calculated: " << idx->fixing(F1)
+                                << "\n  expected:   " << expected);
+        }
+
+        // 2c. eval > rebase1:
+        //     - fixing before rebase → factor applied
+        //     - fixing after rebase  → no adjustment
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = evalAfter;
+            auto idx = makeIndex(oneRebase);
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1 * rebase1Factor) < eps,
+                                "1-rebase, eval>rebase1: F1 should be adjusted");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
+                                "1-rebase, eval>rebase1: F2 should be unadjusted");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
+                                "1-rebase, eval>rebase1: F3 should be unadjusted");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. Two rebase events
+    // -----------------------------------------------------------------------
+    {
+        // 3a. eval < rebase1 → no factor for any fixing
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = evalBefore;
+            auto idx = makeIndex(twoRebases);
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
+                                "2-rebase, eval<rebase1: F1 should be unadjusted");
+        }
+
+        // 3b. rebase1 <= eval < rebase2:
+        //     - F1 (< rebase1)                 → factor1
+        //     - F2 (rebase1 <= F2 < rebase2)   → no adjustment
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = evalBetween;
+            auto idx = makeIndex(twoRebases);
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1 * rebase1Factor) < eps,
+                                "2-rebase, eval between: F1 should be adjusted by factor1");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
+                                "2-rebase, eval between: F2 should be unadjusted");
+        }
+
+        // 3c. eval == rebase2 (boundary):
+        //     - F1 (< rebase1)                 → factor1 * factor2
+        //     - F2 (rebase1 <= F2 < rebase2)   → factor2 only
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = rebase2Date;
+            auto idx = makeIndex(twoRebases);
+            BOOST_CHECK_MESSAGE(
+                std::fabs(idx->fixing(F1) - raw1 * rebase1Factor * rebase2Factor) < eps,
+                "2-rebase, eval==rebase2: F1 should be adjusted by factor1*factor2");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2 * rebase2Factor) < eps,
+                                "2-rebase, eval==rebase2: F2 should be adjusted by factor2");
+        }
+
+        // 3d. eval > rebase2:
+        //     - F1 (< rebase1)                 → factor1 * factor2
+        //     - F2 (rebase1 <= F2 < rebase2)   → factor2 only
+        //     - F3 (>= rebase2)                → no adjustment
+        {
+            SavedSettings backup;
+            Settings::instance().evaluationDate() = evalAfter;
+            auto idx = makeIndex(twoRebases);
+            BOOST_CHECK_MESSAGE(
+                std::fabs(idx->fixing(F1) - raw1 * rebase1Factor * rebase2Factor) < eps,
+                "2-rebase, eval>rebase2: F1 should be adjusted by factor1*factor2");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2 * rebase2Factor) < eps,
+                                "2-rebase, eval>rebase2: F2 should be adjusted by factor2");
+            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
+                                "2-rebase, eval>rebase2: F3 should be unadjusted");
+        }
+    }
+
+    // Clean up so the global IndexManager is back to a clean state.
+    makeIndex()->clearFixings();
+}
+
 BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     BOOST_TEST_MESSAGE("Testing inflation term structure regression when extrapolating...");
 

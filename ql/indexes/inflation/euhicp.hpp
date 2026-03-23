@@ -41,7 +41,8 @@ namespace QuantLib {
                              Monthly,
                              Period(1, Months), // availability
                              EURCurrency(),
-                             ts) {}
+                             ts, 
+                             {{Date(1, Jan, 2026), 0.776825690906284}}) {}
     };
 
     //! EU HICPXT index
@@ -54,7 +55,8 @@ namespace QuantLib {
                              Monthly,
                              Period(1, Months), // availability
                              EURCurrency(),
-                             ts) {}
+                             ts,
+                             {{Date(1, Jan, 2026), 0.780588098378462}}) {}
     };
 
 
