@@ -409,12 +409,7 @@ namespace QuantLib {
         if (*rule_ == DateGeneration::EighthBusinessDay) {
             for (Size i = 1; i < dates_.size() - 1; ++i) {
                 Date endOfLast = Date(1, dates_[i].month(), dates_[i].year()) - 1;
-                for (Size i = 1; i < 8; i++)
-                {
-                    endOfLast += 1*Days;
-                    endOfLast = calendar_.adjust(endOfLast, convention);
-                }
-                dates_[i] = endOfLast;
+                dates_[i] = calendar_.advance(endOfLast, 8 * Days, Following);
             }
         }
         else if (*rule_ == DateGeneration::ThirdWednesdayInclusive)
