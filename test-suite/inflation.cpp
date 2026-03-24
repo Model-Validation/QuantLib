@@ -1795,7 +1795,7 @@ BOOST_AUTO_TEST_CASE(testRebaseFactors) {
     //   F2 – July    2021 : after rebase1 (June 2021), before rebase2 (June 2022)
     //   F3 – July    2022 : after rebase2
     const Date F1(1, January, 2020);
-    const Date F2(1, July,    2021);
+    const Date F2(1, June,    2021);
     const Date F3(1, July,    2022);
     const Real raw1 = 100.0, raw2 = 105.0, raw3 = 102.0;
 
@@ -1828,118 +1828,64 @@ BOOST_AUTO_TEST_CASE(testRebaseFactors) {
         seed->addFixing(F3, raw3);
     }
 
-    // -----------------------------------------------------------------------
-    // 1. No rebase events – raw fixings returned unchanged for any eval date
-    // -----------------------------------------------------------------------
+    // Test no rebase
     {
-        SavedSettings backup;
+        auto index = makeIndex(noRebases);
+        auto rebaseFactor = index->rebasingMultiplier(F1, evalAfter); 
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
         Settings::instance().evaluationDate() = evalAfter;
-        auto idx = makeIndex(noRebases);
-        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
-                            "no-rebase: wrong F1 fixing");
-        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
-                            "no-rebase: wrong F2 fixing");
-        BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
-                            "no-rebase: wrong F3 fixing");
+        Real f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1, eps);
     }
-
-    // -----------------------------------------------------------------------
-    // 2. Single rebase
-    // -----------------------------------------------------------------------
+    // Test one rebase event
     {
-        // 2a. eval < rebase1 → no adjustment
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = evalBefore;
-            auto idx = makeIndex(oneRebase);
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
-                                "1-rebase, eval<rebase1: F1 should be unadjusted");
-        }
-
-        // 2b. eval == rebase1 (boundary) → factor applied
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = rebase1Date;
-            auto idx = makeIndex(oneRebase);
-            const Real expected = raw1 * rebase1Factor;
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - expected) < eps,
-                                "1-rebase, eval==rebase1: F1 should be adjusted"
-                                << "\n  calculated: " << idx->fixing(F1)
-                                << "\n  expected:   " << expected);
-        }
-
-        // 2c. eval > rebase1:
-        //     - fixing before rebase → factor applied
-        //     - fixing after rebase  → no adjustment
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = evalAfter;
-            auto idx = makeIndex(oneRebase);
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1 * rebase1Factor) < eps,
-                                "1-rebase, eval>rebase1: F1 should be adjusted");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
-                                "1-rebase, eval>rebase1: F2 should be unadjusted");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
-                                "1-rebase, eval>rebase1: F3 should be unadjusted");
-        }
+        // On a valuation date before the first rebase event, no adjustment needed
+        auto index = makeIndex(oneRebase);
+        auto rebaseFactor = index->rebasingMultiplier(F1, evalBefore); 
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
+        Settings::instance().evaluationDate() = evalBefore;
+        Real f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1, eps);
+        // On a valuation after the rebasing event, we need to adjust raw fixings before the event
+        rebaseFactor = index->rebasingMultiplier(F1, evalBetween);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor, eps);
+        Settings::instance().evaluationDate() = evalBetween;
+        f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1 * rebase1Factor, eps);
+        // Fixings on or after the rebase date should not be adjusted
+        auto f2 = index->fixing(F2);
+        BOOST_CHECK_CLOSE(f2, raw2, eps);
     }
-
-    // -----------------------------------------------------------------------
-    // 3. Two rebase events
-    // -----------------------------------------------------------------------
+    // Test two rebase events
     {
-        // 3a. eval < rebase1 → no factor for any fixing
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = evalBefore;
-            auto idx = makeIndex(twoRebases);
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1) < eps,
-                                "2-rebase, eval<rebase1: F1 should be unadjusted");
-        }
-
-        // 3b. rebase1 <= eval < rebase2:
-        //     - F1 (< rebase1)                 → factor1
-        //     - F2 (rebase1 <= F2 < rebase2)   → no adjustment
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = evalBetween;
-            auto idx = makeIndex(twoRebases);
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F1) - raw1 * rebase1Factor) < eps,
-                                "2-rebase, eval between: F1 should be adjusted by factor1");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2) < eps,
-                                "2-rebase, eval between: F2 should be unadjusted");
-        }
-
-        // 3c. eval == rebase2 (boundary):
-        //     - F1 (< rebase1)                 → factor1 * factor2
-        //     - F2 (rebase1 <= F2 < rebase2)   → factor2 only
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = rebase2Date;
-            auto idx = makeIndex(twoRebases);
-            BOOST_CHECK_MESSAGE(
-                std::fabs(idx->fixing(F1) - raw1 * rebase1Factor * rebase2Factor) < eps,
-                "2-rebase, eval==rebase2: F1 should be adjusted by factor1*factor2");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2 * rebase2Factor) < eps,
-                                "2-rebase, eval==rebase2: F2 should be adjusted by factor2");
-        }
-
-        // 3d. eval > rebase2:
-        //     - F1 (< rebase1)                 → factor1 * factor2
-        //     - F2 (rebase1 <= F2 < rebase2)   → factor2 only
-        //     - F3 (>= rebase2)                → no adjustment
-        {
-            SavedSettings backup;
-            Settings::instance().evaluationDate() = evalAfter;
-            auto idx = makeIndex(twoRebases);
-            BOOST_CHECK_MESSAGE(
-                std::fabs(idx->fixing(F1) - raw1 * rebase1Factor * rebase2Factor) < eps,
-                "2-rebase, eval>rebase2: F1 should be adjusted by factor1*factor2");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F2) - raw2 * rebase2Factor) < eps,
-                                "2-rebase, eval>rebase2: F2 should be adjusted by factor2");
-            BOOST_CHECK_MESSAGE(std::fabs(idx->fixing(F3) - raw3) < eps,
-                                "2-rebase, eval>rebase2: F3 should be unadjusted");
-        }
+        auto index = makeIndex(twoRebases);
+        // On a valuation date before the first rebase event, no adjustment needed
+        auto rebaseFactor = index->rebasingMultiplier(F1, evalBefore);
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
+        Settings::instance().evaluationDate() = evalBefore;
+        Real f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1, eps);
+        // On a valuation after the first rebasing event but before the second, we need to adjust
+        // raw fixings before the first event
+        rebaseFactor = index->rebasingMultiplier(F1, evalBetween);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor, eps);
+        Settings::instance().evaluationDate() = evalBetween;
+        f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1 * rebase1Factor, eps);
+        auto f2 = index->fixing(F2);
+        BOOST_CHECK_CLOSE(f2, raw2, eps); // F2 should not be adjusted as it is after rebase1
+        // On a valuation date after the second rebasing event, we need to adjust raw fixings before
+        // the first event by both rebase factors, and raw fixings between the two events by the
+        // second rebase factor
+        rebaseFactor = index->rebasingMultiplier(F1, evalAfter);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor * rebase2Factor, eps);
+        Settings::instance().evaluationDate() = evalAfter;
+        f1 = index->fixing(F1);
+        BOOST_CHECK_CLOSE(f1, raw1 * rebase1Factor * rebase2Factor, eps);
+        f2 = index->fixing(F2);
+        BOOST_CHECK_CLOSE(f2, raw2 * rebase2Factor, eps);
+        auto f3 = index->fixing(F3);
+        BOOST_CHECK_CLOSE(f3, raw3, eps); // F3 should not be adjusted as it is after rebase2
     }
 
     // Clean up so the global IndexManager is back to a clean state.

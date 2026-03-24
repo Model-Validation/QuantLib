@@ -34,14 +34,8 @@ namespace QuantLib {
     class FRHICP : public ZeroInflationIndex {
       public:
         explicit FRHICP(const Handle<ZeroInflationTermStructure>& ts = {})
-        : ZeroInflationIndex("HICP",
-                             FranceRegion(),
-                             false,
-                             Monthly,
-                             Period(1, Months),
-                             EURCurrency(),
-                             ts,
-                             {{Date(1, Jan, 2026), 0.834585838343353}}) {}
+        : ZeroInflationIndex(
+              "HICP", FranceRegion(), false, Monthly, Period(1, Months), EURCurrency(), ts) {}
     };
 
 

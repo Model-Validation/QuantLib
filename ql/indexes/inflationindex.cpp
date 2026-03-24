@@ -217,10 +217,8 @@ namespace QuantLib {
 
 
     Real ZeroInflationIndex::rebasingMultiplier(const Date& fixingDate, const Date& evaluationDate) const {
-        // Apply all rebase factors whose rebase date falls in (fixingDate, evaluationDate].
-        // upper_bound(fixingDate) -> first entry with rebaseDate > fixingDate
-        // upper_bound(evaluationDate) -> first entry past evaluationDate (i.e. rebaseDate > evaluationDate)
-        // so the range covers exactly: fixingDate < rebaseDate <= evaluationDate
+        QL_REQUIRE(fixingDate <= evaluationDate, "fixing date (" << fixingDate
+                   << ") must be on or before evaluation date (" << evaluationDate << ")");
         Real multiplier = 1.0;
         const auto begin = rebasingEvents_.upper_bound(fixingDate);
         const auto end   = rebasingEvents_.upper_bound(evaluationDate);
@@ -296,7 +294,7 @@ namespace QuantLib {
     ext::shared_ptr<ZeroInflationIndex> ZeroInflationIndex::clone(
                           const Handle<ZeroInflationTermStructure>& h) const {
         return ext::make_shared<ZeroInflationIndex>(
-            familyName_, region_, revised_, frequency_, availabilityLag_, currency_, h);
+            familyName_, region_, revised_, frequency_, availabilityLag_, currency_, h, rebasingEvents_);
     }
 
 
