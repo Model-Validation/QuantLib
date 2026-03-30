@@ -93,27 +93,31 @@ namespace QuantLib {
 
     CdsHelper::CdsHelper(const std::variant<Rate, Handle<Quote>>& quote,
                          Schedule schedule,
-                         Integer settlementDays,
                          const DayCounter& dayCounter,
                          Real recoveryRate,
                          const Handle<YieldTermStructure>& discountCurve,
+                         CreditDefaultSwap::PricingModel model,
                          bool settlesAccrual,
                          CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
-                         const Date& startDate,
                          const DayCounter& lastPeriodDayCounter,
-                         bool rebatesAccrual,
-                         CreditDefaultSwap::PricingModel model)
-    : RelativeDateDefaultProbabilityHelper(quote), settlementDays_(settlementDays),
+                         bool rebatesAccrual)
+    : RelativeDateDefaultProbabilityHelper(quote), settlementDays_(0),
       dayCounter_(std::move(dayCounter)), recoveryRate_(recoveryRate),
       discountCurve_(discountCurve), settlesAccrual_(settlesAccrual),
       protectionPaymentTime_(protectionPaymentTime), lastPeriodDC_(std::move(lastPeriodDayCounter)),
-      rebatesAccrual_(rebatesAccrual), model_(model), schedule_(schedule), startDate_(startDate) {
-        
-        initializeDates();
+      rebatesAccrual_(rebatesAccrual), model_(model), schedule_(schedule) {
+
+        protectionStart_ = schedule[0];
+        schedule_ = removeCDSPeriodsBeforeStartDate(schedule_, protectionStart_);
+        earliestDate_ = schedule_.dates().front();
+        latestDate_ = schedule_.calendar().adjust(schedule_.dates().back(),
+                                                  schedule_.businessDayConvention());
+        if (model_ == CreditDefaultSwap::ISDA)
+            ++latestDate_;
 
         registerWith(discountCurve);
     }
-    
+
     void CdsHelper::setTermStructure(DefaultProbabilityTermStructure* ts) {
         RelativeDateDefaultProbabilityHelper::setTermStructure(ts);
 
@@ -130,7 +134,7 @@ namespace QuantLib {
     }
 
     void CdsHelper::initializeDates() {
-        
+
         protectionStart_ = evaluationDate_ + settlementDays_;
         if (schedule_.empty()) {
         
@@ -296,44 +300,35 @@ namespace QuantLib {
         UpfrontCdsHelper::initializeDates();
     }
 
-        UpfrontCdsHelper::UpfrontCdsHelper(
-
+    UpfrontCdsHelper::UpfrontCdsHelper(
         const std::variant<Rate, Handle<Quote>>& upfront,
         Rate runningSpread,
+        Schedule schedule,
+        DayCounter dayCounter,
         Real recoveryRate,
         const Handle<YieldTermStructure>& discountCurve,
-        CreditDefaultSwap::PricingModel model,                     
-        Schedule schedule,
-        Integer settlementDays,
-        DayCounter dayCounter,
+        CreditDefaultSwap::PricingModel model,
+        Integer upfrontSettlementDays,
         bool settlesAccrual,
-        CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime
-        )
+        CreditDefaultSwap::ProtectionPaymentTime protectionPaymentTime,
+        const DayCounter& lastPeriodDayCounter,
+        bool rebatesAccrual)
     : CdsHelper(upfront,
                 schedule,
-                settlementDays,
                 dayCounter,
                 recoveryRate,
                 discountCurve,
+                model,
                 settlesAccrual,
                 protectionPaymentTime,
-                schedule.startDate(),
-                DayCounter(), //lastPeriodDayCounter,
-                true, //rebatesAccrual,
-                model),
+                lastPeriodDayCounter,
+                rebatesAccrual),
       upfrontSettlementDays_(3), runningSpread_(runningSpread) {
-        UpfrontCdsHelper::initializeDates();
-        upfrontDate_ = schedule.endDate();
+        upfrontDate_ = schedule_.calendar().advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
     }
 
     Date UpfrontCdsHelper::upfrontDate() {
         return calendar_.advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
-    }
-
-
-    void UpfrontCdsHelper::initializeDates() {
-        CdsHelper::initializeDates();
-        upfrontDate_ = schedule_.calendar().advance(evaluationDate_, upfrontSettlementDays_, Days, paymentConvention_);
     }
 
     void UpfrontCdsHelper::resetEngine() {
