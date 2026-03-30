@@ -1773,6 +1773,117 @@ BOOST_AUTO_TEST_CASE(testNotifications) {
         BOOST_FAIL("cash flow did not notify observer of curve change");
 }
 
+BOOST_AUTO_TEST_CASE(testRebaseFactors) {
+    BOOST_TEST_MESSAGE("Testing rebase factor adjustments on zero inflation index fixings...");
+
+    // We construct ZeroInflationIndex directly with a unique family name so the
+    // IndexManager does not interfere with other tests that store UKRPI fixings.
+    const std::string familyName = "RebaseTest";
+    auto makeIndex = [&](const std::map<Date, Real>& rebaseFactors = {}) {
+        return ext::make_shared<ZeroInflationIndex>(
+            familyName, UKRegion(), false, Monthly, Period(1, Months), GBPCurrency(),
+            Handle<ZeroInflationTermStructure>{}, rebaseFactors);
+    };
+
+    // Clear any stale fixings left from a previous run of this test case
+    // (the IndexManager is global and survives across test-suite restarts).
+    makeIndex()->clearFixings();
+
+    const Date fixingDate1(1, January, 2020);
+    const Date fixingDate2(1, June, 2021);
+    const Date fixingDate3(1, July, 2022);
+    const Real fixingValue1 = 100.0, fixingValue2 = 105.0, fixingValue3 = 102.0;
+
+    const Date rebase1Date(1, June, 2021);
+    const Real rebase1Factor = 0.95;
+    const Date rebase2Date(1, June, 2022);
+    const Real rebase2Factor = 0.98;
+
+    const std::map<Date, Real> noRebases = {};
+    const std::map<Date, Real> oneRebase = {{rebase1Date, rebase1Factor}};
+    const std::map<Date, Real> twoRebases = {{rebase1Date, rebase1Factor},
+                                             {rebase2Date, rebase2Factor}};
+
+    const Date evalBefore(1, December, 2020);
+    const Date evalBetween(1, May, 2022);
+    const Date evalAfter(1, December, 2023);
+
+    const Real eps = 1.0e-12;
+
+    // Add all fixings once
+    {
+        auto seed = makeIndex();
+        seed->addFixing(fixingDate1, fixingValue1);
+        seed->addFixing(fixingDate2, fixingValue2);
+        seed->addFixing(fixingDate3, fixingValue3);
+    }
+
+    // Test no rebase
+    {
+        auto index = makeIndex(noRebases);
+        auto rebaseFactor = index->rebasingMultiplier(fixingDate1, evalAfter);
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
+        Settings::instance().evaluationDate() = evalAfter;
+        Real f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1, eps);
+    }
+
+    // Test one rebase event
+    {
+        // On a valuation date before the first rebase event, no adjustment needed
+        auto index = makeIndex(oneRebase);
+        auto rebaseFactor = index->rebasingMultiplier(fixingDate1, evalBefore);
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
+        Settings::instance().evaluationDate() = evalBefore;
+        Real f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1, eps);
+        // On a valuation after the rebasing event, we need to adjust raw fixings before the event
+        rebaseFactor = index->rebasingMultiplier(fixingDate1, evalBetween);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor, eps);
+        Settings::instance().evaluationDate() = evalBetween;
+        f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1 * rebase1Factor, eps);
+        // Fixings on or after the rebase date should not be adjusted
+        auto f2 = index->fixing(fixingDate2);
+        BOOST_CHECK_CLOSE(f2, fixingValue2, eps);
+    }
+
+    // Test two rebase events
+    {
+        auto index = makeIndex(twoRebases);
+        // On a valuation date before the first rebase event, no adjustment needed
+        auto rebaseFactor = index->rebasingMultiplier(fixingDate1, evalBefore);
+        BOOST_CHECK_CLOSE(rebaseFactor, 1.0, eps);
+        Settings::instance().evaluationDate() = evalBefore;
+        Real f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1, eps);
+        // On a valuation between the two rebasing events, we need to adjust raw fixings before the
+        // first event by the first rebase factor, and no adjustment needed for fixings on or after
+        // the first rebase date
+        rebaseFactor = index->rebasingMultiplier(fixingDate1, evalBetween);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor, eps);
+        Settings::instance().evaluationDate() = evalBetween;
+        f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1 * rebase1Factor, eps);
+        auto f2 = index->fixing(fixingDate2);
+        BOOST_CHECK_CLOSE(f2, fixingValue2, eps);
+        // After 2nd rebasing event, we need to adjust raw fixings before the first event by both
+        // rebase factors, and raw fixings between the two events by the second rebase factor
+        rebaseFactor = index->rebasingMultiplier(fixingDate1, evalAfter);
+        BOOST_CHECK_CLOSE(rebaseFactor, rebase1Factor * rebase2Factor, eps);
+        Settings::instance().evaluationDate() = evalAfter;
+        f1 = index->fixing(fixingDate1);
+        BOOST_CHECK_CLOSE(f1, fixingValue1 * rebase1Factor * rebase2Factor, eps);
+        f2 = index->fixing(fixingDate2);
+        BOOST_CHECK_CLOSE(f2, fixingValue2 * rebase2Factor, eps);
+        auto f3 = index->fixing(fixingDate3);
+        BOOST_CHECK_CLOSE(f3, fixingValue3, eps);
+    }
+
+    // Clean up so the global IndexManager
+    makeIndex()->clearFixings();
+}
+
 BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     BOOST_TEST_MESSAGE("Testing inflation term structure regression when extrapolating...");
 

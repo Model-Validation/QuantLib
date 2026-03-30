@@ -193,9 +193,11 @@ namespace QuantLib {
                                            Frequency frequency,
                                            const Period& availabilityLag,
                                            const Currency& currency,
-                                           Handle<ZeroInflationTermStructure> zeroInflation)
+                                           Handle<ZeroInflationTermStructure> zeroInflation,
+                                           const std::map<Date, Real>& rebasingEvents)
     : InflationIndex(familyName, region, revised, frequency, availabilityLag, currency),
-      zeroInflation_(std::move(zeroInflation)) {
+      zeroInflation_(std::move(zeroInflation)),
+      rebasingEvents_(rebasingEvents) {
         registerWith(zeroInflation_);
     }
 
@@ -213,10 +215,26 @@ namespace QuantLib {
         }
     }
 
+
+    Real ZeroInflationIndex::rebasingMultiplier(const Date& fixingDate, const Date& evaluationDate) const {
+        QL_REQUIRE(fixingDate <= evaluationDate, "fixing date (" << fixingDate
+                   << ") must be on or before evaluation date (" << evaluationDate << ")");
+        Real multiplier = 1.0;
+        const auto begin = rebasingEvents_.upper_bound(fixingDate);
+        const auto end   = rebasingEvents_.upper_bound(evaluationDate);
+        for (auto it = begin; it != end; ++it)
+            multiplier *= it->second;
+        return multiplier;
+    }
+
     Real ZeroInflationIndex::pastFixing(const Date& fixingDate) const {
         const auto p = inflationPeriod(fixingDate, frequency_);
         const auto& ts = timeSeries();
-        return ts[p.first];
+        const Real rawFixing = ts[p.first];
+        if (rawFixing == Null<Real>())
+            return rawFixing;
+        const Date today = Settings::instance().evaluationDate();
+        return rawFixing * rebasingMultiplier(p.first, today);
     }
 
     Date ZeroInflationIndex::lastFixingDate() const {
@@ -225,6 +243,7 @@ namespace QuantLib {
         // attribute fixing to first day of the underlying period
         return inflationPeriod(fixings.lastDate(), frequency_).first;
     }
+
 
     bool ZeroInflationIndex::needsForecast(const Date& fixingDate) const {
 
@@ -275,7 +294,7 @@ namespace QuantLib {
     ext::shared_ptr<ZeroInflationIndex> ZeroInflationIndex::clone(
                           const Handle<ZeroInflationTermStructure>& h) const {
         return ext::make_shared<ZeroInflationIndex>(
-            familyName_, region_, revised_, frequency_, availabilityLag_, currency_, h);
+            familyName_, region_, revised_, frequency_, availabilityLag_, currency_, h, rebasingEvents_);
     }
 
 
