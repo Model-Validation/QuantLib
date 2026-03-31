@@ -147,6 +147,8 @@ namespace QuantLib {
               case DateGeneration::OldCDS:
               case DateGeneration::CDS:
               case DateGeneration::CDS2015:
+              case DateGeneration::NthBusinessDay:
+              case DateGeneration::EighthBusinessDay:
               case DateGeneration::LastWednesday:
                 QL_FAIL("first date incompatible with " << *rule_ <<
                         " date generation rule");
@@ -181,6 +183,8 @@ namespace QuantLib {
               case DateGeneration::OldCDS:
               case DateGeneration::CDS:
               case DateGeneration::CDS2015:
+              case DateGeneration::EighthBusinessDay:
+              case DateGeneration::NthBusinessDay:
               case DateGeneration::LastWednesday:
                 QL_FAIL("next to last date incompatible with " << *rule_ <<
                         " date generation rule");
@@ -263,6 +267,8 @@ namespace QuantLib {
           case DateGeneration::OldCDS:
           case DateGeneration::CDS:
           case DateGeneration::CDS2015:
+          case DateGeneration::EighthBusinessDay:
+          case DateGeneration::NthBusinessDay:
           case DateGeneration::LastWednesday:
             QL_REQUIRE(!*endOfMonth_,
                        "endOfMonth convention incompatible with " << *rule_ <<
@@ -397,6 +403,13 @@ namespace QuantLib {
             for (Size i = 1; i < dates_.size() - 1; ++i) {
                 // The next Wednesday on or after the 1st of the next month and back 7.
                 dates_[i] = Date::nextWeekday(Date::endOfMonth(dates_[i]) + 1, Wednesday) - 7;
+            }
+        }
+
+        if (*rule_ == DateGeneration::EighthBusinessDay) {
+            for (Size i = 1; i < dates_.size() - 1; ++i) {
+                Date endOfLast = Date(1, dates_[i].month(), dates_[i].year()) - 1;
+                dates_[i] = calendar_.advance(endOfLast, 8 * Days, Following);
             }
         }
         else if (*rule_ == DateGeneration::ThirdWednesdayInclusive)
