@@ -25,7 +25,7 @@
 #define quantlib_interpolated_curve_hpp
 
 #include <ql/math/comparison.hpp>
-#include <ql/math/interpolation.hpp>
+#include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/time/date.hpp>
 #include <ql/time/daycounter.hpp>
 #include <utility>
@@ -126,9 +126,18 @@ namespace QuantLib {
             }
         }
 
-        void setupInterpolation() {
-            interpolation_ = interpolator_.interpolate(
-                std::next(times_.begin(), skipTimesInterpolation_), times_.end(), data_.begin());
+        void setupInterpolation(Size i = Null<Size>(), const bool fallback = false) {
+            if (fallback) {
+                interpolation_ = Linear().interpolate(
+                    times_.begin(),
+                    i == Null<Size>() ? times_.end() : std::next(times_.begin(), i + 1),
+                    data_.begin());
+            } else {
+                interpolation_ = interpolator_.interpolate(
+                    std::next(times_.begin(), skipTimesInterpolation_),
+                    i == Null<Size>() ? times_.end() : std::next(times_.begin(), i + 1),
+                    std::next(data_.begin(), skipTimesInterpolation_));
+            }
         }
         //@}
 
