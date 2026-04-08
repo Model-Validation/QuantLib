@@ -127,10 +127,13 @@ namespace QuantLib {
         }
 
         void setupInterpolation(Size i = Null<Size>(), const bool fallback = false) {
-            Size effectiveSkipTimesInterpolation = skipTimesInterpolation_;
-            if ((i == Null<Size>() && times_.size() <= Interpolator::requiredPoints) ||
-                (i != Null<Size>() && i <= Interpolator::requiredPoints))
-                effectiveSkipTimesInterpolation = 0;
+            /* we want i+1 - effSkipTimeInt >= reqPoints, i.e. effSkipTimeInt <= i+1 - reqPoints
+               (replace i+1 with times.size() if i == null) */
+            Size effectiveSkipTimesInterpolation = static_cast<Size>(std::max<int>(
+                0, std::min<int>(static_cast<int>(skipTimesInterpolation_),
+                                 (i == Null<Size>() ? static_cast<int>(times_.size()) :
+                                                      static_cast<int>(i + 1)) -
+                                     static_cast<int>(Interpolator::requiredPoints))));
             if (fallback) {
                 interpolation_ = Linear().interpolate(
                     std::next(times_.begin(), effectiveSkipTimesInterpolation),
