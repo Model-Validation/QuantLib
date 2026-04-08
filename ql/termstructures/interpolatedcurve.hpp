@@ -129,7 +129,7 @@ namespace QuantLib {
         void setupInterpolation(Size i = Null<Size>(), const bool fallback = false) {
             Size effectiveSkipTimesInterpolation = skipTimesInterpolation_;
             if ((i == Null<Size>() && times_.size() <= Interpolator::requiredPoints) ||
-                (i != Null<Size>()) && i > Interpolator::requiredPoints)
+                (i != Null<Size>() && i <= Interpolator::requiredPoints))
                 effectiveSkipTimesInterpolation = 0;
             if (fallback) {
                 interpolation_ = Linear().interpolate(
