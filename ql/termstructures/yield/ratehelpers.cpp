@@ -672,6 +672,9 @@ namespace QuantLib {
             tmp.withFloatingLegConvention(*floatConvention_)
                .withFloatingLegTerminationDateConvention(*floatConvention_);
         }
+        // only set settlementDays when no explicit start date, to avoid conflict
+        if (startDate_ == Date() && settlementDays_ != Null<Natural>())
+            tmp.withSettlementDays(settlementDays_);
         swap_ = tmp;
 
         simplifyNotificationGraph(*swap_, true);

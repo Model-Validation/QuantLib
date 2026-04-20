@@ -30,9 +30,21 @@ namespace QuantLib {
 
     namespace {
 
-        bool allowsEndOfMonth(const Period& tenor) {
-            return (tenor.units() == Months || tenor.units() == Years)
-                && tenor >= 1*Months;
+        Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
+            Date result = Date(20, d.month(), d.year());
+            if (result < d)
+                result += 1*Months;
+            if (rule == DateGeneration::TwentiethIMM ||
+                rule == DateGeneration::OldCDS ||
+                rule == DateGeneration::CDS ||
+                rule == DateGeneration::CDS2015) {
+                Month m = result.month();
+                if (m % 3 != 0) { // not a main IMM nmonth
+                    Integer skip = 3 - m%3;
+                    result += skip*Months;
+                }
+            }
+            return result;
         }
 
     }
@@ -232,7 +244,10 @@ namespace QuantLib {
                         (calendar_.adjust(dates_.back(),convention)!=
                          calendar_.adjust(firstDate_,convention))) {
                         dates_.push_back(firstDate_);
-                        isRegular_.push_back(false);
+                        isRegular_.push_back(
+                            nullCalendar.advance(dates_[dates_.size()-2],
+                                -1*(*tenor_), convention, *endOfMonth_) ==
+                            firstDate_);
                     }
                     break;
                 } else {
@@ -250,7 +265,10 @@ namespace QuantLib {
             if (calendar_.adjust(dates_.back(),convention)!=
                 calendar_.adjust(effectiveDate,convention)) {
                 dates_.push_back(effectiveDate);
-                isRegular_.push_back(false);
+                isRegular_.push_back(
+                    nullCalendar.advance(dates_[dates_.size()-2],
+                        -1*(*tenor_), convention, *endOfMonth_) ==
+                    effectiveDate);
             }
 	        std::reverse(dates_.begin(), dates_.end());
 	        std::reverse(isRegular_.begin(), isRegular_.end());
@@ -330,7 +348,10 @@ namespace QuantLib {
                         (calendar_.adjust(dates_.back(),convention)!=
                          calendar_.adjust(nextToLastDate_,convention))) {
                         dates_.push_back(nextToLastDate_);
-                        isRegular_.push_back(false);
+                        isRegular_.push_back(
+                            nullCalendar.advance(dates_[dates_.size()-2],
+                                1*(*tenor_), convention, *endOfMonth_) ==
+                            nextToLastDate_);
                     }
                     break;
                 } else {
@@ -759,6 +780,10 @@ namespace QuantLib {
             }
         }
         return result;
+    }
+
+    bool allowsEndOfMonth(const Period& tenor) {
+        return (tenor.units() == Months || tenor.units() == Years) && tenor >= 1 * Months;
     }
 
     Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
