@@ -44,7 +44,9 @@ namespace QuantLib {
             FlatVolatility,    /*!< Flat extrapolation of the latest available volatility. */
             UseInterpolator,   /*!< Delegate extrapolation to the underlying curve or surface,
                                     whatever the method it uses. */
-            LinearVariance     /*!< Linear extrapolation of variance from the last two
+            LinearVariance,     /*!< Linear extrapolation of variance from the last two
+                                    available nodes. */
+            LinearVolatility   /*!< Linear extrapolation of volatility from the last two
                                     available nodes. */
         };
 

@@ -60,6 +60,24 @@ namespace QuantLib {
             return linearExtrapolation(t, t1, t2, var1, var2);
         }
 
+        Real timeExtrapolationBlackVolatilityLinear(Time t, const std::vector<Time>& times,
+                                                  const std::function<Real(Time t)>& varianceCurve) {
+            Size N = times.size();
+            Time t1 = times[N-2], t2 = times[N-1];
+            Real vol1 = close_enough(t1, 0.0) ? 0.0 :  std::sqrt(std::max(varianceCurve(t1), 0.0) / t1);
+            Real vol2 = close_enough(t2, 0.0) ? 0.0 :  std::sqrt(std::max(varianceCurve(t2), 0.0) / t2);
+            return linearExtrapolation(t, t1, t2, vol1, vol2);
+        }
+
+        Real timeExtrapolationBlackVolatilityLinear(Time t, Real strike, const std::vector<Time>& times,
+                                                  const std::function<Real(Time t, Real k)>& varianceSurface) {
+            Size N = times.size();
+            Time t1 = times[N-2], t2 = times[N-1];
+            Real vol1 = close_enough(t1, 0.0) ? 0.0 :  std::sqrt(std::max(varianceSurface(t1, strike), 0.0) / t1);
+            Real vol2 = close_enough(t2, 0.0) ? 0.0 :  std::sqrt(std::max(varianceSurface(t2, strike), 0.0) / t2);
+            return linearExtrapolation(t, t1, t2, vol1, vol2);
+        }
+
     }
 
     Real BlackVolTimeExtrapolation::extrapolatedVariance(Type type, Time t, Real strike, const std::vector<Time>& times,
@@ -71,6 +89,8 @@ namespace QuantLib {
             return std::max(varianceSurface(t, strike), 0.0);
           case LinearVariance: 
             return timeExtrapolationBlackVarianceLinear(t, strike, times, varianceSurface);
+          case LinearVolatility:
+            return timeExtrapolationBlackVolatilityLinear(t, strike, times, varianceSurface);
           default:
             QL_FAIL("unknown extrapolation type");
         }
@@ -86,6 +106,10 @@ namespace QuantLib {
           case LinearVariance: {
               QL_REQUIRE(times.size() >= 2, "at least two times required for volatility extrapolation");
               return timeExtrapolationBlackVarianceLinear(t, times, varianceCurve);
+          }
+          case LinearVolatility: {
+              QL_REQUIRE(times.size() >= 2, "at least two times required for volatility extrapolation");
+              return timeExtrapolationBlackVolatilityLinear(t, times, varianceCurve);
           }
           default:
             QL_FAIL("unknown extrapolation type");
