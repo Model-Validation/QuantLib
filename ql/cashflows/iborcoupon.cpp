@@ -58,9 +58,10 @@ namespace QuantLib {
     IborCoupon::IborCoupon(const Date& paymentDate, Real nominal, const Date& startDate, const Date& endDate,
                            const Date& fixingDate, const ext::shared_ptr<IborIndex>& iborIndex, Real gearing,
                            Spread spread, const Date& refPeriodStart, const Date& refPeriodEnd,
-                           const DayCounter& dayCounter, bool isInArrears, const Date& exCouponDate)
+                           const DayCounter& dayCounter, bool isInArrears, const Date& exCouponDate, 
+                           BusinessDayConvention fixingConvention)
         : FloatingRateCoupon(paymentDate, nominal, startDate, endDate, fixingDate, iborIndex, gearing, spread,
-                             refPeriodStart, refPeriodEnd, dayCounter, isInArrears, exCouponDate),
+                             refPeriodStart, refPeriodEnd, dayCounter, isInArrears, exCouponDate, fixingConvention),
           iborIndex_(iborIndex) {}
 
     void IborCoupon::initializeCachedData() const {

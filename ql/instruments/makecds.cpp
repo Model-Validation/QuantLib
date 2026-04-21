@@ -81,7 +81,6 @@ namespace QuantLib {
             schedule = Schedule(protectionStart, end, couponTenor_, WeekendsOnly(), convention_,
                                 Unadjusted, rule_, false);
         }
-
         auto cds = ext::make_shared<CreditDefaultSwap>(
             side_, nominal_, upfrontRate_, runningSpread_, schedule, convention_,
             dayCounter_, settlesAccrual_, paysAtDefaultTime_, protectionStart, upfrontDate,

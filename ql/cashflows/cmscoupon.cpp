@@ -183,6 +183,7 @@ namespace QuantLib {
                          paymentLag_, Calendar(),
                          exCouponPeriod_, exCouponCalendar_,
                          exCouponAdjustment_, exCouponEndOfMonth_,
+                         paymentDates_,
                          fixingConvention_);
    }
 

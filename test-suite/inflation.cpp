@@ -2060,7 +2060,7 @@ BOOST_AUTO_TEST_CASE(testUsCpiLinearBootstrapAtMonthStart) {
 
         try {
             auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2139,7 +2139,7 @@ BOOST_AUTO_TEST_CASE(testEuHicpFlatBootstrapAtMonthStart) {
         // IterativeBootstrap
         try {
             auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2152,7 +2152,7 @@ BOOST_AUTO_TEST_CASE(testEuHicpFlatBootstrapAtMonthStart) {
         try {
             auto curve = ext::make_shared<
                 PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2233,7 +2233,7 @@ BOOST_AUTO_TEST_CASE(testUkRpiFlatBootstrapAtMonthStart) {
         // IterativeBootstrap
         try {
             auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2246,7 +2246,7 @@ BOOST_AUTO_TEST_CASE(testUkRpiFlatBootstrapAtMonthStart) {
         try {
             auto curve = ext::make_shared<
                 PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2325,7 +2325,7 @@ BOOST_AUTO_TEST_CASE(testUsCpiLinearGlobalBootstrapAtMonthStart) {
         try {
             auto curve = ext::make_shared<
                 PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {
@@ -2345,17 +2345,17 @@ BOOST_AUTO_TEST_CASE(testPillarCollisionWithDifferentMonthLengths) {
 
     /* With T+0 settlement and sub-annual helpers including a 13-month
      * tenor, consecutive helpers can mature in months of different
-     * length.  When the maturity day is near mid-month (day 15-16),
-     * the interpolation weight can cross the 0.5 threshold in one
-     * month but not another — e.g. day 16 in February (28 days,
-     * w = 15/28 = 0.536 → RIGHT) vs March (31 days, w = 15/31 =
-     * 0.484 → LEFT).  If pillar assignment used the maturity date,
-     * this would cause two helpers to map to the same pillar,
-     * crashing IterativeBootstrap.
-     *
-     * The fix uses startDate_ (shared across all helpers) for the
-     * weight calculation, so all helpers switch LEFT/RIGHT in sync.
-     *
+    * length.  When the maturity day is near mid-month (day 15-16),
+    * the interpolation weight can cross the 0.5 threshold in one
+    * month but not another — e.g. day 16 in February (28 days,
+    * w = 15/28 = 0.536 → RIGHT) vs March (31 days, w = 15/31 =
+    * 0.484 → LEFT).  If pillar assignment used the maturity date,
+    * this would cause two helpers to map to the same pillar,
+    * crashing IterativeBootstrap.
+    *
+    * The fix uses startDate_ (shared across all helpers) for the
+    * weight calculation, so all helpers switch LEFT/RIGHT in sync.
+    *
      * We loop February and March with T+0 settlement and a 13M
      * helper.  Without the startDate_ fix, Feb 16 and Mar 16 fail.
      * See https://github.com/lballabio/QuantLib/issues/2454 */
@@ -2415,7 +2415,7 @@ BOOST_AUTO_TEST_CASE(testPillarCollisionWithDifferentMonthLengths) {
 
         try {
             auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
-                evalDate, baseDate, Monthly, dc, helpers);
+                evalDate, baseDate, observationLag, Monthly, dc, helpers);
             hz.linkTo(curve);
             curve->zeroRate(evalDate + 1*Years);
         } catch (const std::exception&) {

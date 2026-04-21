@@ -2117,7 +2117,6 @@ set(QL_HEADERS
     termstructures/volatility/equityfx/blackconstantvol.hpp
     termstructures/volatility/equityfx/blackvariancecurve.hpp
     termstructures/volatility/equityfx/blackvariancesurface.hpp
-    termstructures/volatility/equityfx/blackvariancetimeextrapolation.hpp
     termstructures/volatility/equityfx/blackvolsurfacedelta.hpp
     termstructures/volatility/equityfx/blackvoltermstructure.hpp
     termstructures/volatility/equityfx/blackvoltimeextrapolation.hpp

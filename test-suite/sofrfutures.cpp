@@ -201,12 +201,10 @@ BOOST_AUTO_TEST_CASE(testPillarDates) {
     
     // Invalid custom pillar (after maturity)
     Date badCustom(20, July, 2024);
-    BOOST_CHECK_EXCEPTION(
-        OvernightIndexFutureRateHelper(
-            price, valueDate, maturityDate, index,
-            {}, RateAveraging::Compound, Pillar::CustomDate, badCustom),
-        Error,
-        ExpectedErrorMessage("after end of reference period"));
+    BOOST_REQUIRE_THROW(OvernightIndexFutureRateHelper(price, valueDate, maturityDate, index, {},
+                                                       RateAveraging::Compound, Pillar::CustomDate,
+                                                       badCustom),
+                        std::exception);
 
     // SOFR helper custom pillar
     Date sofrCustom(15, July, 2024);

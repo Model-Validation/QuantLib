@@ -185,6 +185,40 @@ namespace QuantLib {
         return zeroRateImpl(t);
     }
 
+
+    YoYInflationTermStructure::YoYInflationTermStructure(
+                                    Date baseDate,
+                                    Rate baseYoYRate,
+                                    const Period& observationLag,
+                                    Frequency frequency,
+                                    const DayCounter& dayCounter,
+                                    const ext::shared_ptr<Seasonality> &seasonality)
+    : InflationTermStructure(baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+    }
+
+    YoYInflationTermStructure::YoYInflationTermStructure(
+                                    const Date& referenceDate,
+                                    Date baseDate,
+                                    Rate baseYoYRate,
+                                    const Period& observationLag,
+                                    Frequency frequency,
+                                    const DayCounter& dayCounter,
+                                    const ext::shared_ptr<Seasonality> &seasonality)
+    : InflationTermStructure(referenceDate, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+    }
+
+    YoYInflationTermStructure::YoYInflationTermStructure(
+                                    Natural settlementDays,
+                                    const Calendar& calendar,
+                                    Date baseDate,
+                                    Rate baseYoYRate,
+                                    const Period& observationLag,
+                                    Frequency frequency,
+                                    const DayCounter& dayCounter,
+                                    const ext::shared_ptr<Seasonality> &seasonality)
+    : InflationTermStructure(settlementDays, calendar, baseDate, observationLag, frequency, dayCounter, seasonality, baseYoYRate) {
+    }
+
     Rate YoYInflationTermStructure::yoyRate(const Date &d, bool extrapolate) const {
         QL_DEPRECATED_DISABLE_WARNING
         return yoyRate(d, Period(0, Days), false, extrapolate);

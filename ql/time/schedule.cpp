@@ -28,26 +28,6 @@
 
 namespace QuantLib {
 
-    namespace {
-
-        Date nextTwentieth(const Date& d, DateGeneration::Rule rule) {
-            Date result = Date(20, d.month(), d.year());
-            if (result < d)
-                result += 1*Months;
-            if (rule == DateGeneration::TwentiethIMM ||
-                rule == DateGeneration::OldCDS ||
-                rule == DateGeneration::CDS ||
-                rule == DateGeneration::CDS2015) {
-                Month m = result.month();
-                if (m % 3 != 0) { // not a main IMM nmonth
-                    Integer skip = 3 - m%3;
-                    result += skip*Months;
-                }
-            }
-            return result;
-        }
-
-    }
 
 
     Schedule::Schedule(const std::vector<Date>& dates,

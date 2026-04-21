@@ -52,7 +52,7 @@ namespace QuantLib {
           BlackVarianceCurve(const Date& referenceDate, const std::vector<Date>& dates,
                              const std::vector<Volatility>& blackVolCurve, DayCounter dayCounter,
                              bool forceMonotoneVariance = true, 
-                             BlackVolTimeExtrapolation::Type timeExtrapolation = BlackVolTimeExtrapolation::FlatVolatility,
+                             BlackVolTimeExtrapolation::Type timeExtrapolationType = BlackVolTimeExtrapolation::FlatVolatility,
                              const VolatilityType type = VolatilityType::ShiftedLognormal,
                              const Real shift = 0.0);
           //! \name TermStructure interface
@@ -86,8 +86,9 @@ namespace QuantLib {
         std::vector<Time> times_;
         std::vector<Real> variances_;
         Interpolation varianceCurve_;
-        BlackVolTimeExtrapolation::Type timeExtrapolation_;
+        BlackVolTimeExtrapolation::Type timeExtrapolationType_;
     };
+
 
     // inline definitions
 

@@ -25,7 +25,6 @@
 
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
-#include <ql/termstructures/volatility/equityfx/blackvariancetimeextrapolation.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -41,7 +40,7 @@ namespace QuantLib {
     : BlackVarianceTermStructure(
           referenceDate, Calendar(), Following, DayCounter(), type, shift),
       dayCounter_(std::move(dayCounter)), maxDate_(dates.back()),
-      timeExtrapolation_(timeExtrapolation) {
+      timeExtrapolationType_(timeExtrapolation) {
 
         QL_REQUIRE(dates.size()==blackVolCurve.size(),
                    "mismatch between date vector and black vol vector");

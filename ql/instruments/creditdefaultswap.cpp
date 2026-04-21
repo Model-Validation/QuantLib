@@ -248,7 +248,23 @@ namespace QuantLib {
 
         // Set the maturity date.
         maturity_ = schedule_.dates().back();
-        
+        // Deal with the accrual rebate. We use the standard conventions for accrual calculation introduced with the
+        // CDS Big Bang in 2009
+        auto calculateAccrualDate =[](const Date& d, const Leg& leg, const DayCounter& dayCounter, const DayCounter& lastPeriodDayCounter)->Date {
+            Date nextPaymentDate = CashFlows::nextCashFlowDate(leg, true, d);
+            Date accrualDate = d + (dayCounter.includeLastDay() ? 0 : 1);
+            if (nextPaymentDate == leg.back()->date()) {
+                accrualDate = d + (lastPeriodDayCounter.includeLastDay() ? 0 : 1);
+            }
+            return accrualDate;
+        };
+        if (rebatesAccrual_ && postBigBang_) {
+            Date accrualDate =
+                calculateAccrualDate(tradeDate_, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
+            accrualRebate_ = ext::make_shared<SimpleCashFlow>(
+                CashFlows::accruedAmount(leg_, tradeDate_ + 1 == leg_.back()->date(), accrualDate),
+                effectiveUpfrontDate_);
+        }
         if (!claim_)
             claim_ = ext::make_shared<FaceValueClaim>();
         registerWith(claim_);
@@ -266,11 +282,6 @@ namespace QuantLib {
             return accrualDate;
         };
         if (rebatesAccrual_ && postBigBang_) {
-            Date accrualDate =
-                calculateAccrualDate(tradeDate_, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
-            accrualRebate_ = ext::make_shared<SimpleCashFlow>(
-                CashFlows::accruedAmount(leg_, tradeDate_ + 1 == leg_.back()->date(), accrualDate),
-                effectiveUpfrontDate_);
             Date current = std::max((Date)Settings::instance().evaluationDate(), tradeDate_);
             Date currentAccrualDate = calculateAccrualDate(current, leg_, dayCounter_, effectiveLastPeriodDayCounter_);
             accrualRebateCurrent_ = ext::make_shared<SimpleCashFlow>(

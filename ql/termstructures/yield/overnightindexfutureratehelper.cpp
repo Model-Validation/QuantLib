@@ -62,9 +62,9 @@ namespace QuantLib {
         earliestDate_ = valueDate;
         latestRelevantDate_ = latestDate_ = maturityDate;
         pillarDate_ = customPillarDate;
-        switch (pillarChoice) {
+        switch (pillar) {
           case Pillar::MaturityDate:
-            pillarDate_ = maturityDate_;
+            pillarDate_ = maturityDate;
             break;
           case Pillar::LastRelevantDate:
             pillarDate_ = latestRelevantDate_;
@@ -84,7 +84,7 @@ namespace QuantLib {
                        latestRelevantDate_ << ")");
             break;
           default:
-            QL_FAIL("unknown Pillar::Choice(" << Integer(pillarChoice) << ")");
+            QL_FAIL("unknown Pillar::Choice(" << Integer(pillar) << ")");
         }
         latestDate_ = pillarDate_; // backward compatibility
     }

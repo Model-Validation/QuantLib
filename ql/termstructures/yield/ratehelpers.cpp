@@ -655,7 +655,6 @@ namespace QuantLib {
             MakeVanillaSwap(tenor_, iborIndex_,
                             quote().empty() || !quote()->isValid() ? 0.0 : quote()->value(),
                             fwdStart_)
-                .withSettlementDays(settlementDays_) // resets effectiveDate
                 .withEffectiveDate(startDate_)
                 .withTerminationDate(endDate_)
                 .withDiscountingTermStructure(discountRelinkableHandle_)
