@@ -40,7 +40,7 @@ namespace QuantLib {
     template <class UnaryFunction>
     class DerivedQuote : public Quote, public Observer {
       public:
-        DerivedQuote(Handle<Quote> element, UnaryFunction f);
+        DerivedQuote(Handle<Quote> element, UnaryFunction f, bool pureFunction = true);
         //! \name Quote interface
         //@{
         Real value() const override;
@@ -54,25 +54,28 @@ namespace QuantLib {
         Handle<Quote> element_;
         mutable Real value_ = Null<Real>();
         UnaryFunction f_;
+        bool pureFunction_;
     };
 
     //! creator method
     template <class UnaryFunction>
-    DerivedQuote<UnaryFunction> makeDerivedQuote(Handle<Quote> element,
-                                                 UnaryFunction f) {
-        return DerivedQuote<UnaryFunction>(std::move(element), std::move(f));
+    DerivedQuote<UnaryFunction>
+    makeDerivedQuote(Handle<Quote> element, UnaryFunction f, bool pureFunction = true) {
+        return DerivedQuote<UnaryFunction>(std::move(element), std::move(f), pureFunction);
     }
 
     // inline definitions
     template <class UnaryFunction>
-    inline DerivedQuote<UnaryFunction>::DerivedQuote(Handle<Quote> element, UnaryFunction f)
-    : element_(std::move(element)), f_(std::move(f)) {
+    inline DerivedQuote<UnaryFunction>::DerivedQuote(Handle<Quote> element,
+                                                     UnaryFunction f,
+                                                     bool pureFunction)
+    : element_(std::move(element)), f_(std::move(f)), pureFunction_(pureFunction) {
         registerWith(element_);
     }
 
     template <class UnaryFunction>
     inline Real DerivedQuote<UnaryFunction>::value() const {
-        if (value_ == Null<Real>()) {
+        if (!pureFunction_ || value_ == Null<Real>()) {
             QL_ENSURE(isValid(), "invalid DerivedQuote");
             value_ = f_(element_->value());
         }
