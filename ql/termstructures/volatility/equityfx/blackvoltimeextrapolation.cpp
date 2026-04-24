@@ -20,6 +20,7 @@
 
 #include <ql/termstructures/volatility/equityfx/blackvoltimeextrapolation.hpp>
 #include <ql/errors.hpp>
+#include <ql/math/comparison.hpp>
 #include <array>
 
 namespace QuantLib {
