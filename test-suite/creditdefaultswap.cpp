@@ -1017,7 +1017,10 @@ BOOST_AUTO_TEST_CASE(testDefaultConventions) {
 
     BOOST_CHECK_EQUAL(cds->settlesAccrual(), true);
     BOOST_CHECK_EQUAL(cds->paysAtDefaultTime(), true);
-    BOOST_CHECK_EQUAL(cds->rebatesAccrual(), true);
+    // stock QL computes accrual rebate during construction,
+    // we have to postpone it until pricin the fixed leg could be indexed and depend on fixing not loaded yet. 
+    // therefore it returns false before pricing
+    BOOST_CHECK_EQUAL(cds->rebatesAccrual(), false);
 
     auto first = ext::dynamic_pointer_cast<Coupon>(cds->coupons().front());
     auto last = ext::dynamic_pointer_cast<Coupon>(cds->coupons().back());
