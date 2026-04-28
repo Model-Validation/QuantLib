@@ -35,7 +35,7 @@ namespace QuantLib {
     template <class ArrayFunction>
     class MultiCompositeQuote : public Quote, public Observer {
       public:
-        MultiCompositeQuote(std::vector<Handle<Quote>> elements, ArrayFunction f);
+        MultiCompositeQuote(std::vector<Handle<Quote>> elements, ArrayFunction f, bool pureFunction = false);
         //! \name inspectors
         //@{
         Real inputValue(Size i) const { return elements_.at(i)->value(); }
@@ -53,6 +53,7 @@ namespace QuantLib {
         std::vector<Handle<Quote>> elements_;
         mutable Real value_ = Null<Real>();
         ArrayFunction f_;
+        bool pureFunction_ = false;
     };
 
     // inline definitions
@@ -60,15 +61,16 @@ namespace QuantLib {
     template <class ArrayFunction>
     inline MultiCompositeQuote<ArrayFunction>::MultiCompositeQuote(
         std::vector<Handle<Quote>> elements,
-        ArrayFunction f)
-    : elements_(std::move(elements)), f_(std::move(f)) {
+        ArrayFunction f,
+        bool pureFunction)
+    : elements_(std::move(elements)), f_(std::move(f)), pureFunction_(pureFunction) {
         for (auto& elem : elements_)
             registerWith(elem);
     }
 
     template <class ArrayFunction>
     inline Real MultiCompositeQuote<ArrayFunction>::value() const {
-        if (value_ == Null<Real>()) {
+        if (!pureFunction_ || value_ == Null<Real>()) {
             QL_ENSURE(isValid(), "invalid MultiCompositeQuote");
             Array args(elements_.size());
             std::transform(elements_.begin(), elements_.end(), args.begin(),

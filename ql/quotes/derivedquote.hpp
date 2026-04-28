@@ -40,7 +40,7 @@ namespace QuantLib {
     template <class UnaryFunction>
     class DerivedQuote : public Quote, public Observer {
       public:
-        DerivedQuote(Handle<Quote> element, UnaryFunction f, bool pureFunction = true);
+        DerivedQuote(Handle<Quote> element, UnaryFunction f, bool pureFunction = false);
         //! \name Quote interface
         //@{
         Real value() const override;
@@ -54,7 +54,7 @@ namespace QuantLib {
         Handle<Quote> element_;
         mutable Real value_ = Null<Real>();
         UnaryFunction f_;
-        bool pureFunction_;
+        bool pureFunction_ = false;
     };
 
     //! creator method
