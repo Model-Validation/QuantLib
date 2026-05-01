@@ -26,7 +26,7 @@
 #ifndef quantlib_forward_curve_hpp
 #define quantlib_forward_curve_hpp
 
-#include <ql/termstructures/yield/forwardstructure.hpp>
+#include <ql/termstructures/yield/zeroyieldstructure.hpp>
 #include <ql/termstructures/interpolatedcurve.hpp>
 #include <ql/math/interpolations/backwardflatinterpolation.hpp>
 #include <utility>
@@ -36,7 +36,7 @@ namespace QuantLib {
     //! YieldTermStructure based on interpolation of forward rates
     /*! \ingroup yieldtermstructures */
     template <class Interpolator>
-    class InterpolatedForwardCurve : public ForwardRateStructure,
+    class InterpolatedForwardCurve : public ZeroYieldStructure,
                                      protected InterpolatedCurve<Interpolator> {
       public:
         // constructor
@@ -101,9 +101,8 @@ namespace QuantLib {
             const Extrapolation extrapolation = Extrapolation::ContinuousForward,
             const bool excludeTimeZeroFromInterpolation = false);
 
-        //! \name ForwardRateStructure implementation
+        //! \name ZeroYieldStructure implementation
         //@{
-        Rate forwardImpl(Time t) const override;
         Rate zeroYieldImpl(Time t) const override;
         //@}
         Extrapolation extrapolation_;
@@ -166,24 +165,9 @@ namespace QuantLib {
     // template definitions
 
     template <class T>
-    Rate InterpolatedForwardCurve<T>::forwardImpl(Time t) const {
-        if (t <= this->times_.back()) {
-            if (excludeTimeZeroFromInterpolation_) {
-                // flat forward between 0 and first positive time
-                if (t < this->times_[1])
-                    return this->data_[1];
-            }
-            return this->interpolation_(t, true);
-        }
-
-        // flat fwd extrapolation
-        return this->data_.back();
-    }
-
-    template <class T>
     Rate InterpolatedForwardCurve<T>::zeroYieldImpl(Time t) const {
         if (t == 0.0)
-            return forwardImpl(0.0);
+            return this->interpolation_(t, true);
 
         Real integral = 0.0;
         Real tCutoff = 0.0;
@@ -227,7 +211,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(dayCounter),
+    : ZeroYieldStructure(dayCounter),
       InterpolatedCurve<T>(interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation),
       excludeTimeZeroFromInterpolation_(excludeTimeZeroFromInterpolation) {}
@@ -241,7 +225,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(referenceDate, Calendar(), dayCounter, jumps, jumpDates),
+    : ZeroYieldStructure(referenceDate, Calendar(), dayCounter, jumps, jumpDates),
       InterpolatedCurve<T>(interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation) {}
 
@@ -255,7 +239,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
+    : ZeroYieldStructure(settlementDays, calendar, dayCounter, jumps, jumpDates),
       InterpolatedCurve<T>(interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation),
       excludeTimeZeroFromInterpolation_(excludeTimeZeroFromInterpolation) {}
@@ -271,7 +255,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(dates.at(0), calendar, dayCounter, jumps, jumpDates),
+    : ZeroYieldStructure(dates.at(0), calendar, dayCounter, jumps, jumpDates),
       InterpolatedCurve<T>(
           std::vector<Time>(), forwards, interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation),
@@ -288,7 +272,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(dates.at(0), calendar, dayCounter),
+    : ZeroYieldStructure(dates.at(0), calendar, dayCounter),
       InterpolatedCurve<T>(
           std::vector<Time>(), forwards, interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation),
@@ -304,7 +288,7 @@ namespace QuantLib {
         const T& interpolator,
         const Extrapolation extrapolation,
         const bool excludeTimeZeroFromInterpolation)
-    : ForwardRateStructure(dates.at(0), Calendar(), dayCounter),
+    : ZeroYieldStructure(dates.at(0), Calendar(), dayCounter),
       InterpolatedCurve<T>(
           std::vector<Time>(), forwards, interpolator, excludeTimeZeroFromInterpolation ? 1 : 0),
       extrapolation_(extrapolation),
