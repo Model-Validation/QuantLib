@@ -21,7 +21,7 @@ this_include_HEADERS = \
     sviinterpolatedsmilesection.hpp \
     sviinterpolation.hpp \
     svismilesection.hpp \
-    volcube.hpp \
+    svivolsurface.hpp \
     zabr.hpp \
     zabrinterpolatedsmilesection.hpp \
     zabrinterpolation.hpp \

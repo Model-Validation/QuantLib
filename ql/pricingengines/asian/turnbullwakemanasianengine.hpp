@@ -46,8 +46,11 @@ namespace QuantLib {
     */
     class TurnbullWakemanAsianEngine : public DiscreteAveragingAsianOption::engine {
       public:
-        explicit TurnbullWakemanAsianEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process)
-        : process_(std::move(process)) {
+        explicit TurnbullWakemanAsianEngine(ext::shared_ptr<GeneralizedBlackScholesProcess> process,
+                                            const bool useAdjustedStrikeVol = true,
+                                            const bool useAverageVol = false)
+        : process_(std::move(process)), useAdjustedStrikeVol_(useAdjustedStrikeVol),
+          useAverageVol_(useAverageVol) {
             registerWith(process_);
         }
 
@@ -55,6 +58,8 @@ namespace QuantLib {
 
       private:
         ext::shared_ptr<GeneralizedBlackScholesProcess> process_;
+        bool useAdjustedStrikeVol_;
+        bool useAverageVol_;
     };
 
 }

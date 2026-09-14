@@ -79,7 +79,7 @@
  * encoded as  13  [ (1)1101(1) ]  in the array for degree 5.
  */
 
-#define PPMT_MAX_DIM 8129334
+#define PPMT_MAX_DIM 21200
 
 #define N_PRIMITIVES_UP_TO_DEGREE_01         1
 #define N_PRIMITIVES_UP_TO_DEGREE_02         2
